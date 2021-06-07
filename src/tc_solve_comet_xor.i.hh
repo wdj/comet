@@ -74,23 +74,24 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   //  printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",
   //         m,n,k,m,k,k,n,m,n,gridx,gridy);
 
-  if(gridx>=m || gridy>=n) return;
+  if(gridy>=m || gridx>=n) return;
 
   enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
   // Matrix block location
-  int aBegin = k * BLOCK_SIZE * bx;
-  int bBegin = k * BLOCK_SIZE * by;
+  int aBegin = k * BLOCK_SIZE * by;
+  int bBegin = k * BLOCK_SIZE * bx;
 
   // Stores element of block sub-matrix computed by thread
   double c0 = 0, c1 = 0;
+  int32_t ci0 = 0, ci1 = 0, ci2 = 0, ci3 = 0;
 
   // Each thread computes one element of block sub-matrix
   for (int l=0; l<k; ++l) {
 
     // A row major and B col major
-    int aInd = aBegin + k*tx + l;
-    int bInd = bBegin + k*ty + l;
+    int aInd = aBegin + k*ty + l;
+    int bInd = bBegin + k*tx + l;
 
     //---Extract input values to process---
     const GMBits2x64 vi = a[aInd];
@@ -151,6 +152,7 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
     //---Accumulate---              
     c0 += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
     c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);  
+    ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
 
     //printf("b=%d,%d t=%d,%d r=%ld %ld %ld %ld c=%d %d %d %d\n",
     //       bx,by,tx,ty,r00,r01,r10,r11,ci0,ci1,ci2,ci3);
@@ -161,18 +163,15 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   // Each thread writes one element of block sub-matrix to memory
   int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
   int cInd   = cBegin + tx*n + ty;
-  //int cBegin = n*by*BLOCK_SIZE+bx*BLOCK_SIZE;
-  //int cInd   = cBegin + ty*n + tx;
   if(beta) {
-    //printf("cInd=%d cdata0=%f cdata1=%f c0=%f c1=%f\n",cInd,c[cInd].data[0],c[cInd].data[1],c0,c1); 
     c[cInd].data[0] += c0;
     c[cInd].data[1] += c1;
   } else {
     c[cInd].data[0] = c0;
     c[cInd].data[1] = c1;
   }
-  //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
-  //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
+  //printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci=%d c01=%lf,%lf ci0123=%d,%d,%d,%d\n",
+  //       bx,by,tx,ty,cBegin,n*bx*BLOCK_SIZE,by*BLOCK_SIZE,cInd,c0,c1,ci0,ci1,ci2,ci3);
 }
 
 //-----------------------------------------------------------------------------
@@ -833,11 +832,6 @@ static void tc_solve_comet_xor_impl(bool is_first, int m, int n, int k,
       gridblockx = (int)ceil((double)m/threadblockx);
       gridblocky = (int)ceil((double)n/threadblocky);
       if(env.print_details()) printf("Calling b1_comet_xor_gemm_gpu_simple kernel gridDim=%d,%d threadDim=%d,%d\n",gridblockx,gridblocky,threadblockx,threadblocky);
-      /*COMET_LAUNCH_KERNEL(b1_comet_xor_gemm_gpu_simple,
-        dim3(gridblockx, gridblocky, 1),
-        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
-        n, m, k, (GMBits2x64*)matB,
-        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);*/
       COMET_LAUNCH_KERNEL(b1_comet_xor_gemm_gpu_simple,
         dim3(gridblockx, gridblocky, 1),
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),

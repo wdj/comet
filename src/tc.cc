@@ -93,8 +93,8 @@ size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
     // NOTE: for tc, must be >= 2 -- see tc_in.
     //!env.is_compute_method_gpu() ? 1 :
     //!env.is_metric_type_bitwise() ? 1 :
-    //env.is_using_cutlass() ? 256 : // Use for performance
-    env.is_using_cutlass() ? 4 : // Use for debugging
+    env.is_using_cutlass() ? 256 : // Use for performance
+    //env.is_using_cutlass() ? 8 : // Use for debugging
     // Curent requirement >= 4 - see tc_in.
     env.is_using_cutlass_mockup() ? 4 :
     8; // cuBLAS/rocBLAS
@@ -126,8 +126,8 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
   const size_t result = env.tc_eff() == TC::NO ? 1 :
     //!env.is_compute_method_gpu() ? 1 :
     //!env.is_metric_type_bitwise() ? 1 :
-    //env.is_using_cutlass() ? 64 : // Use for performance
-    env.is_using_cutlass() ? 4 : // Use for debugging
+    env.is_using_cutlass() ? 64 : // Use for performance
+    //env.is_using_cutlass() ? 1 : // Use for debugging
     1;
 
     //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4;
@@ -148,7 +148,9 @@ size_t tc_nvl_divisibility_required_for_gemm(const CEnv& env) {
   const size_t factor_gemm = tc_gemm_vaxis_divisibility_required(env);
 
   // tc methods require 2 columns per vector, exploit this if possible..
+  //const size_t factor = factor_gemm;
   const size_t factor = env.tc_eff() == 0 ? factor_gemm :
+		        env.tc_eff()==5 && env.num_kernel()>=100 && env.num_kernel()<200 ? factor_gemm :
                         factor_gemm % 2 == 0 ? factor_gemm / 2 :
                         factor_gemm;
 
@@ -260,7 +262,7 @@ static void tc_gemm_start_impl_(
   const int I_max = m;
   const int I_max_dim = lddc;
 
-  if(env.print_details()) printf("In tc_gemm_start_impl num_tc_steps=%d nvl=%d npfl=%d d=%d I_max=%d I_max_dim=%d vaxis_req=%zu\n",
+  if(env.print_details()) printf("In tc_gemm_start_impl_ num_tc_steps=%d nvl=%d npfl=%d d=%d I_max=%d nvll=I_max_dim=%d vaxis_req=%zu\n",
     env.num_tc_steps(),nvl,npfl,d,I_max,I_max_dim,tc_gemm_vaxis_size_required(I_max_dim, env));
 
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
@@ -385,6 +387,9 @@ static void tc_gemm_comet_start_int_impl_(
   const int I_max = m;
   const int I_max_dim = lddc;
 
+  if(env.print_details()) printf("In tc_gemm_comet_start_int_impl_ num_tc_steps=%d nvl=%d npfl=%d d=%d I_max=%d nvll=I_max_dim=%d vaxis_req=%zu\n",
+    env.num_tc_steps(),nvl,npfl,d,I_max,I_max_dim,tc_gemm_vaxis_size_required(I_max_dim, env));
+
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
   // nvll is the effective nvl (column dim) for the left matrix
   // We only really only need up to I_max, but must compute to I_max_dim
@@ -392,8 +397,6 @@ static void tc_gemm_comet_start_int_impl_(
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
   COMET_INSIST((size_t)nvll == tc_gemm_vaxis_size_required(nvll, env));
-
-  if(env.print_details()) printf("In tc_comet_int_gemm_start_impl\n");
 
   // Get matX counts if needed.
 
@@ -419,10 +422,10 @@ static void tc_gemm_comet_start_int_impl_(
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
-    if(env.print_details()) printf("mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d npfl=%d pfl_min/max=%d/%d d=%d I_max_dim=%d lddc=%d tc_step_num=%d num_tc_steps=%d\n",
-      m,n,k,nvll,nvl,npfl_thisstep,npfl,pfl_min,pfl_max,d,I_max_dim,lddc,tc_step_num,num_tc_steps);
-    tc_solve_comet_int_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
-      matA1, matB, matC, tc_bufs, env);
+    if(env.print_details()) printf("mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d npfl=%d pfl_min/max=%d/%d d=%d I_max_dim=%d lddc=%d tc_step_num=%d num_tc_steps=%d step_2way=%d nfal=%d is_vec_halved=%d\n",
+      m,n,k,nvll,nvl,npfl_thisstep,npfl,pfl_min,pfl_max,d,I_max_dim,lddc,tc_step_num,num_tc_steps,step_2way,nfal,env.is_vectors_halved());
+    tc_solve_comet_int_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep, pfl_min, step_2way, nfal,
+      matA1, matA2, matB, matC, tc_bufs, env);
 
   } // for
 
@@ -447,7 +450,7 @@ static void tc_gemm_comet_start_int_impl_(
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute bitwise result: implementation.
-
+/// Output double matrix
 template<int TC_METHOD>
 static void tc_gemm_comet_start_impl_(
   int m, int n, int k,
@@ -462,7 +465,6 @@ static void tc_gemm_comet_start_impl_(
   COMET_INSIST(npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
-  //double tbegin;
 
   if(env.print_details()) printf("In tc_gemm_comet_start_impl num_tc_steps=%d nvl=%d npfl=%d d=%d I_max=%d I_max_dim=%d vaxis_req=%zu\n",
     env.num_tc_steps(),nvl,npfl,d,I_max,I_max_dim,tc_gemm_vaxis_size_required(I_max_dim, env));
@@ -512,14 +514,14 @@ static void tc_gemm_comet_start_impl_(
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE MF=%d\n",MetricFormat::SINGLE);
-    tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
+    tc_out_double_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
   } else {
 
     if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE MF=%d\n",MetricFormat::PACKED_DOUBLE);
-    tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
+    tc_out_double_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
@@ -654,8 +656,8 @@ void TCBufs::malloc(int num_vector_local,
   COMET_INSIST(!tc_bufs.tc_buf_left);
   COMET_INSIST(!tc_bufs.tc_buf_right);
 
-  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO || env.num_kernel() >= 100) {
-    if(env.print_details()) printf("Skipping TCBufs malloc bitwise=%d tc_eff=%d\n",env.is_metric_type_bitwise(),env.tc_eff());
+  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO || (env.tc_eff()==TC::B1 && env.num_kernel() >= 100 && env.num_kernel()<200)) {
+    if(env.print_details()) printf("Skipping TCBufs malloc bitwise=%d tc_eff=%d kernel=%d\n",env.is_metric_type_bitwise(),env.tc_eff(),env.num_kernel());
     return;
   }
 
@@ -774,6 +776,8 @@ void TCBufs::malloc(int num_vector_local,
     //memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
 
   } // compute_method
+
+  if(env.print_details()) printf("Done mallocing TCBufs\n");
 }
 
 //-----------------------------------------------------------------------------

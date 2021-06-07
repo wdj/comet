@@ -268,7 +268,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   if (! env.is_proc_active()) {
     return;
   }
-  bool print_details=true;
+  //bool print_details=true;
+  bool print_details=false;
   if(env.print_details()) printf("In checksum compute\n");
 
   // Check for NaNs if appropriate

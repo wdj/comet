@@ -171,11 +171,9 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              snm == _UNDEF    ? zero :
              (snm&1) == jE    ? one :
           /* (snm&1) == 1-jE */ zero
-
     ) : num_way_3_left && is_bitwise_3way_2step
-        /* && is_ccc && form_matX_tc */ ? (
-
-             // Form X: combine the column and matrix
+        // && is_ccc && form_matX_tc
+	? (// Form X: combine the column and matrix
              snm == _UNDEF && is_sparse          ? zero :
              snc == _UNDEF && is_sparse          ? zero :
              snm == _11*(1-kE)                   ? zero :
@@ -183,12 +181,12 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              is_po2(snm) && is_po2(snc)          ? one :
              is_po2(snm) && snc == _11*jE        ? two :
              is_po2(snc) && snm == _11*kE        ? two :
-          /* snm*(3-snm) + (snc)*(3-snc) == 0 */   four
+          // snm*(3-snm) + (snc)*(3-snc) == 0
+	     four
 
     ) : num_way_3_left && form_matX_tc
-        /* && is_ccc && !is_bitwise_3way_2step */ ? (
-
-             // Encode based on 2way step num
+        // && is_ccc && !is_bitwise_3way_2step
+	 ? (// Encode based on 2way step num
              snm == _UNDEF && is_sparse   ? zero :
              snm == _00 && step_2way != 0 ? zero :
              snm == _01 && step_2way != 1 ? zero :
@@ -198,17 +196,17 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              snc == _11*(1-jE)            ? zero :
              snc == _01                   ? one :
              is_sparse                    ? zero :
-          /* snc == _10 */                  one
+          // snc == _10
+	     one
 
-    ) : /* is_ccc ... */ (
-
-             snm == _11*jE                   ? two :
+    ) : // is_ccc ... 
+	   ( snm == _11*jE                   ? two :
              snm == _11*(1-jE)               ? zero :
              snm == _01                      ? one :
              snm == _UNDEF && is_sparse      ? zero :
-          /* snm == _UNDEF && num_way_3_left ? zero :*/
-          /* snm == _10 && ... */              one
-
+          // snm == _UNDEF && num_way_3_left ? zero :
+          // snm == _10 && ...
+	     one
     );
   //printf("snm=%u snm&1=%u jE=%d out=%u\n",snm,(snm&1),jE,out);
   return out;
@@ -383,6 +381,10 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   if (TC_METHOD == TC::B1 && is_duo && NGIPT == 1 && sizeof(GemmIn_t) == 4 &&
       sizeof(TCWord_t) == 8 && IS_B_FIELD_MAJOR) {
 
+    int pv0=0, pv1=2;
+    //int pv0=760, pv1=768;
+    int pf0=16;
+
     const int vl = is_vectors_halved && IS_LEFT ?
                    vl_thread % nvleD2 + step_2way * nvleD2 :
                    vl_thread;
@@ -405,6 +407,10 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
     const TCWord_t c_word = is_vector_inactive ? 0 : !num_way_3_left ? 0 :
       vic[flT];
+
+    if(flT_thread<pf0 && vl_thread>=pv0 && vl_thread<pv1)
+      printf("tc_in vlT=%d flT=%d flT_min=%d vl=%d vi_dim0=%d vimind=%d vicind=%d n3l=%d jE=%d kE=%d nvleD2=%d m_word=%lu c_word=%lu\n",
+        vl_thread,flT_thread,flT_min,vl,vi_dim0,vl*vi_dim0 + flT,flT,num_way_3_left,jE,kE,nvleD2,m_word,c_word);
 
     // Calculate target result on odd bits.
 
@@ -435,6 +441,16 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       (jE ? m_word : ~m_word) &
       oddbits_mask & field_active_mask & m_notundef_mask;
 
+    if(flT_thread<pf0 && vl_thread>=pv0 && vl_thread<pv1) {
+      if(num_way_3_left) {
+	printf("tc_in vlT=%d flT=%d n3l=%d jE=%d kE=%d fmask=%lu mw=%lu cw=%lu mnotmask=%lu cnotmask=%lu vo64=%lu\n",
+          vl_thread,flT_thread,num_way_3_left,jE,kE,field_active_mask,(kE ? m_word : ~m_word),(jE ? c_word : ~c_word),m_notundef_mask,c_notundef_mask,vo_value_64);
+      } else {
+        printf("tc_in vlT=%d flT=%d n3l=%d jE=%d kE=%d fmask=%lu mw=%lu mnotmask=%lu vo64=%lu\n",
+          vl_thread,flT_thread,num_way_3_left,jE,kE,field_active_mask,(jE ? m_word : ~m_word),m_notundef_mask,vo_value_64);
+      }
+    }
+
     // Store.
 
     const size_t flG_index = 0 + NGIPT * flT_thread;
@@ -443,7 +459,16 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
     // Put odd bits of 64-bit word into 32-bit word.
     const GemmIn_t* const vo_value_32 = (GemmIn_t*)&vo_value_64;
+
+    if(flT_thread<pf0 && vl_thread>=pv0 && vl_thread<pv1)
+      printf("tc_in vlT=%d flT=%d n3l=%d GemmIn_t=%d vo_value=%d v32=%d,%d vo64=%lu vo=%d\n",
+        vl_thread,flT_thread,num_way_3_left,(int)sizeof(GemmIn_t),(int32_t)vo[flG_index+nflG_dim*vlX2_index],(int32_t)vo_value_32[0],(int32_t)vo_value_32[1],vo_value_64,(int32_t)vo_value);
+
     vo_value = vo_value_32[0] | (vo_value_32[1] << 1);
+
+    if(flT_thread<pf0 && vl_thread>=pv0 && vl_thread<pv1)
+      printf("tc_in vlT=%d flT=%d n3l=%d vind=%ld v32=%d,%d vo64=%lu vo=%d\n",
+        vl_thread,flT_thread,num_way_3_left,(uint64_t)(flG_index+nflG_dim*vlX2_index),(int32_t)vo_value_32[0],(int32_t)vo_value_32[1],vo_value_64,(int32_t)vo_value);
 
     return;
   }
@@ -686,7 +711,6 @@ __global__ static void tc_buf_write_kernel_(
   if (vlX2_thread >= nvleX2_thread || flT_thread >= nflT_thread)
     return;
 
-  //printf("Calling write_elt with t=%d,%d vlX2_thread=%d flT_thread=%d\n",thread_dim0,thread_dim1,vlX2_thread,flT_thread);
   tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>(vo, vim, vic,
     vi_dim0, num_way, is_sparse, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
@@ -712,8 +736,6 @@ void tc_buf_write_(
   COMET_INSIST(npfl_thisstep >= 0 && npfl_thisstep <= npfl);
   COMET_INSIST(pfl_min >= 0 && pfl_min + npfl_thisstep <= npfl);
 
-  if(env.print_details()) printf("In tc_buf_write_\n");
-
   // num_vector-related dimensions.
 
   const int nvle = IS_LEFT ? I_max_dim : nvl; // effective nvl dimension
@@ -723,6 +745,8 @@ void tc_buf_write_(
   // NOTE: ignoring here the issue from decomp_mgr that
   // num_vector_active_local may be strictly less than num_vector_local;
   // doesn't matter: just compute on fake values that will later be ignored.
+
+  if(env.print_details()) printf("In tc_buf_write_ nvle=%d nvl=%d I_max_dim=%d nvleD2=%d\n",nvle,nvl,I_max_dim,nvleD2);
 
   // Curent implementation requirement.
   COMET_INSIST(nvle % 2 == 0 && nvl % 2 == 0 &&
@@ -797,8 +821,8 @@ void tc_buf_write_(
       const int num_threadblocks_1 = utils::min(thread_dim1, blockdim_y);
       const int num_threadblocks_2 = utils::ceil(thread_dim1, blockdim_y);
 
-      if(env.print_details()) printf("Launching tc_buf_write_kernel_ with blocks=%d,%d,%d and threads=%d,1,1 form_matX_tc=%d\n",
-        num_threadblocks_0,num_threadblocks_1,num_threadblocks_2,threadblocksize,form_matX_tc);
+      if(env.print_details()) printf("Launching tc_buf_write_kernel_ with blocks=%d,%d,%d and threads=%d,1,1 nflT_thread=%d nvleX2_thread=%d form_matX_tc=%d is_bitwise_3way_2step=%d IS_LEFT=%d num_way_3=%d num_way_3_left=%d is_vecs_halved=%d sparse=%d NGIPT=%d GemmInSize=%lu TCWordSize=%lu npfl=%d vi_dim0=%d step_2way=%d nvle=%d nvleD2=%d nvlea=%d nfl=%d nflT=%d nfal=%d\n",
+        num_threadblocks_0,num_threadblocks_1,num_threadblocks_2,threadblocksize,nflT_thread,nvleX2_thread,form_matX_tc,is_bitwise_3way_2step,IS_LEFT,3==env.num_way(),(3==env.num_way())&&IS_LEFT,env.is_vectors_halved(),env.sparse(),NGIPT,sizeof(GemmIn_t),sizeof(TCWord_t),npfl,vi_dim0,step_2way,nvle,nvleD2,nvlea,nfl,nflT,nfal);
 
       //enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
 
@@ -806,6 +830,8 @@ void tc_buf_write_(
 
         enum {IS_B_FIELD_MAJOR = true};
         COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
+
+        if(env.print_details()) printf("In using_cutlass\n");
 
         COMET_LAUNCH_KERNEL(
           (tc_buf_write_kernel_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>),
@@ -823,6 +849,8 @@ void tc_buf_write_(
 
         enum {IS_B_FIELD_MAJOR = false};
         COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
+
+	if(env.print_details()) printf("In not using_cutlass\n");
 
         COMET_LAUNCH_KERNEL(
           (tc_buf_write_kernel_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>),

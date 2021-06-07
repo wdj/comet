@@ -380,8 +380,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     return;
   }
 
-  bool print_soln = true; 
-  //bool print_soln = false;
+  //bool print_soln = true; 
+  bool print_soln = false;
   if(env->print_details()) printf("In check_metrics_analytic_\n");
 
   const size_t nfa = metrics->num_field_active;

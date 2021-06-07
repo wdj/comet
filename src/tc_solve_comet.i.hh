@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "types.hh"
 
 #include "tc_solve_cutlass_split.i.hh"
+#include "tc_solve_cutlass_split2.i.hh"
 
 // GPU bit count routine
 //#define gm_popcount64(x) __popcll(x)
@@ -289,7 +290,7 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
 
   // Stores element of block sub-matrix computed by thread
   double c0 = 0, c1 = 0;
-  uint32_t ci0=0, ci1=0, ci2=0, ci3=0;
+  int32_t ci0=0, ci1=0, ci2=0, ci3=0;
 
   // Each thread computes one element of block sub-matrix
   for (int l=0; l<k; ++l) {
@@ -318,9 +319,9 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
     const uint64_t vj0 = vj.data[0];
     const uint64_t vj1 = vj.data[1];
 
-    //if(tx==0 && ty==0)
-      printf("b=%d,%d t=%d,%d g=%d,%d a=%d=%d b=%d=%d mnk=%d,%d,%d vi0=%lu vi1=%lu vj0=%lu vj1=%lu\n",
-             bx,by,tx,ty,gridDim.x,gridDim.y,aBegin,aInd,bBegin,bInd,m,n,k,vi0,vi1,vj0,vj1);
+    //if(bx==0 && by==0)
+    //  printf("b=%d,%d t=%d,%d g=%d,%d a=%d=%d b=%d=%d mnk=%d,%d,%d l=%d vi0=%lu vi1=%lu vj0=%lu vj1=%lu\n",
+    //         bx,by,tx,ty,gridDim.x,gridDim.y,aBegin,aInd,bBegin,bInd,m,n,k,l,vi0,vi1,vj0,vj1);
 
     // Compute masks to sample the single needed bit from each seminibble,
     // and to ignore undefined vector entries.
@@ -362,15 +363,15 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
     c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
     ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
     //if(tx==0 && ty==0)
-      printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld sum0=%lf sum1=%lf c0123=%d,%d,%d,%d\n",
-             bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,ci0,ci1,ci2,ci3);
+    //  printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld sum0=%lf sum1=%lf c0123=%d,%d,%d,%d\n",
+    //         bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,ci0,ci1,ci2,ci3);
   }
 
   // Each thread writes one element of block sub-matrix to memory
   // Assume c is row major
   int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
   int cInd   = cBegin + tx*n + ty;
-  //if(tx==0 && ty==0)
+  //if(bx==0 && by==0)
   //  printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci=%d c01=%lf,%lf ci0123=%d,%d,%d,%d\n",
   //         bx,by,tx,ty,cBegin,n*bx*BLOCK_SIZE,by*BLOCK_SIZE,cInd,c0,c1,ci0,ci1,ci2,ci3);
   c[cInd].data[0] = c0;
@@ -426,6 +427,18 @@ void tc_solve_comet_(size_t m, size_t n, size_t k,
       // Cutlass Split-mma GEMM
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_split\n");
       tc_solve_comet_impl_cutlass_split(m,n,k,(GMBits2x64*)matA,
+        (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
+    } break;
+    case 5: {
+      // Cutlass Split-mma GEMM
+      if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_split nmk\n");
+      tc_solve_comet_impl_cutlass_split(n,m,k,(GMBits2x64*)matB,
+        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);
+    } break;
+    case 6: {
+      // Cutlass Split-mma GEMM - 2nd variation
+      if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_split2\n");
+      tc_solve_comet_impl_cutlass_split2(m,n,k,(GMBits2x64*)matA,
         (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
     } break;
     default:

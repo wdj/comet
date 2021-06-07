@@ -305,6 +305,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   dm->num_packedfield_local =
     utils::ceil(utils::ceil(dm->num_field_local * dm->num_bit_per_field,
                             (size_t)dm->num_bit_per_packedfield), d) * d;
+
+  //dm->num_packedfield_local = (int)(((((double)dm->num_field_local*(double)dm->num_bit_per_field)/(double)dm->num_bit_per_packedfield)/(double)d) * (double)d);
   if(env->print_details())
     printf("num_packedfield_local = ceil(ceil(%zu*%d,%d),%zu)*%zu=%zu\n",dm->num_field_local,
            dm->num_bit_per_field, dm->num_bit_per_packedfield, d, d, dm->num_packedfield_local);

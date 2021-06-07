@@ -716,7 +716,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& metrics,
   int j_block, int k_block, int section_step, MagmaWrapper& magma_wrapper) {
 
-  if(env_.print_details()) printf("In compute_linalg_\n");
+  if(env_.print_details()) printf("In ComputeMetrics3WayBlock::compute_linalg_\n");
 
   COMET_INSIST(env_.is_using_linalg());
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());
@@ -740,7 +740,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const bool need_mat_ij = env_.does_3way_need_2way();
   const bool need_mat_jk = env_.does_3way_need_2way() && ! si->is_part1;
   const bool need_mat_kik = env_.does_3way_need_2way() && si->is_part3;
-  if(env_.print_details()) printf("Need mat ij=%d jk=%d kik=%d\n",need_mat_ij,need_mat_jk,need_mat_kik);
+  if(env_.print_details()) printf("Need mat ij=%d jk=%d kik=%d nvl=%d npfl=%d\n",
+    need_mat_ij,need_mat_jk,need_mat_kik,nvl,npfl);
 
   GMDecompMgr* const dm = vdata_i.vectors->dm;
 
@@ -865,6 +866,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // Make left vectors resident on GPU to repeatedly form matX.
 
   if (env_.form_matX_tc()) {
+    if(env_.print_details()) printf("In form_matX_tc\n");
     env_.vec4_to_gpu_timer.record();
     env_.vec4_to_gpu_timer.start();
     vectors_I_buf->to_accel();
@@ -961,7 +963,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                                 vars_next.step_num < num_step;
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
     vars_next.index_01 = utils::mod_i(vars_next.step_num, (int)NUM_BUF);
-    if(env_.print_details()) printf("vars do_compute=%d is_compute=%d empty=%d Imin/max=%d/%d Kmin/max=%d/%d step_num=%d num_step=%d",
+    if(env_.print_details()) printf("vars do_compute=%d is_compute=%d empty=%d Imin/max=%d/%d Kmin/max=%d/%d step_num=%d num_step=%d\n",
       vars.do_compute,vars.is_compute_step,vars.empty,vars.I_min,vars.I_max,vars.K_min,vars.K_max,vars.step_num,num_step);
     if (vars_next.I_max <= nvl) {
       COMET_INSIST(vars_next.I_max_dim <= nvl &&
@@ -1047,7 +1049,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_prev.do_compute) {
       //vars_prev.matB_buf_ptr()->from_accel_wait();
       matB_cbuf->from_accel_wait();
-      if (vars_prev.step_2way == 0) {
+      if (vars_prev.step_2way == 0 || env_.num_kernel()>=100) {
         gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
           //CHECK
           env_.is_bitwise_3way_2step() &&

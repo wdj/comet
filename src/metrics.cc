@@ -955,11 +955,16 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
                            CEnv* env, int weight) {
   COMET_INSIST(metrics && metrics_buf && env);
 
+  if(env->print_details()) printf("In gm_metrics_pad_adjust bitwise=%d linalg==%d tc=%d\n",
+    env->is_metric_type_bitwise(),env->is_using_linalg(),env->is_using_tc());
+
   if (!(env->is_metric_type_bitwise() && env->is_using_linalg()))
     return;
 
-  if (env->is_using_tc())
+  if (env->is_using_tc() && env->num_kernel()<100)
     return;
+
+  if(env->print_details()) printf("Adjusting metrics\n");
 
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
@@ -992,6 +997,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
 
     } // for j
   }   // for i
+  if(env->print_details()) printf("Done adjusting metrics\n");
 }
 
 //=============================================================================

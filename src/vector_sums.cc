@@ -94,6 +94,7 @@ void VectorSums::allocate_() {
 void VectorSums::compute(const GMVectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
+  if(env_.print_details()) printf("Computing vector sums\n");
   // Compute the vector sums.
 
   if (env_.is_metric_type_bitwise()) {
@@ -113,6 +114,8 @@ void VectorSums::compute_accel(const GMVectors& vectors,
     return;
 
   COMET_INSIST(!env_.do_reduce() && "Not implemented.");
+
+  if(env_.print_details()) printf("Computing accel vector sums\n");
 
   if (env_.is_metric_type_bitwise()) {
     compute_bits2_accel_(vectors, accel_stream);
@@ -154,6 +157,8 @@ void VectorSums::compute_float_(const GMVectors& vectors) {
 
 void VectorSums::compute_bits2_(const GMVectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+
+  if(env_.print_details()) printf("In VectorSums::compute_bits2_\n");
 
   MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
   MirroredBuf& counts_local = env_.do_reduce() ? counts_tmp_ : counts_;
@@ -202,7 +207,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
     //----------
   } else { // env_.compute_method() != ComputeMethod::REF
     //----------
-
+    if(env_.print_details()) printf("Computing results\n");
     const int num_pad_field_local = vectors.dm->num_pad_field_local;
 
 #   pragma omp parallel for schedule(dynamic,1000)
@@ -268,6 +273,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
       COMET_MPI_SAFE_CALL(MPI_Allreduce(counts_local.h, counts_.h,
         num_vector_local_, COMET_MPI_FLOAT, MPI_SUM, env_.comm_field()));
   }
+  if(env_.print_details()) printf("Done in compute_bits2_\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -349,6 +355,7 @@ static void VectorSums_compute_bits2_accel_kernel_(
   int cbpe,
   int num_pad_field_local,
   bool need_counts) {
+
 #ifdef COMET_USE_ACCEL
 
   //const int nvl = nvl_thread;
@@ -518,6 +525,8 @@ void VectorSums::compute_bits2_accel_(const GMVectors& vectors,
 
   COMET_INSIST(env_.is_compute_method_gpu());
 
+  if(env_.print_details()) printf("In VectorSums::compute_bits2_accel_\n");
+
 #ifdef COMET_USE_ACCEL
 
   MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
@@ -570,6 +579,7 @@ void VectorSums::compute_bits2_accel_(const GMVectors& vectors,
   System::accel_last_call_succeeded();
 
 #endif // COMET_USE_ACCEL
+  if(env_.print_details()) printf("Done in VectorSums::compute_bits2_accel_\n");
 }
 
 //=============================================================================

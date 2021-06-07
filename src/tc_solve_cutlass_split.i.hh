@@ -231,7 +231,7 @@ __device__ inline void r2s_split(uint64_t frag[], uint64_t *smem, Layout layout)
 //-----------------------------------------------------------------------------
 /// 
 
-template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
+/*template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
 __device__ inline void g2s_split(uint64_t *smem, GMBits2x64 *gmem, int begin, int k, Layout layout)
 {
 #pragma unroll
@@ -273,7 +273,7 @@ __device__ inline void g2s_split(uint64_t *smem, GMBits2x64 *gmem, int begin, in
       }
     }
   }
-}
+}*/
 
 //-----------------------------------------------------------------------------
 /// 
@@ -460,7 +460,7 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
     typename IteratorTallyC::Fragment accum_tally;
     IteratorTallyC iter_tally_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
 
-    if(true) { //!beta) {
+    //if(true) { //!beta) {
 #pragma unroll
       for (int idx = 0; idx < FragmentC::kElements; idx++) {
         // Combine the results in the sub-problems.
@@ -472,7 +472,7 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
       // The following code does not translates into the most efficient instructions, even with 128-bit stores.
       // With current version of CUTLASS this is as far as we can go.
       iter_tally_C.store(accum_tally);
-    }
+    /*}
     else {
       // Add Accum to C then store
       using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
@@ -492,7 +492,7 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
       }
 
       iter_C.store(frag_C);
-    }
+    }*/
   }
 }
 

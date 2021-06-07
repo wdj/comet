@@ -73,6 +73,7 @@ SET(LIB_INCLUDES
   src/tc_solve_cutlass_general.i.hh
   src/tc_solve_cutlass_nvidia.i.hh
   src/tc_solve_cutlass_split.i.hh
+  src/tc_solve_cutlass_split2.i.hh
   src/tc_solve_comet_xor.i.hh
   src/tc_solve_comet_mult.i.hh
   src/tc_solve_comet_xor_int.i.hh

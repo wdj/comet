@@ -585,6 +585,37 @@ void b1_xor_gemm_gpu_tc_sm(size_t m, size_t n, size_t k, uint8_t* a,
 
 //-----------------------------------------------------------------------------
 
+__global__
+void b1_print_matrix(int m, int n, int32_t* c) {
+
+  // Block and thread indices
+  int tx = threadIdx.x, ty = threadIdx.y;
+  int bx = blockIdx.x, by = blockIdx.y;
+
+  int gridx = bx*BLOCK_SIZE + tx;
+  int gridy = by*BLOCK_SIZE + ty;
+
+  if(gridy>=m || gridx>=n) return;
+
+  int cBegin = by*n*2*BLOCK_SIZE*2;
+  int rind1 = ty * n*4;
+  int rind2 = ty * n*4 + n*2;
+  int cind = ((tx + bx*BLOCK_SIZE) % (n/2))*4 + ((tx + bx*BLOCK_SIZE) / (n/2))*2;
+  int cInd1 = cBegin + rind1 + cind;
+  int cInd2 = cBegin + rind2 + cind;
+
+  int32_t c0, c1, c2, c3;
+  c0 = c[cInd1]; c1 = c[cInd1+1]; c2 = c[cInd2]; c3 = c[cInd2+1];
+
+  int px=0, py=0;
+
+  if(bx==px && by==py)
+    printf("b=%d,%d t=%d,%d cb=%d ci1=%d=%d,%d ci2=%d=%d,%d c0123=%d,%d,%d,%d\n",
+           bx,by,tx,ty,cBegin,cInd1,rind1,cind,cInd2,rind2,cind,c0,c1,c2,c3);
+}
+
+//-----------------------------------------------------------------------------
+
 template<int TC_METHOD>
 static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
   void* matC, TCBufs& tc_bufs, CEnv& env) {
@@ -592,7 +623,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
   if(env.print_details()) printf("In tc_solve_impl_b1 num_kernel=%d use_mockup=%d\n",
-    env.num_kernel(),tc_solve_use_mockup(env));
+    env.num_kernel(),env.is_using_cutlass_mockup());
   if (env.is_using_cutlass_mockup()) {
   //if (tc_solve_use_mockup(env)) {
 
@@ -993,6 +1024,20 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
       System::accel_last_call_succeeded();
       //if(env.print_details()) printf("Number of ops = 2*%d*%d*%d\n",m,n,k);
       //env.ops_local_inc(2 * m * (double)n * (double)k);
+
+      // Print matrix contents
+      cudaStreamSynchronize(env.stream_compute());
+      printf("Printing matrix info\n");
+      int m2=m/2, n2=n/2;
+      const int threadblockx2 = BLOCK_SIZE, threadblocky2 = BLOCK_SIZE;
+      int gridblockx2 = (int)ceil((double)m2/threadblockx2);
+      int gridblocky2 = (int)ceil((double)n2/threadblocky2);
+      printf("Printing matrix info mn=%d,%d m2n2=%d,%d\n",m,n,m2,n2);
+      COMET_LAUNCH_KERNEL(b1_print_matrix,
+        dim3(gridblockx2, gridblocky2, 1),
+        dim3(threadblockx2, threadblocky2, 1), 0, env.stream_compute(),
+        n2, m2, (int32_t*)matC);
+      System::accel_last_call_succeeded();
   }
   else {
     printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
@@ -1301,8 +1346,6 @@ void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 
   const int m = nvll; // metrics array dim
   const int n = nvl; // metrics array dim
-  //const int m = 2*nvll; // metrics array dim
-  //const int n = 2*nvl; // metrics array dim
   const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
 
   if(env.print_details()) printf("In tc_solve_comet_ calling tc_solve_comet_impl with mnk=%d,%d,%d nvll=%d nvl=%d\n",m,n,k,nvll,nvl);
@@ -1321,14 +1364,14 @@ void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 /// \brief Call to perform required GEMM.
 
 template<int TC_METHOD>
-void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npfl_thisstep,
-                         const void *matA, const void *matB,void* matC, TCBufs& tc_bufs, CEnv& env) {
+void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npfl_thisstep, int pfl_min, int step_2way, int nfal,
+                         const void *matA1, const void *matA2, const void *matB,void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_INSIST(npfl_thisstep >= 0);
   COMET_INSIST(env.tc_eff() != TC::NO);
 
-  const int nfl_thisstep = npfl_thisstep/2;
+  const int nfl_thisstep = npfl_thisstep;
 
   const int m = nvll; // metrics array dim
   const int n = nvl; // metrics array dim
@@ -1336,9 +1379,9 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npfl_thisstep,
 
   if(env.num_kernel() >= 125 && env.num_kernel() < 150) {
     if(env.print_details()) printf("Calling tc_solve_comet_int_impl with mnk=%d,%d,%d\n",m,n,k);
-    tc_solve_comet_int_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+    tc_solve_comet_int_impl<TC_METHOD>(is_first, m, n, k, matA1, matB, matC, tc_bufs, env);
   } else if(env.num_kernel() >= 175 && env.num_kernel() < 200) {
-    tc_solve_comet_mult_int_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+    tc_solve_comet_mult_int_impl<TC_METHOD>(is_first, m, n, k, pfl_min, step_2way, nfal, matA1, matA2, matB, matC, tc_bufs, env);
   } else {
     printf("Failed to call appropriate 1-bit CoMet int GEMM kernel for num_kernel=%d\n",
          env.num_kernel());

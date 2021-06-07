@@ -211,9 +211,9 @@ void b1_comet_xor_gemm_gpu_int_simple(int m, int n, int k,
     const uint64_t vj0 = vj.data[0];
     const uint64_t vj1 = vj.data[1];
 
-    if(tx==0 && ty==0)
-      printf("b=%d,%d t=%d,%d g=%d,%d a=%d=%d b=%d=%d mnk=%d,%d,%d vi0=%lu vi1=%lu vj0=%lu vj1=%lu\n",
-             bx,by,tx,ty,gridDim.x,gridDim.y,aBegin,aInd,bBegin,bInd,m,n,k,vi0,vi1,vj0,vj1);
+    //if(tx==0 && ty==0)
+    //  printf("b=%d,%d t=%d,%d g=%d,%d a=%d=%d b=%d=%d mnk=%d,%d,%d vi0=%lu vi1=%lu vj0=%lu vj1=%lu\n",
+    //         bx,by,tx,ty,gridDim.x,gridDim.y,aBegin,aInd,bBegin,bInd,m,n,k,vi0,vi1,vj0,vj1);
 
     // Compute masks to sample the single needed bit from each seminibble,
     // and to ignore undefined vector entries.
@@ -250,47 +250,37 @@ void b1_comet_xor_gemm_gpu_int_simple(int m, int n, int k,
     const uint64_t r10 = gm_popcount64(pvi ^ nvj);
     const uint64_t r11 = gm_popcount64(pvi ^ pvj);
 
-    //const uint64_t r00 = gm_popcount64(nvi & nvj);
-    //const uint64_t r01 = gm_popcount64(nvi & pvj);
-    //const uint64_t r10 = gm_popcount64(pvi & nvj);
-    //const uint64_t r11 = gm_popcount64(pvi & pvj);
-
     //---Accumulate---
     c0 += r00; c1 += r01;
     c2 += r10; c3 += r11;
 
-    if(tx==0 && ty==0)
-      printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld c0123=%d,%d,%d,%d\n",
-             bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,c2,c3);
+    //if(tx==0 && ty==0)
+    //  printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld c0123=%d,%d,%d,%d\n",
+    //         bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,c2,c3);
   }
 
   // Different ordering from original 1-bit routines
   // Each thread writes one element of block sub-matrix to memory
   // Assume c is row major
-  int cBegin = n*2*bx*BLOCK_SIZE*2+by*BLOCK_SIZE*2;
-  int cInd1  = cBegin + tx*2*n*2 + ty*2;
-  int cInd2  = cBegin + (tx*2+1)*n*2 + ty*2;
-  // Partial change
-  //int cBegin = n*2*bx*BLOCK_SIZE*2+by*BLOCK_SIZE*2;
-  //int cInd1  = cBegin + ty*2*m*2 + tx*2;
-  //int cInd2  = cBegin + (ty*2+1)*m*2 + tx*2;
-
-  // Assume c is col major
-  //int cBegin = m*2*by*BLOCK_SIZE*2+bx*BLOCK_SIZE*2;
-  //int cInd1  = cBegin + ty*2*m*2 + tx*2;
-  //int cInd2  = cBegin + (ty*2+1)*m*2 + tx*2;
-
-  // Assume all four entries are sequential
-  //int cBegin = n*4*bx*BLOCK_SIZE + by*BLOCK_SIZE*4;
-  //int cInd   = cBegin + tx*n*4 + ty*4;
-  //if(tx==0 && ty==0)
-  //  printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci=%d=%d,%d c0123=%d,%d,%d,%d\n",
-  //         bx,by,tx,ty,cBegin,n*4*bx*BLOCK_SIZE,by*BLOCK_SIZE*4,cInd,tx*n*4,ty*4,c0,c1,c2,c3);
-  //c[cInd]=c0; c[cInd+1]=c1; c[cInd+2]=c2; c[cInd+3]=c3;
+  /*int cBegin = n*bx*BLOCK_SIZE*2+by*BLOCK_SIZE*2;
+  int rind1 = ty * n*2;
+  int rind2 = ty * n*2 + n;
+  int cind = (tx % 4)*4 + (tx/4)*2;
+  int cInd1 = cBegin + rind1 + cind;
+  int cInd2 = cBegin + rind2 + cind;*/
+  //int cBegin = n*bx*BLOCK_SIZE*2+by*BLOCK_SIZE*2;
+  int cBegin = by*n*2*BLOCK_SIZE*2;
+  int rind1 = ty * n*4;
+  int rind2 = ty * n*4 + n*2;
+  //int cind = (tx % (n/2))*4 + (tx/(n/2))*2;
+  int cind = ((tx + bx*BLOCK_SIZE) % (n/2))*4 + ((tx + bx*BLOCK_SIZE) / (n/2))*2;
+  int cInd1 = cBegin + rind1 + cind;
+  int cInd2 = cBegin + rind2 + cind;
 
   //if(tx==0 && ty==0)
-    printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci1=%d=%d ci2=%d=%d c0123=%d,%d,%d,%d\n",
-           bx,by,tx,ty,cBegin,n*2*bx*BLOCK_SIZE*2,by*BLOCK_SIZE*2,cInd1,tx*2*n*2+ty*2,cInd2,(tx*2+1)*n*2+ty*2,c0,c1,c2,c3);
+  //  printf("b=%d,%d t=%d,%d cb=%d ci1=%d=%d,%d ci2=%d=%d,%d c0123=%d,%d,%d,%d\n",
+  //         bx,by,tx,ty,cBegin,cInd1,rind1,cind,cInd2,rind2,cind,c0,c1,c2,c3);
+
   c[cInd1] = c0; c[cInd1+1] = c1;
   c[cInd2] = c2; c[cInd2+1] = c3;
 }
@@ -307,7 +297,7 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
   if(env.print_details()) printf("In tc_solve_comet_int_impl mnk=%d,%d,%d\n",m,n,k);
   //double tbegin = env.get_cpu_time();
 
-  const bool beta = 1;
+  const bool beta = is_first ? 0 : 1;
   const int threadblockx = BLOCK_SIZE, threadblocky = BLOCK_SIZE;
   int gridblockx = (int)ceil((double)m/threadblockx);
   int gridblocky = (int)ceil((double)n/threadblocky);

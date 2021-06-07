@@ -82,11 +82,9 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i12 = ivo[ivo_offset1+2];
   const GemmOut_t i13 = ivo[ivo_offset1+3];
 
-  /*printf("offset0=%d offset1=%d i0=%d %d %d %d i1=%d %d %d %d\n",
-          (int)ivo_offset0,(int)ivo_offset1,(int)i00,(int)i01,(int)i02,(int)i03,(int)i10,(int)i11,(int)i12,(int)i13);*/
-
-//printf("%i %i %i %i %i %i %i %i\n",
-//(int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
+  //if(thread_r<4 && thread_c<4) 
+  //  printf("tc,r=%d,%d ioffset=%zu,%zu i0=%d %d %d %d i1=%d %d %d %d\n",
+  //         thread_r,thread_c,ivo_offset0,ivo_offset1,(int)i00,(int)i01,(int)i02,(int)i03,(int)i10,(int)i11,(int)i12,(int)i13);
 
   // Apply the permutation:
 
@@ -106,6 +104,10 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
 
   const GemmOut_t i12p = i12;
   const GemmOut_t i13p = i13;
+
+  //if(thread_r<4 && thread_c<4)
+  //  printf("tc,r=%d,%d ioffset=%zu,%zu i0p=%d %d %d %d i1p=%d %d %d %d\n",
+  //         thread_r,thread_c,ivo_offset0,ivo_offset1,(int)i00p,(int)i01p,(int)i02p,(int)i03p,(int)i10p,(int)i11p,(int)i12p,(int)i13p);
 
   // Pack two 26-bit integers into mantissa of double.
 
@@ -128,9 +130,101 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
 
   ovo[o_offset1+0] = o10;
   ovo[o_offset1+1] = o11;
-  //printf("t=%d,%d ovo\n",thread_r,thread_c);
-  //printf("t=%d,%d ovo0=%lf %lf ovo1=%lf %lf\n",thread_r,thread_c,ovo[o_offset0],ovo[o_offset0+1],ovo[o_offset1],ovo[o_offset1+1]);
+
+  //if(thread_r<4 && thread_c<4)
+  //  printf("tr,c=%d,%d ooffset=%zu,%zu\n",thread_r,thread_c,o_offset0,o_offset1);
+    //printf("tr,c=%d,%d ooffset=%zu,%zu ovo0=%lf %lf ovo1=%lf %lf\n",
+    //       thread_r,thread_c,o_offset0,o_offset1,ovo[o_offset0],(double)ovo[o_offset0+1],(double)ovo[o_offset1],(double)ovo[o_offset1+1]);
 }
+
+template<typename GemmOut_t, int METRIC_FORMAT>
+__host__ __device__ static void tc_repair_metrics_kernel_elt_int_(
+  int nvl, int nvll, int nvllD2, void* vo, int thread_r, int thread_c) {
+
+  typedef MetricFormatTraits<METRIC_FORMAT> MFT;
+  typedef typename MFT::Type MFType;
+
+  // Considered as an array of floats, array is 2*nvl rows X 2*nvl cols.
+  // Each thread manipulates a block of 4 rows and 2 cols.
+  // Thus the dimensions of the metrics array in blocks is nvllD2 X nvl.
+  // Each block viewed as an array of doubles is 2 X 2.
+
+  // Two col numbers being processed of this (float) array.
+
+  // ISSUE: does the compiler need to / understand that the pointers are aliased
+
+  const size_t ivo_offset0 = 4*thread_r + thread_c * (size_t)(4*nvll);
+  const size_t ivo_offset1 = 4*thread_r + thread_c * (size_t)(4*nvll) + 2*nvll;
+
+  // Read the 8 values.
+
+  GemmOut_t* const ivo = (GemmOut_t*)vo;
+
+  const GemmOut_t i00 = ivo[ivo_offset0+0];
+  const GemmOut_t i01 = ivo[ivo_offset0+1];
+  const GemmOut_t i02 = ivo[ivo_offset1+0];
+  const GemmOut_t i03 = ivo[ivo_offset1+1];
+
+  const GemmOut_t i10 = ivo[ivo_offset0+2];
+  const GemmOut_t i11 = ivo[ivo_offset0+3];
+  const GemmOut_t i12 = ivo[ivo_offset1+2];
+  const GemmOut_t i13 = ivo[ivo_offset1+3];
+
+  //if(thread_r<4 && thread_c<4)
+  //  printf("tr,c=%d,%d ioffset=%zu,%zu i0=%d %d %d %d i1=%d %d %d %d\n",
+  //         thread_r,thread_c,ivo_offset0,ivo_offset1,(int)i00,(int)i01,(int)i02,(int)i03,(int)i10,(int)i11,(int)i12,(int)i13);
+
+  // Apply the permutation:
+
+  // [ i00  i10 ]  ->  [ i00  i02 ]
+  // [ i01  i11 ]  ->  [ i01  i03 ]
+  // [ i02  i12 ]  ->  [ i10  i12 ]
+  // [ i03  i13 ]  ->  [ i11  i13 ]
+
+  const GemmOut_t i00p = i00;
+  const GemmOut_t i01p = i01;
+
+  const GemmOut_t i02p = i10;
+  const GemmOut_t i03p = i11;
+
+  const GemmOut_t i10p = i02;
+  const GemmOut_t i11p = i03;
+
+  const GemmOut_t i12p = i12;
+  const GemmOut_t i13p = i13;
+
+  //if(thread_r<4 && thread_c<4)
+  //  printf("tr,c=%d,%d ioffset=%zu,%zu i0p=%d %d %d %d i1p=%d %d %d %d\n",
+  //         thread_r,thread_c,ivo_offset0,ivo_offset1,(int)i00p,(int)i01p,(int)i02p,(int)i03p,(int)i10p,(int)i11p,(int)i12p,(int)i13p);
+
+  // Pack two 26-bit integers into mantissa of double.
+
+  MFType o00 = {}, o01 = {}, o10 = {}, o11 = {};
+  MFT::encode(o00, i00p, i02p);
+  MFT::encode(o01, i01p, i03p);
+  MFT::encode(o10, i10p, i12p);
+  MFT::encode(o11, i11p, i13p);
+
+  // Overwrite block with the new values.
+  // All is isolated to a single thread, should be thread safe.
+
+  const size_t o_offset0 = 2 * thread_r + thread_c * (size_t)(2*nvll);
+  const size_t o_offset1 = 2 * thread_r + thread_c * (size_t)(2*nvll) + nvll;
+
+  MFType* const ovo = (MFType*)vo;
+
+  ovo[o_offset0+0] = o00;
+  ovo[o_offset0+1] = o01;
+
+  ovo[o_offset1+0] = o10;
+  ovo[o_offset1+1] = o11;
+  
+  //if(thread_r<4 && thread_c<4)
+  //  printf("tr,c=%d,%d ooffset=%zu,%zu\n",thread_r,thread_c,o_offset0,o_offset1);
+    //printf("tr,c=%d,%d ooffset=%zu,%zu ovo0=%lf %lf ovo1=%lf %lf\n",
+    //       thread_r,thread_c,o_offset0,o_offset1,(double)ovo[o_offset0],(double)ovo[o_offset0+1],(double)ovo[o_offset1],(double)ovo[o_offset1+1]);
+}
+
 
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support tc_repair_metrics_.
@@ -208,6 +302,22 @@ __global__ static void tc_repair_metrics_kernel_(
     thread_r, thread_c);
 }
 
+template<typename GemmOut_t, int METRIC_FORMAT>
+__global__ static void tc_repair_metrics_kernel_int_(
+  int nvl, int nvll, int nvllD2, void* vo) {
+
+  // Row and column threads of metrics array.
+  const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int thread_c = blockIdx_y_();
+
+  if (thread_r >= nvllD2 || thread_c >= nvl)
+    return;
+
+  tc_repair_metrics_kernel_elt_int_<GemmOut_t, METRIC_FORMAT>(
+    nvl, nvll, nvllD2, vo,
+    thread_r, thread_c);
+}
+
 //-----------------------------------------------------------------------------
 /// \brief Swizzle/cast values from cublas call into double complex format.
 ///
@@ -218,7 +328,7 @@ __global__ static void tc_repair_metrics_kernel_(
 ///        This code does an in-place transformation from one to the other.
 
 template<int TC_METHOD, int METRIC_FORMAT>
-void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
+void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {    
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
@@ -239,11 +349,19 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 
       if(env.print_details()) printf("Calling tc_repair_metrics_kernel with blocks=%d,%d threads=%d c=0 to nvl=%d nvll=%d r=0 to nvllD2=%d\n",vll2_threadblocks,nvl,threadblocksize,nvl,nvll,nvllD2);
 
-      COMET_LAUNCH_KERNEL((tc_repair_metrics_kernel_<GemmOut_t, METRIC_FORMAT>),
-        dim3(vll2_threadblocks, nvl, 1),
-        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-        nvl, nvll, nvllD2, vo);
-
+//      if(env.num_kernel()<100) {
+	if(env.print_details()) printf("Calling tc_repair_metrics_kernel_\n");
+        COMET_LAUNCH_KERNEL((tc_repair_metrics_kernel_<GemmOut_t, METRIC_FORMAT>),
+          dim3(vll2_threadblocks, nvl, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvl, nvll, nvllD2, vo);
+/*      } else {
+	if(env.print_details()) printf("Calling tc_repair_metrics_kernel_int_\n");
+        COMET_LAUNCH_KERNEL((tc_repair_metrics_kernel_int_<GemmOut_t, METRIC_FORMAT>),
+          dim3(vll2_threadblocks, nvl, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvl, nvll, nvllD2, vo);
+      }*/
       COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { // (!env.is_compute_method_gpu())
@@ -751,6 +869,29 @@ void tc_out_( int nvll, int nvl, void* vo,
   // Perform (1) swizzle and (2) reformatting to packed double format.
 
   tc_repair_metrics_<TC_METHOD, METRIC_FORMAT>(nvll, nvl, vo, env);
+
+  // Apply thresholding of smaller values to zero, if requested.
+
+  if (env.is_threshold_tc()) {
+    if(env.print_details()) printf("Calling tc_threshold_\n");
+    tc_threshold_<TC_METHOD, METRIC_FORMAT>(nvll, nvl, vo,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+      J, step_2way, env);
+  }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Postprocess metrics values previously computed by GEMMs.
+
+template<int TC_METHOD, int METRIC_FORMAT>
+void tc_out_double_( int nvll, int nvl, void* vo,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
+  uint32_t* matX_counts, int J, int step_2way, CEnv& env) {
+  COMET_INSIST(vo);
+  COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+
+  if(env.print_details()) printf("In tc_out_double_ MF=%d\n",METRIC_FORMAT);
 
   // Apply thresholding of smaller values to zero, if requested.
 

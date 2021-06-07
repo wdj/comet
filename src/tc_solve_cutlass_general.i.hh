@@ -335,10 +335,10 @@ void CutlassTCGemm1B(int M, int N, int K, uint8_t const *A,
   int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc, 
   AccelStream_t accel_stream) {
 
-  /*printf("In CutlassTCGemm1B TB=%d,%d,%d W=%d,%d,%d I=%d,%d,%d\n",
+  printf("In CutlassTCGemm1B TB=%d,%d,%d W=%d,%d,%d I=%d,%d,%d\n",
     TBlockType<TBType>::t0,TBlockType<TBType>::t1,TBlockType<TBType>::t2,
     WarpType<WType>::w0,WarpType<WType>::w1,WarpType<WType>::w2,
-    InstType<IType>::i0,InstType<IType>::i1,InstType<IType>::i2);*/
+    InstType<IType>::i0,InstType<IType>::i1,InstType<IType>::i2);
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -389,10 +389,10 @@ void CutlassTCGemm1BTest(int M, int N, int K, uint8_t const *A,
   int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc,
   AccelStream_t accel_stream) {
 
-  /*printf("In CutlassTCGemm1B TB=%d,%d,%d W=%d,%d,%d I=%d,%d,%d\n",
+  printf("In CutlassTCGemm1B TB=%d,%d,%d W=%d,%d,%d I=%d,%d,%d\n",
     TBlockType<TBType>::t0,TBlockType<TBType>::t1,TBlockType<TBType>::t2,
     WarpType<WType>::w0,WarpType<WType>::w1,WarpType<WType>::w2,
-    InstType<IType>::i0,InstType<IType>::i1,InstType<IType>::i2);*/
+    InstType<IType>::i0,InstType<IType>::i1,InstType<IType>::i2);
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
