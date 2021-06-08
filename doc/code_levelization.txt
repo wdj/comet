@@ -7,76 +7,93 @@ Code levelization: subpackage dependencies
 [implementation highlights are in brackets]
 
 
-0. external libraries:
+0.   external libraries:
      CUDA
      ROCM
-     MPI
+     CUBLAS
+     ROCBLAS
+     CUB
+     HIPCUB
+     CUTLASS
      MAGMA (patched)
           Patches to MAGMA to support needed modified GEMM operations
+     MPI
 
 
-1.   assertions
+1.   assertions.hh
+     assertions.i.hh
+     assertions.cc
           Macros and code for assertions
-     types
+     types.hh
           Fundamental scalar types for algorithms; associated functions
           [types to support single or double build]
           [types to support 2x2 or 2x2x2 table]
-     env
+     env.hh
+     env.cc
           Basic environment - settings, MPI communicators, etc.
           [control of MPI proc grid axis order: vector, field, repl]
           [CoMet code proper does 1 phase/stage; driver loops to do multiple]
 
 
-2a   utils
+2a   utils.hh
           Miscellaneous math utilities
-2b.  formulas
+2b.  formulas.hh
           Basic formulas that define some of the metrics used.
 
 
-3.   magma_wrapper
+3.   magma_wrapper.hh
+     magma_wrapper.cc
           Interface to generalized linear algebra functions, e.g. MAGMA
           [because of MAGMABLAS limitations, it is needed to tile the
            GEMM to smaller sizes]
-     mirrored_buf
+     mirrored_buf.hh
+     mirrored_buf.cc
           Class to manage dual CPU/GPU reflected arrays
           [CPU/pinned and GPU mem, same size; user chooses when to transfer]
 
 
-4.   compressed_buf
+4.   compressed_buf.hh
+     compressed_buf.i.hh
+     compressed_buf.cc
           Similar to mirrored_buf but allows lossless compression of buffers.
 
 
-5.   tc
-     tc_helpers
-     tc_in
-     tc_solve
-     tc_out
+5.   tc.hh
+     tc_helpers.i.hh
+     tc_in.i.hh
+     tc_solve.i.hh
+     tc_out.i.hh
+     tc.cc
           CUDA code, primarily for using tensor cores
           [operations: alloc/free buffers, copy in, GEMM, adjust output]
           [A and B are decomposed into block rows to conserve memory]
           [permutation is required to make each 2x2 table contig in memory]
 
 
-6.   decomp_mgr
+6.   decomp_mgr.hh
+     decomp_mgr.cc
           Define distribution of vectors to MPI ranks, padding needed, etc.
           [add padding vectors and fields to make same size per proc]
           [bitwise-field methods have notion of "packed field" (whole word)]
 
 
-7.   linalg
+7.   linalg.hh
+     linalg.cc
           Top level routines to perform actual or modified GEMMs.
 
 
-8a.  vectors
+8a.  vectors.hh
+     vectors.cc
           Class to manage the set of vectors taken as input to the methods
           [need to set pad to zero since methods will compute on pad]
           [vector data can be either simple memory or pointer to mirrored buf]
           [can also copy vector memory to separate buf]
-8b.  metrics
-     metrics_2way_indexing
-     metrics_2way_accessors
-     metrics_3way_indexing
-     metrics_3way_accessors
+8b.  metrics_2way_indexing.i.hh
+     metrics_2way_accessors.i.hh
+     metrics_3way_indexing.i.hh
+     metrics_3way_accessors.i.hh
+     metrics.hh
+     metrics.cc
           Class to manage the calculated metrics output from the methods
           [MetricsMem is reusable/resizable - used to avoid costly CUDA mallocs]
           [Czek stores num/denom together; CCC stored separately]
@@ -98,32 +115,37 @@ Code levelization: subpackage dependencies
           [3-way: index cache struct to reuse expensive index calcs]
 
 
-9a.  vector_sums (depends on 8a)
+9a.  vector_sums.hh (depends on 8a)
+     vector_sums.cc
           Compute the denominators needed by the methods
           [CCC: REF method computes 2-bits at a time, CPU whole word]
           [if num_proc_field > 1, need reduction]
-9b.  checksum (depends on 8b)
+9b.  checksum.hh (depends on 8b)
+     checksum.cc
           Utility to compute checksum of data in a metrics object
           [checksum per element is hashed-global-index times metric-value]
           ["locality-preserving" but bitwise accurate and decomp-independent]
           [multiprecision integers used]
-9c.  comm_xfer_utils
+9c.  comm_xfer_utils.hh
+     comm_xfer_utils.cc
           Utilities for communication and CPU/GPU transfer of vectors, metrics
           [if num_proc_field > 1, need reduction]
 
 
-10a. compute_metrics_2way_block_nums
+10a. compute_metrics_2way_block_nums.cc
           Calculate metrics numerators, 2-way, for a single block
           [non-all2all special case code: every block computes triangle]
-10b. compute_metrics_2way_block_finalize
+     compute_metrics_2way_block_finalize.cc
           Combine numerators and denominators, 2-way, for a single block
           [2-way combine in separate function; 3-way: colocated with num calc]
           [2-way, 3-way CCC: no combine; just save sums and counts]
           [note metrics_buf is square, metrics is combined triang and squares]
-10c. compute_metrics_3way_block_nonlinalg
+     compute_metrics_2way_block.hh
+          Declarations header file.
+10b. compute_metrics_3way_block_nonlinalg.cc
           Calculate numerators, 3-way, for a single block, non-GPU case
           [not-all2all is always tetrahedron, otherwise tet, prism or slice]
-     compute_metrics_3way_block_linalg
+     compute_metrics_3way_block_linalg.cc
           Calculate numerators, 3-way, for a single block, GPU case
           [steps in inner loop: form X, mGEMM on X, add result into metrics]
           [Czek requires 3 2-way matrices; CCC requires 3 inner mGEMM steps]
@@ -132,19 +154,22 @@ Code levelization: subpackage dependencies
           [use "lock" mechanism to check for potential race conditions]
           [struct to keep track of current, next-step, lagged-step variables]
           ["stage" setting controls which planes in slice computed]
-     compute_metrics_3way_block
+     compute_metrics_3way_block.hh
+     compute_metrics_3way_block.cc
           Calculate numerators, 3-way, for a single block
           [allocate-once memory to reuse across calls, for speed]
 
 
-11a. compute_metrics_2way (depends on 10a, 10b)
+11a. compute_metrics_2way.hh (depends on 10a)
+     compute_metrics_2way.cc
           Calculate metrics, 2-way
           [pipeline loop over blocks]
           [vecs send/recv, vecs-to-gpu, compute, metrics-from-gpu, reduce]
           [use "lock" mechanism to check for potential race conditions]
           [struct to keep track of current, next-step, lagged-step variables]
           [two options for order of operations, for speed]
-11b. compute_metrics_3way (depends on 10c)
+11b. compute_metrics_3way.hh (depends on 10b)
+     compute_metrics_3way.cc
           Calculate metrics, 3-way
           [pipeline loops over blocks (or blocks X slices)]
           [pipeline overlap of vector send/recv, block (slice) compute]
@@ -156,12 +181,15 @@ Code levelization: subpackage dependencies
           [num_phase and num_proc_repl may result in some steps skipped]
 
 
-12.  compute_metrics
+12.  compute_metrics.hh
+     compute_metrics.cc
           Top-level function to calculate metrics
 
 
-10. vectors_io
-    metrics_io
+13.  vectors_io.hh
+     vectors_io.cc
+     metrics_io.hh
+     metrics_io.cc
           Code to input vectors and write out metrics result
           [MetricsFile top-level class to write to metrics file]
           [MetricWriter helper class to write a single metric to metric file]
@@ -170,19 +198,20 @@ Code levelization: subpackage dependencies
           [CCC metrics write: buffer output metrics that pass threshold; flush]
           [read vectors from file (Czek, CCC), according to file format]
           [function to write vectors to file, for testing purposes]
-
-    test_problems
+     test_problems.hh
+     test_problems.cc
           Code to generate synthetic test problems
           [set vectors random: fully random; no known closed form solution]
           [set vectors analytic: less random, closed form solution for checking]
           [analytic: vectors block row with same entries down column; scramble]
-    driver
+     driver.hh
+     driver.cc
           Driver to get options, generate or read input, calc and write metrics
           [loop over requested stages, phases]
           [use metrics_mem for reuse of metrics memory]
 
 
-11. genomics_metric
+14.  genomics_metric.cc
           Main program
           [warmup code to deal with GPU that might be initially slow]
           [second warmup code to detect/mark slow nodes, map out]
