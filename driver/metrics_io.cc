@@ -404,8 +404,8 @@ static void MetricsIO_write_(
     return;
 
   // Due to redundancy, only results from some processors are needed.
-  if (env->proc_num_field() != 0)
-    return;
+  //if (env->proc_num_field() != 0)
+  //  return;
 
   //----------
   if (env->data_type_metrics() == GM_DATA_TYPE_FLOAT &&
@@ -615,7 +615,7 @@ static void MetricsIO_write_(
 
 MetricsIO::MetricsIO(const char* path_stub, int verbosity, CEnv& env)
   : env_(env)
-  , path_stub_(path_stub ? path_stub : "")
+  , path_stub_str_(path_stub ? path_stub : "")
   , file_(NULL)
   , verbosity_(verbosity)
   , num_written_(0)
@@ -624,8 +624,9 @@ MetricsIO::MetricsIO(const char* path_stub, int verbosity, CEnv& env)
   if (! env_.is_proc_active())
     return;
 
-  if (path_stub) {
-    file_ = MetricsIO::open(path_stub, env_);
+  if (is_path_stub_() && is_leaving_files_open_()) {
+    //file_ = MetricsIO::open(path_stub, env_);
+    open_();
     COMET_INSIST(NULL != file_ && "Unable to open file.");
   }
 }
@@ -634,8 +635,12 @@ MetricsIO::MetricsIO(const char* path_stub, int verbosity, CEnv& env)
 /// \brief Destructor for MetricsIO class.
 
 MetricsIO::~MetricsIO() {
-  if (file_)
-    fclose(file_);
+
+  if (is_path_stub_() && is_leaving_files_open_())
+    close_();
+
+//  if (file_)
+//    fclose(file_);
 }
 
 //-----------------------------------------------------------------------------
@@ -646,18 +651,29 @@ void MetricsIO::write(GMMetrics& metrics) {
   if (! env_.is_proc_active())
     return;
 
-  // Output to file
-
-  if (file_) {
-    const size_t num_written_hold = num_written_;
-    MetricsIO_write_(&metrics, file_, num_written_, &env_);
-    num_written_last_write_ = num_written_ - num_written_hold;
-  }
+  // Due to redundancy, only results from some processors are needed.
+  if (env_.proc_num_field() != 0)
+    return;
 
   // Output to stdout if requested
 
   if (verbosity_ > 1)
     MetricsIO_write_(&metrics, stdout, num_written_, &env_);
+
+  if (!is_path_stub_())
+    return;
+
+  // Output to file
+
+  if (!is_leaving_files_open_())
+    open_();
+
+  const size_t num_written_before_write = num_written_;
+  MetricsIO_write_(&metrics, file_, num_written_, &env_);
+  num_written_last_write_ = num_written_ - num_written_before_write;
+
+  if (!is_leaving_files_open_())
+    close_();
 }
 
 //-----------------------------------------------------------------------------
@@ -672,18 +688,21 @@ void MetricsIO::check_file(GMMetrics& metrics) {
   if (env_.proc_num_field() != 0)
     return;
 
-  if (! file_)
+  if (!is_path_stub_())
     return;
 
   // Close file and reopen file for read.
 
-  fclose(file_);
-  file_ = MetricsIO::open(path_stub_.c_str(), env_, "rb");
-  COMET_INSIST(NULL != file_ && "Unable to open file.");
+  //fclose(file_);
+  //file_ = MetricsIO::open(path_stub_str_.c_str(), env_, "rb");
+  //COMET_INSIST(NULL != file_ && "Unable to open file.");
+  if (is_leaving_files_open_())
+    close_();
+  open_("rb"); 
 
   // Set fpos to beginning of last metrics object write.
 
-  long offset = bytes_(num_written_ - num_written_last_write_);
+  long offset = is_leaving_files_open_() ? bytes_(num_written_ - num_written_last_write_) : 0;
   const int success1 = fseek(file_, offset, SEEK_SET);
   COMET_INSIST(0 == success1 && "Unable to fseek to correct file position.");
 
@@ -770,7 +789,6 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       num_incorrect += !is_correct;
 
       if (!is_correct && num_incorrect < 10)
-//fprintf(stderr, ">>> %i %.20e\n", (int)index, (double)metric_value);
         fprintf(stderr, "Incorrect metric value: "
           "element %zu %zu %zu  %i %i %i actual %.17e expected %.17e pass_threshold %i\n",
           iG, jG, kG, iE, jE, kE, (double)metric_value, (double)metric.value, pass_threshold);
@@ -845,17 +863,22 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   // Close file and reopen file for write.
 
-  fclose(file_);
-  file_ = MetricsIO::open(path_stub_.c_str(), env_, "ab");
-  COMET_INSIST(NULL != file_ && "Unable to open file.");
+  //fclose(file_);
+  //file_ = MetricsIO::open(path_stub_str_.c_str(), env_, "ab");
+  //COMET_INSIST(NULL != file_ && "Unable to open file.");
+  close_();
+  if (is_leaving_files_open_()) {
+    open_(); 
 
-  // Set fpos to end of file.
+    // Set fpos to end of file.
 
-  offset = bytes_(num_written_);
-  const int success2 = fseek(file_, offset, SEEK_SET);
-  COMET_INSIST(0 == success2 && "Unable to fseek to correct file position.");
+    offset = bytes_(num_written_);
+    const int success2 = fseek(file_, offset, SEEK_SET);
+    COMET_INSIST(0 == success2 && "Unable to fseek to correct file position.");
+  }
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Static function to open (one-per-rank set of) metrics files.
 
@@ -888,6 +911,134 @@ FILE* MetricsIO::open(const char* path_stub, CEnv& env, const char* mode) {
   free(path);
 
   return file;
+}
+#endif
+
+//-----------------------------------------------------------------------------
+/// \brief Open (one-per-rank set of) metrics files.
+
+void MetricsIO::open_(const char* mode) {
+
+  if (! env_.is_proc_active())
+    return;
+
+  COMET_INSIST(!file_);
+
+  // Prepare to form filename.
+
+  const char* path_stub = path_stub_str_.c_str();
+
+  size_t len = strlen(path_stub);
+  char* path = (char*)malloc((len+100) * sizeof(char));
+  COMET_INSIST(path);
+
+  int num_digits_proc = 0;
+  for (int tmp = 1; ; tmp*=10, ++num_digits_proc) {
+    if (tmp > env_.num_proc()) {
+      break;
+    }
+  }
+
+  // Create a formt string for forming filename.
+
+  //char format[255];
+
+  if (is_leaving_files_open_()) {
+
+    //sprintf(format, "%s0%ii.bin", "%s_%", num_digits_proc);
+    //sprintf(format, "%%s" "0" "%i" "i.bin", "%s_%", num_digits_proc);
+    //sprintf(path, format, path_stub, env.proc_num());
+
+    sprintf(path, "%s_%*i.bin", path_stub, num_digits_proc, env_.proc_num());
+
+  } else { // ! is_leaving_files_open_()
+
+    int num_digits_phase = 0;
+    for (int tmp = 1; ; tmp*=10, ++num_digits_phase) {
+      if (tmp > env_.num_phase()) {
+        break;
+      }
+    }
+
+    int num_digits_stage = 0;
+    for (int tmp = 1; ; tmp*=10, ++num_digits_stage) {
+      if (tmp > env_.num_stage()) {
+        break;
+      }
+    }
+
+    sprintf(path, "%s_%*i_%*i_%*i.bin", path_stub,
+      num_digits_proc, env_.proc_num(),
+      num_digits_phase, env_.phase_num(),
+      num_digits_stage, env_.stage_num());
+
+  } // is_leaving_files_open_()
+
+  // Do open
+
+  file_ = fopen(path, mode);
+  COMET_INSIST(NULL != file_ && "Unable to open file.");
+
+  free(path);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Close previously opened file.
+
+void MetricsIO::close_() {
+
+  if (! env_.is_proc_active())
+    return;
+
+  COMET_INSIST(file_);
+
+  fclose(file_);
+
+  file_ = NULL;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Static function to check writability to file system (all ranks).
+
+bool MetricsIO::can_write_file(const char* path_stub, CEnv& env) {
+
+  // NOTE: allowing flexibility to check on all ranks, not just active ranks.
+
+  // Form filename
+
+  size_t len = strlen(path_stub);
+  char* path = (char*)malloc((len+100) * sizeof(char));
+  COMET_INSIST(path);
+
+  int num_digits = 0;
+  for (int tmp = 1; ; tmp*=10, ++num_digits) {
+    if (tmp > env.num_proc()) {
+      break;
+    }
+  }
+
+  char format[100];
+  sprintf(format, "%s0%ii.IO_TEST_FILE.bin", "%s_%", num_digits);
+
+  sprintf(path, format, path_stub, env.proc_num());
+
+  // Do open
+
+  FILE* const file = fopen(path, "wb");
+  //COMET_INSIST(file);
+
+  bool result = NULL != file;
+
+  // Close and complete.
+
+  if (file) {
+    fclose(file);
+    result = result && 0 == remove(path);
+  }
+
+  free(path);
+
+  return result;
 }
 
 //=============================================================================

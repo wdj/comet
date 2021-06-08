@@ -2605,11 +2605,13 @@ TEST(DriverTest, subbyte_gemm) {
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
+#endif
 
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
 
+#if 1
 TEST(DriverTest, tc) {
   DriverTest_tc_();
 }
@@ -2621,13 +2623,11 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, duo3_simple_sparse) {
   DriverTest_duo3_simple_sparse_();
 }
 
-#if 1
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }

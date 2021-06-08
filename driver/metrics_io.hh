@@ -161,12 +161,19 @@ public:
 
   size_t num_written() const {return num_written_;}
 
-  static FILE* open(const char* path_stub, CEnv& env, const char* mode = "wb");
+  static bool can_write_file(const char* path_stub, CEnv& env);
 
 private:
 
+  bool is_leaving_files_open_() {return true;}
+
+  //static FILE* open(const char* path_stub, CEnv& env, const char* mode = "wb");
+
+  void open_(const char* mode = "wb");
+  void close_();
+
   CEnv& env_;
-  const std::string path_stub_;
+  const std::string path_stub_str_;
   FILE* file_;
   int verbosity_;
   size_t num_written_;
@@ -175,6 +182,8 @@ private:
   size_t bytes_(size_t num) const {
     return num * MetricIO::num_bytes_written_per_metric(env_);
   }
+
+  bool is_path_stub_() const {return strlen(path_stub_str_.c_str()) > 0;}
 
   // Disallowed methods.
 
