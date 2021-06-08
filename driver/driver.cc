@@ -142,28 +142,28 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
                     && (long)(int)num_stage == num_stage
                     && "Invalid setting for num_stage.");
       env->num_stage(num_stage);
-      do_->stage_min_0based = 0;
-      do_->stage_max_0based = env->num_stage() - 1;
+      do_->stage_min = 0;
+      do_->stage_max = env->num_stage() - 1;
     //----------
     } else if (strcmp(argv[i], "--stage_min") == 0) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_min.");
-      const long stage_min_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && stage_min_0based >= 0
-                    && (long)(int)stage_min_0based == stage_min_0based
+      const long stage_min = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(env, 0 == errno && stage_min >= 0
+                    && (long)(int)stage_min == stage_min
                     && "Invalid setting for stage_min.");
-      do_->stage_min_0based = stage_min_0based;
+      do_->stage_min = stage_min;
     //----------
     } else if (strcmp(argv[i], "--stage_max") == 0) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_max.");
-      const long stage_max_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && stage_max_0based < env->num_stage()
-                    && (long)(int)stage_max_0based == stage_max_0based
+      const long stage_max = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(env, 0 == errno && stage_max < env->num_stage()
+                    && (long)(int)stage_max == stage_max
                     && "Invalid setting for stage_max.");
-      do_->stage_max_0based = stage_max_0based;
+      do_->stage_max = stage_max;
     //----------
     } else if (strcmp(argv[i], "--num_phase") == 0) {
     //----------
@@ -174,28 +174,28 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
                     && (long)(int)num_phase == num_phase
                     && "Invalid setting for num_phase.");
       env->num_phase(num_phase);
-      do_->phase_min_0based = 0;
-      do_->phase_max_0based = env->num_phase() - 1;
+      do_->phase_min = 0;
+      do_->phase_max = env->num_phase() - 1;
     //----------
     } else if (strcmp(argv[i], "--phase_min") == 0) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_min.");
-      const long phase_min_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && phase_min_0based >= 0
-                    && (long)(int)phase_min_0based == phase_min_0based
+      const long phase_min = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(env, 0 == errno && phase_min >= 0
+                    && (long)(int)phase_min == phase_min
                     && "Invalid setting for phase_min.");
-      do_->phase_min_0based = phase_min_0based;
+      do_->phase_min = phase_min;
     //----------
     } else if (strcmp(argv[i], "--phase_max") == 0) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_max.");
-      const long phase_max_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && phase_max_0based < env->num_phase()
-                    && (long)(int)phase_max_0based == phase_max_0based
+      const long phase_max = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(env, 0 == errno && phase_max < env->num_phase()
+                    && (long)(int)phase_max == phase_max
                     && "Invalid setting for phase_max.");
-      do_->phase_max_0based = phase_max_0based;
+      do_->phase_max = phase_max;
     //----------
     } else if (strcmp(argv[i], "--input_file") == 0) {
     //----------
@@ -453,10 +453,10 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   do_.num_vector_local_initialized = false;
   do_.num_vector_active_initialized = false;
   do_.verbosity = 1;
-  do_.stage_min_0based = 0;
-  do_.stage_max_0based = env->num_stage() - 1;
-  do_.phase_min_0based = 0;
-  do_.phase_max_0based = env->num_phase() - 1;
+  do_.stage_min = 0;
+  do_.stage_max = env->num_stage() - 1;
+  do_.phase_min = 0;
+  do_.phase_max = env->num_phase() - 1;
   do_.input_file_path = NULL;
   do_.metrics_file_path_stub = NULL;
   do_.problem_type = problem_type_default();
@@ -479,9 +479,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     env->data_type_vectors(), env);
-env->stream_compute(); //FIX
-  double time_end = env->synced_time();
-  vctime += time_end - time_beg;
+//env->stream_compute();
+
+  vctime += env->synced_time() - time_beg;
 
 //TODO: possibly replace this with stuff from dm
   if (do_.num_vector_local_initialized) {
@@ -514,18 +514,14 @@ env->stream_compute(); //FIX
   time_beg = env->synced_time();
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  time_end = env->synced_time();
-  vctime += time_end - time_beg;
+  vctime += env->synced_time() - time_beg;
 
   // Set vectors.
 
   double intime = 0;
   time_beg = env->synced_time();
-
   set_vectors(vectors, &do_, env);
-
-  time_end = env->synced_time();
-  intime += time_end - time_beg;
+  intime += env->synced_time() - time_beg;
 
   // More initializations.
 
@@ -539,62 +535,57 @@ env->stream_compute(); //FIX
   size_t num_metric_items_local_computed = 0;
   size_t num_local_written = 0;
 
-  // Open output files.
+  {
+    // Initialize output.
+
+    time_beg = env->synced_time();
+    MetricsIO metrics_io(do_.metrics_file_path_stub, do_.verbosity, *env);
+    outtime += env->synced_time() - time_beg;
 
   {
-  time_beg = env->synced_time();
-  MetricsIO metrics_io(do_.metrics_file_path_stub, do_.verbosity, *env);
-  time_end = env->synced_time();
-  outtime += time_end - time_beg;
+    // More initializations.
 
-  {
-  MetricsMem metrics_mem(env);
+    MetricsMem metrics_mem(env);
 
-  ComputeMetrics compute_metrics(*dm, *env);
+    ComputeMetrics compute_metrics(*dm, *env);
 
-  // Loops over phases, stages.
+  //--------------------
+  // Begin loops over phases, stages.
+  //--------------------
 
-  for (int phase_num=do_.phase_min_0based; phase_num<=do_.phase_max_0based;
-       ++phase_num) {
+  for (int phase_num=do_.phase_min; phase_num<=do_.phase_max; ++phase_num) {
       env->phase_num(phase_num);
 
-    for (int stage_num=do_.stage_min_0based; stage_num<=do_.stage_max_0based;
-         ++stage_num) {
+    for (int stage_num=do_.stage_min; stage_num<=do_.stage_max; ++stage_num) {
       env->stage_num(stage_num);
 
-      // Set up metrics container for results.
+      // Set up metrics object to capture results.
 
       time_beg = env->synced_time();
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
       GMMetrics_create(metrics, env->data_type_metrics(), dm,
                        &metrics_mem, env);
-      time_end = env->synced_time();
-      mctime += time_end - time_beg;
+      mctime += env->synced_time() - time_beg;
 
       // Calculate metrics.
 
       compute_metrics.compute(*metrics, *vectors);
-
       num_metric_items_local_computed += metrics->num_metric_items_local_computed;
 
       // Output results.
 
-
       time_beg = env->synced_time();
       metrics_io.write(*metrics);
-      if (BuildHas::DEBUG) {
+      if (BuildHas::DEBUG)
         metrics_io.check_file(*metrics);
-      }
-      time_end = env->synced_time();
-      outtime += time_end - time_beg;
+      outtime += env->synced_time() - time_beg;
 
       // Check correctness.
 
       if (do_.checksum) {
         time_beg = env->synced_time();
         check_metrics(metrics, &do_, env);
-        time_end = env->synced_time();
-        cktime += time_end - time_beg;
+        cktime += env->synced_time() - time_beg;
       }
 
       // Compute checksum.
@@ -603,13 +594,11 @@ env->stream_compute(); //FIX
       if (do_.checksum) {
         time_beg = env->synced_time();
         comet::Checksum::compute(cksum, cksum_local, *metrics, *env);
-        time_end = env->synced_time();
-        cktime += time_end - time_beg;
+        cktime += env->synced_time() - time_beg;
       }
       time_beg = env->synced_time();
       GMMetrics_destroy(metrics, env);
-      time_end = env->synced_time();
-      mctime += time_end - time_beg;
+      mctime += env->synced_time() - time_beg;
 
       if (do_print) {
         if (env->num_phase() > 1 && env->num_stage() > 1) {
@@ -622,33 +611,35 @@ env->stream_compute(); //FIX
           printf("Completed stage %i\n",
                  env->stage_num());
         }
-      }
+      } // do_print
 
-    } // for stage
+    } // for stage_num
 
-  } // for phase
+  } // for phase_num
 
-  // Finalize metrics mem.
+  //--------------------
+  // End loops over phases, stages.
+  //--------------------
 
-  time_beg = env->synced_time();
+    // Finalize metrics mem.
+
+    time_beg = env->synced_time();
   }
-  time_end = env->synced_time();
-  mctime += time_end - time_beg;
-  // Close output files.
+    mctime += env->synced_time() - time_beg;
 
-  num_local_written += metrics_io.num_written();
-  time_beg = env->synced_time();
+    // Finalize output.
+
+    num_local_written += metrics_io.num_written();
+    time_beg = env->synced_time();
   }
-  time_end = env->synced_time();
-  outtime += time_end - time_beg;
+  outtime += env->synced_time() - time_beg;
 
   // Deallocate vectors.
 
   time_beg = env->synced_time();
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  time_end = env->synced_time();
-  vctime += time_end - time_beg;
+  vctime += env->synced_time() - time_beg;
 
   // Perform some checks.
 
@@ -666,7 +657,7 @@ env->stream_compute(); //FIX
       MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
     if (env->num_way() == NumWay::_2 && env->all2all() && !env->is_shrink() &&
-        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1) {
+        do_.phase_min==0 && do_.phase_max==env->num_phase() - 1) {
       COMET_INSIST(num_metric_items_computed ==
                    env->num_metric_items_per_metric() * (
                    (do_.num_vector) * (size_t)
@@ -674,18 +665,17 @@ env->stream_compute(); //FIX
     }
 
     if (env->num_way() == NumWay::_3 && env->all2all() && !env->is_shrink() &&
-        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1 &&
-        do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage() - 1) {
+        do_.phase_min==0 && do_.phase_max==env->num_phase() - 1 &&
+        do_.stage_min==0 && do_.stage_max==env->num_stage() - 1) {
       COMET_INSIST(num_metric_items_computed ==
                    env->num_metric_items_per_metric() * (
                      (do_.num_vector) * (size_t)
                      (do_.num_vector - 1) * (size_t)
                      (do_.num_vector - 2) / 6 ) );
     }
-  }
+  } // if is_proc_active
 
-  double total_time_end = env->synced_time();
-  double tottime = total_time_end - total_time_beg;
+  double tottime = env->synced_time() - total_time_beg;
 
   // Output run information.
 

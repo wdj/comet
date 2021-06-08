@@ -58,10 +58,10 @@ typedef struct {
   bool num_vector_local_initialized;
   bool num_vector_active_initialized;
   int verbosity;
-  int stage_min_0based;
-  int stage_max_0based;
-  int phase_min_0based;
-  int phase_max_0based;
+  int stage_min;
+  int stage_max;
+  int phase_min;
+  int phase_max;
   char* input_file_path;
   char* metrics_file_path_stub;
   int problem_type;

@@ -40,7 +40,7 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "va" ]] && COMET_PLATFORM=MURPHY # enclave system
 [[ "$COMET_HOST" = "cgpu" ]] && COMET_PLATFORM=CORI_GPU # A100s on Cori
 [[ "$COMET_HOST" = "juwels" ]] && COMET_PLATFORM=JUWELS_BOOSTER # Juelich A100 system
-[[ "$COMET_HOST" = "spock" ]] && COMET_PLATFORM=SPOCK # Juelich A100 system
+[[ "$COMET_HOST" = "spock" ]] && COMET_PLATFORM=SPOCK # OLCF-5 EA system.
 
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform." 1>&2
