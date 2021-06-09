@@ -642,6 +642,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                   env_ccc_duo_multiplier<CBPE::DUO>(*env), env->ccc_param());
           } // is_zero_denom
 
+//FIXFIX
+          // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
             !env->pass_threshold((double)(float)value_expected_floatcalc);
 
@@ -802,6 +804,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
           } // is_zero_denom
 
+//FIXFIX
+          // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
             !env->pass_threshold((double)(float)value_expected_floatcalc);
 

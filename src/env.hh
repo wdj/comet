@@ -364,6 +364,16 @@ struct CoordsType {
   };
 };
 
+//-----------------------------------------------------------------------------
+/// \brief Helper class to manage threshold method choices.
+
+//FIXFIX
+struct ThresholdMethod {
+  enum {SINGLE = 1,
+        MULTIPLE = 2
+  };
+};
+
 //=============================================================================
 
 class CEnv {
@@ -422,6 +432,9 @@ public:
   bool is_double_prec() const {return BuildHas::DOUBLE_PREC;}
 
   // CoMet Settings: threshold.
+
+//FIXFIX
+  int threshold_method() const {return ThresholdMethod::SINGLE;}
 
   // Is the threshold value nontrivial, triggering the need to threshold.
   static bool is_threshold(double t) {return t >= 0;}
