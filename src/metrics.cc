@@ -955,8 +955,8 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
                            CEnv* env, int weight) {
   COMET_INSIST(metrics && metrics_buf && env);
 
-  if(env->print_details()) printf("In gm_metrics_pad_adjust bitwise=%d linalg==%d tc=%d\n",
-    env->is_metric_type_bitwise(),env->is_using_linalg(),env->is_using_tc());
+  if(env->print_details()) printf("In gm_metrics_pad_adjust bitwise=%d linalg==%d tc=%d nkernel=%d\n",
+    env->is_metric_type_bitwise(),env->is_using_linalg(),env->is_using_tc(),env->num_kernel());
 
   if (!(env->is_metric_type_bitwise() && env->is_using_linalg()))
     return;
@@ -976,6 +976,9 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
 
   const int pad_adjustment = (is_cbpe_2 ? 4 : 1) * weight *
     metrics->dm->num_pad_field_local;
+
+  if(env->print_details()) printf("Adjusting with pad_adjustment=%d is_cbpe_2=%d weight=%d num_pad_field_local=%d\n",
+    pad_adjustment,is_cbpe_2,weight,metrics->dm->num_pad_field_local);
 
   // don't use collapse because of overflow for large sizes
   //#pragma omp parallel for collapse(2) schedule(dynamic,1000)

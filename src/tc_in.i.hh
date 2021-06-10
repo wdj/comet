@@ -381,8 +381,11 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   if (TC_METHOD == TC::B1 && is_duo && NGIPT == 1 && sizeof(GemmIn_t) == 4 &&
       sizeof(TCWord_t) == 8 && IS_B_FIELD_MAJOR) {
 
-    int pv0=0, pv1=2;
-    //int pv0=760, pv1=768;
+    //int pv0=0, pv1=8;
+    //int pv0=0, pv1=16;
+    //int pv0=384, pv1=392;
+    int pv0=760, pv1=768;
+    //int pv0=0, pv1=1536;
     int pf0=16;
 
     const int vl = is_vectors_halved && IS_LEFT ?
@@ -409,8 +412,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       vic[flT];
 
     if(flT_thread<pf0 && vl_thread>=pv0 && vl_thread<pv1)
-      printf("tc_in vlT=%d flT=%d flT_min=%d vl=%d vi_dim0=%d vimind=%d vicind=%d n3l=%d jE=%d kE=%d nvleD2=%d m_word=%lu c_word=%lu\n",
-        vl_thread,flT_thread,flT_min,vl,vi_dim0,vl*vi_dim0 + flT,flT,num_way_3_left,jE,kE,nvleD2,m_word,c_word);
+      printf("tc_in vlT=%d flT=%d flT_min=%d vl=%d vi_dim0=%d vimind=%d vicind=%d n3l=%d half=%d jE=%d kE=%d nvleD2=%d m_word=%lu c_word=%lu ~m_word=%lu ~c_word=%lu\n",
+        vl_thread,flT_thread,flT_min,vl,vi_dim0,vl*vi_dim0 + flT,flT,num_way_3_left,is_vectors_halved,jE,kE,nvleD2,m_word,c_word,~m_word,~c_word);
 
     // Calculate target result on odd bits.
 
@@ -467,8 +470,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
     vo_value = vo_value_32[0] | (vo_value_32[1] << 1);
 
     if(flT_thread<pf0 && vl_thread>=pv0 && vl_thread<pv1)
-      printf("tc_in vlT=%d flT=%d n3l=%d vind=%ld v32=%d,%d vo64=%lu vo=%d\n",
-        vl_thread,flT_thread,num_way_3_left,(uint64_t)(flG_index+nflG_dim*vlX2_index),(int32_t)vo_value_32[0],(int32_t)vo_value_32[1],vo_value_64,(int32_t)vo_value);
+      printf("tc_in vlT=%d flT=%d n3l=%d vind=%ld flGi=%zu nflGdim=%zu vlX2_index=%d v32=%d,%d vo64=%lu vo=%d\n",
+        vl_thread,flT_thread,num_way_3_left,(uint64_t)(flG_index+nflG_dim*vlX2_index),flG_index,nflG_dim,vlX2_index,(int32_t)vo_value_32[0],(int32_t)vo_value_32[1],vo_value_64,(int32_t)vo_value);
 
     return;
   }

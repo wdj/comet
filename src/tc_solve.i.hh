@@ -607,9 +607,12 @@ void b1_print_matrix(int m, int n, int32_t* c) {
   int32_t c0, c1, c2, c3;
   c0 = c[cInd1]; c1 = c[cInd1+1]; c2 = c[cInd2]; c3 = c[cInd2+1];
 
-  int px=0, py=0;
+  //int px0=0, px1=1, py0=0, py1=1;
+  //int px0=48, px1=49, py0=48, py1=49;
+  //int px0=47, px1=49, py0=47, py1=49;
+  int px0=95, px1=96, py0=95, py1=96;
 
-  if(bx==px && by==py)
+  if(bx>=px0 && bx<px1 && by>=py0 && by<py1)
     printf("b=%d,%d t=%d,%d cb=%d ci1=%d=%d,%d ci2=%d=%d,%d c0123=%d,%d,%d,%d\n",
            bx,by,tx,ty,cBegin,cInd1,rind1,cind,cInd2,rind2,cind,c0,c1,c2,c3);
 }

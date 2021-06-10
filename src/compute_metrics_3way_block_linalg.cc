@@ -1046,10 +1046,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //========== Copy result matrix matB from GPU - WAIT
 
+    if(env_.print_details()) printf("Copying result matrix from GPU do_compute=%d\n",vars_prev.do_compute);
     if (vars_prev.do_compute) {
       //vars_prev.matB_buf_ptr()->from_accel_wait();
       matB_cbuf->from_accel_wait();
-      if (vars_prev.step_2way == 0 || env_.num_kernel()>=100) {
+      if(env_.print_details()) printf("Calling pad adjust step_2way=%d num_kernel=%d\n",vars_prev.step_2way,env_.num_kernel());
+      if (vars_prev.step_2way == 0) { // || env_.num_kernel()>=100) {
         gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
           //CHECK
           env_.is_bitwise_3way_2step() &&

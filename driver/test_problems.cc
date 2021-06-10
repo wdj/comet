@@ -380,8 +380,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     return;
   }
 
-  //bool print_soln = true; 
-  bool print_soln = false;
+  bool print_soln = true; 
+  //bool print_soln = false;
   if(env->print_details()) printf("In check_metrics_analytic_\n");
 
   const size_t nfa = metrics->num_field_active;
@@ -406,7 +406,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
   size_t num_incorrect = 0, num_total = 0;
-  const size_t max_to_print = 10;
+  const size_t max_to_print = 100;
   double max_incorrect_diff = 0.;
 
   switch (env->data_type_metrics()) {
