@@ -41,8 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "math.h"
 
 #include "env.hh"
-#include "decomp_mgr.hh"
 #include "mirrored_buf.hh"
+#include "histograms.hh"
+#include "decomp_mgr.hh"
 
 //=============================================================================
 
@@ -145,7 +146,13 @@ struct GMMetrics {
   int data_type_id;
   GMDecompMgr* dm;
 
+  void attach_histograms(Histograms* histograms) {
+    histograms_ = histograms;
+  }
+
 private:
+
+  Histograms* histograms_;
 
 };
 

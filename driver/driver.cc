@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "unistd.h"
 
 #include "env.hh"
+#include "histograms.hh"
 #include "decomp_mgr.hh"
 #include "vectors.hh"
 #include "metrics.hh"
@@ -549,6 +550,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
     ComputeMetrics compute_metrics(*dm, *env);
 
+    Histograms histograms(*env);
+
   //--------------------
   // Begin loops over phases, stages.
   //--------------------
@@ -565,6 +568,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
       GMMetrics_create(metrics, env->data_type_metrics(), dm,
                        &metrics_mem, env);
+      metrics->attach_histograms(&histograms);
       mctime += env->synced_time() - time_beg;
 
       // Calculate metrics.
@@ -624,6 +628,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     // Finalize metrics mem.
 
     time_beg = env->synced_time();
+
+    histograms.reduce();
+    histograms.output();
   }
     mctime += env->synced_time() - time_beg;
 
@@ -681,7 +688,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
     vctime, mctime, cktime, intime, outtime, tottime);
-    
+
   // Output a local checksum, for testing purposes.
 
   if (false) {

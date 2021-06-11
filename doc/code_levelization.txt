@@ -57,7 +57,11 @@ Code levelization: subpackage dependencies
      compressed_buf.cc
           Similar to mirrored_buf but allows lossless compression of buffers.
 
+5.   histogram.hh
+     histogram.cc
+          Manage histograms of metrics values.
 
+//FIX numbering
 5.   tc.hh
      tc_helpers.i.hh
      tc_in.i.hh

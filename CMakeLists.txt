@@ -30,6 +30,7 @@ SET(LIB_SOURCES
   src/magma_wrapper.cc
   src/mirrored_buf.cc
   src/compressed_buf.cc
+  src/histograms.cc
   src/tc.cc
   src/decomp_mgr.cc
   src/linalg.cc
@@ -65,6 +66,7 @@ SET(LIB_INCLUDES
   src/mirrored_buf.hh
   src/compressed_buf.hh
   src/compressed_buf.i.hh
+  src/histograms.hh
   src/tc.hh
   src/tc_helpers.i.hh
   src/tc_in.i.hh

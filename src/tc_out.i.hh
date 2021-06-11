@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _COMET_TC_OUT_I_HH_
 
 #include "formulas.hh"
+#include "histograms.hh"
 
 //#include "env.hh"
 //#include "tc.hh"
@@ -252,13 +253,67 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 }
 
 //=============================================================================
+
+class HistogramsHelperNone {
+public:
+
+  typedef Histograms::Elt_t Elt_t;
+
+  __host__ __device__ void add(double value, int indT_I, int indT_J, int indT_K = 0) {}
+
+  __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {}
+
+};
+
+//=============================================================================
+
+class HistogramsHelper2Way {
+
+  double entries[4];
+
+public:
+
+  typedef Histograms::Elt_t Elt_t;
+
+  __host__ __device__ void add(double value, int indT_I, int indT_J) {
+    entries[indT_J + 2 * indT_I] = value;
+  }
+
+  __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {
+    enum {LL=0, LH=1, HL=2, HH=3};
+
+    Histograms::add(histograms_ptr, num_buckets, entries[LL], HistogramID::LL);
+    Histograms::add(histograms_ptr, num_buckets, entries[LH], HistogramID::LH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HL], HistogramID::LH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HH], HistogramID::HH);
+    Histograms::add(histograms_ptr, num_buckets, entries[LL] + entries[HH],
+                                                            HistogramID::LLHH);
+  }
+
+};
+
+//=============================================================================
+
+class HistogramsHelper3Way {
+public:
+
+  typedef Histograms::Elt_t Elt_t;
+
+  __host__ __device__ void add(double value, int indT_I, int indT_J, int indT_K) {}
+
+  __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {}
+
+};
+
+//=============================================================================
 /// \brief Do thresholding of metrics: individual elements, 2-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
 __host__ __device__ void tc_threshold_2way_kernel_elt_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier, double threshold_eff, bool is_using_xor,
+  Histograms::Elt_t* histograms_ptr, int num_buckets,
   int thread_r, int thread_c) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
@@ -351,6 +406,8 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
   const double recip_sumcij = 1e0 / cij;
 
+  HistogramsHelper helper;
+
   //----------
   // Loop to compute and threshold for all table entries.
   //----------
@@ -386,7 +443,8 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
           rij, sI, sJ, recip_cI, recip_cJ,
           recip_sumcij, multiplier, param);
 
-      // TODO: store metric_entry into histogram.
+      // Save entry to store into histogram.
+      helper.add(metric_entry, indT_I, indT_J);
 
       // Check against threshold.
       const bool pass_threshold = CEnv::pass_threshold(
@@ -400,18 +458,22 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
     // Store result back into metrics array.
     MFT::encode(dvo_this, values[indT_J_0], values[indT_J_1]);
   } // indT_I
+
+  helper.finalize(histograms_ptr, num_buckets);
 }
 
 //=============================================================================
 /// \brief Do thresholding of metrics: individual elements, 3-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
 __host__ __device__ void tc_threshold_3way_kernel_elt_(
   int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
-  double threshold_eff, bool is_using_xor, int thread_r, int thread_c) {
+  double threshold_eff, bool is_using_xor,
+  Histograms::Elt_t* histograms_ptr, int num_buckets,
+  int thread_r, int thread_c) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(nvll*2 == nvllX2 && nvll/2 == nvllD2);
@@ -527,6 +589,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 
   const double recip_sumcijk = 1e0 / cijk;
 
+  HistogramsHelper helper;
+
   //----------
   // Loop to compute and threshold for all table entries.
   //----------
@@ -573,7 +637,9 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
             rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
             recip_sumcijk, multiplier, param);
 
-        // TODO: store metric_entry into histogram.
+
+        // Save entry to store into histogram.
+        helper.add(metric_entry, indT_I, indT_J, indT_K);
 
         // Check against threshold.
         const bool pass_threshold = CEnv::pass_threshold(
@@ -588,16 +654,19 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
       MFT::encode(dvo_this, values[indT_K_0], values[indT_K_1]);
     } // indT_J
   } // indT_I
+
+  helper.finalize(histograms_ptr, num_buckets);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Do thresholding of metrics: GPU kernel, 2-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
 __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
-  double param, double multiplier, double threshold_eff, bool is_using_xor) {
+  double param, double multiplier, double threshold_eff, bool is_using_xor,
+  Histograms::Elt_t* histograms_ptr, int num_buckets) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
@@ -608,21 +677,25 @@ __global__ void tc_threshold_2way_kernel_(
   if (thread_r >= nvll || thread_c >= nvl)
     return;
 
-  tc_threshold_2way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT>(
+  tc_threshold_2way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT,
+                                HistogramsHelper>(
     nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-    param, multiplier, threshold_eff, is_using_xor, thread_r, thread_c);
+    param, multiplier, threshold_eff, is_using_xor,
+    histograms_ptr, num_buckets,
+    thread_r, thread_c);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Do thresholding of metrics: GPU kernel, 3-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
 __global__ void tc_threshold_3way_kernel_(
   int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
-  double threshold_eff, bool is_using_xor) {
+  double threshold_eff, bool is_using_xor,
+  Histograms::Elt_t* histograms_ptr, int num_buckets) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
@@ -634,10 +707,12 @@ __global__ void tc_threshold_3way_kernel_(
   if (thread_r >= nvllD2 || thread_c >= nvl)
     return;
 
-  tc_threshold_3way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT>(
+  tc_threshold_3way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT,
+                                HistogramsHelper>(
     nvll, nvllX2, nvllD2, nvl, vo,
     sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
     J, step_2way, param, multiplier, threshold_eff, is_using_xor,
+    histograms_ptr, num_buckets,
     thread_r, thread_c);
 }
 
@@ -648,7 +723,8 @@ template<int CBPE, int MF>
 void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
-  uint32_t* matX_counts, int J, int step_2way, CEnv& env) {
+  uint32_t* matX_counts, int J, int step_2way,
+  Histograms& histograms, CEnv& env) {
 
   const int nvllX2 = nvll * 2;
   const int nvllD2 = nvll / 2;
@@ -668,6 +744,13 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
   const int num_threads_r = env.num_way() == NumWay::_2 ? nvll : nvllD2;
   const int num_threads_c = nvl;
 
+
+
+  // TODO - FIX - get this from env.
+  const bool is_computing_histograms = false;
+
+
+
   if (env.is_compute_method_gpu()) {
 
     // Kernel call.
@@ -679,20 +762,50 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
 
     if (NumWay::_2 == env.num_way()) {
 
-      COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF>),
-        dim3(vll_threadblocks, num_threads_c, 1),
-        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-        nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-        param, multiplier, threshold_eff, is_using_xor);
+      if (is_computing_histograms)
+
+        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF,
+                                                       HistogramsHelper2Way>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+          param, multiplier, threshold_eff, is_using_xor,
+          histograms.get_ptr(), histograms.num_buckets());
+
+      else
+
+        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF,
+                                                       HistogramsHelperNone>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+          param, multiplier, threshold_eff, is_using_xor,
+          histograms.get_ptr(), histograms.num_buckets());
+
 
     } else { // if (NumWay::_3 == env.num_way())
 
-      COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF>),
-        dim3(vll_threadblocks, num_threads_c, 1),
-        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-        nvll, nvllX2, nvllD2, nvl, vo,
-        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
-        J, step_2way, param, multiplier, threshold_eff, is_using_xor);
+      if (is_computing_histograms)
+
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF,
+                                                       HistogramsHelper3Way>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvllX2, nvllD2, nvl, vo,
+          sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+          J, step_2way, param, multiplier, threshold_eff, is_using_xor,
+          histograms.get_ptr(), histograms.num_buckets());
+
+      else
+
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF,
+                                                       HistogramsHelperNone>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvllX2, nvllD2, nvl, vo,
+          sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+          J, step_2way, param, multiplier, threshold_eff, is_using_xor,
+          histograms.get_ptr(), histograms.num_buckets());
 
     } // if env.num_way()
 
@@ -702,26 +815,57 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
 
     if (NumWay::_2 == env.num_way()) {
 
-      for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
-        for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_2way_kernel_elt_<CBPE, MF>(
-            nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-            param, multiplier, threshold_eff, is_using_xor,
-            thread_r, thread_c);
+      if (is_computing_histograms)
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_2way_kernel_elt_<CBPE, MF, HistogramsHelper2Way>(
+              nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+              param, multiplier, threshold_eff, is_using_xor,
+              histograms.get_ptr(), histograms.num_buckets(),
+              thread_r, thread_c);
+          } // for
         } // for
-      } // for
+
+      else
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_2way_kernel_elt_<CBPE, MF, HistogramsHelperNone>(
+              nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+              param, multiplier, threshold_eff, is_using_xor,
+              histograms.get_ptr(), histograms.num_buckets(),
+              thread_r, thread_c);
+          } // for
+        } // for
 
     } else { // if (NumWay::_3 == env.num_way())
 
-      for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
-        for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_3way_kernel_elt_<CBPE, MF>(
-            nvll, nvllX2, nvllD2, nvl, vo,
-            sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
-            J, step_2way, param, multiplier, threshold_eff, is_using_xor,
-            thread_r, thread_c);
+      if (is_computing_histograms)
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_3way_kernel_elt_<CBPE, MF, HistogramsHelper3Way>(
+              nvll, nvllX2, nvllD2, nvl, vo,
+              sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+              J, step_2way, param, multiplier, threshold_eff, is_using_xor,
+              histograms.get_ptr(), histograms.num_buckets(),
+              thread_r, thread_c);
+          } // for
         } // for
-      } // for
+
+      else
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_3way_kernel_elt_<CBPE, MF, HistogramsHelperNone>(
+              nvll, nvllX2, nvllD2, nvl, vo,
+              sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+              J, step_2way, param, multiplier, threshold_eff, is_using_xor,
+              histograms.get_ptr(), histograms.num_buckets(),
+              thread_r, thread_c);
+          } // for
+        } // for
 
     } // if env.num_way()
 
@@ -735,7 +879,8 @@ template<int METRIC_FORMAT>
 void tc_threshold_(int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
-  uint32_t* matX_counts, int J, int step_2way, CEnv& env) {
+  uint32_t* matX_counts, int J, int step_2way,
+  Histograms& histograms, CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
@@ -758,14 +903,16 @@ void tc_threshold_(int nvll, int nvl, void* vo,
     enum {CBPE = CBPE::DUO};
 
     tc_threshold_per_CBPE_<CBPE, MF>(nvll, nvl, vo, sums_I, sums_J, sums_K,
-      counts_I, counts_J, counts_K, matX_counts, J, step_2way, env);
+      counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+      histograms, env);
 
   } else { // if (CBPE::CCC == cbpe)
 
     enum {CBPE = CBPE::CCC};
 
     tc_threshold_per_CBPE_<CBPE, MF>(nvll, nvl, vo, sums_I, sums_J, sums_K,
-      counts_I, counts_J, counts_K, matX_counts, J, step_2way, env);
+      counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+      histograms, env);
 
   } // if CBPE
 }
@@ -777,9 +924,13 @@ template<int TC_METHOD, int METRIC_FORMAT>
 void tc_out_( int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
-  uint32_t* matX_counts, int J, int step_2way, CEnv& env) {
+  uint32_t* matX_counts, int J, int step_2way,
+  CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+
+  // TODO - FIX this.
+  Histograms histograms(env);
 
   // Perform (1) swizzle and (2) reformatting to packed double format.
 
@@ -790,7 +941,7 @@ void tc_out_( int nvll, int nvl, void* vo,
   if (env.is_threshold_tc())
     tc_threshold_<METRIC_FORMAT>(nvll, nvl, vo,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
-      J, step_2way, env);
+      J, step_2way, histograms, env);
 }
 
 //=============================================================================
