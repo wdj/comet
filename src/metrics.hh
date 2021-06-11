@@ -145,15 +145,6 @@ struct GMMetrics {
   // Other.
   int data_type_id;
   GMDecompMgr* dm;
-
-  void attach_histograms(Histograms* histograms) {
-    histograms_ = histograms;
-  }
-
-private:
-
-  Histograms* histograms_;
-
 };
 
 //=============================================================================

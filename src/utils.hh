@@ -344,6 +344,38 @@ static __host__ __device__ void sort_3(T& min_, T& mid_, T& max_,
 #endif
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Atomic add with doubles.
+
+__host__ __device__ static double atomic_add(double* address, double value) {
+
+# if defined COMET_USE_CUDA && defined __CUDA_ARCH__
+
+    return atomicAdd(address, value);
+
+# elif defined COMET_USE_HIP && defined __HIPCC__
+
+    # TODO: fix this to work under HIP.
+
+    double old = *address, assumed;
+    do {
+      assumed = old; old =
+        __longlong_as_double(
+          atomicCAS((unsigned long long int*)address,
+                    __double_as_longlong(assumed),
+      __double_as_longlong(val + assumed)));
+    } while (assumed != old);
+    return old;
+
+# else
+
+    *address = value;
+    return value;
+
+# endif
+}
+
+
 //=============================================================================
 
 } // namespace utils

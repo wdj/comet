@@ -62,8 +62,9 @@ typedef struct {
   int stage_max;
   int phase_min;
   int phase_max;
-  char* input_file_path;
-  char* metrics_file_path_stub;
+  char* input_file;
+  char* histograms_file;
+  char* output_file_stub;
   int problem_type;
   size_t num_incorrect;
   double max_incorrect_diff;
@@ -83,7 +84,7 @@ enum {
 void print_output(bool do_print,
                   Checksum& cksum,
                   CEnv& env,
-                  char* metrics_file_path_stub = 0,
+                  char* output_file_stub = 0,
                   size_t num_written = 0,
                   double vctime = 0,
                   double mctime = 0,

@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _COMET_DECOMP_MGR_HH_
 
 #include "env.hh"
+#include "histograms.hh"
 #include "tc.hh"
 
 //=============================================================================
@@ -67,6 +68,14 @@ typedef struct {
   size_t num_packedfield_local;
   // Other
   TCBufs tc_bufs;
+
+  void attach_histograms(Histograms* histograms) {histograms_ = histograms;}
+  Histograms* histograms() const {return histograms_;}
+
+//private:
+
+  Histograms* histograms_;
+
 } GMDecompMgr;
 
 //-----------------------------------------------------------------------------

@@ -97,7 +97,7 @@ void LinAlg::gemm_start(
         matB->active, matB->dim0, matC->active, matC->dim0,
         (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm.num_field_active_local, step_2way, dm.tc_bufs, env);
+        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(),  env);
   } else {
 
     const bool is_timing_gemm = false; //System::is_proc_num_0(); //false; // true;
@@ -157,7 +157,7 @@ void LinAlg::gemm_wait(
         matB->active, matB->dim0, matC->active, matC->dim0,
         (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm.num_field_active_local, step_2way, dm.tc_bufs, env);
+        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(), env);
       // Unlock
       matA1->unlock_h();
       if (matA2 != matA1 && matA2 != matB)

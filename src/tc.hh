@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "env.hh"
+#include "histograms.hh"
 
 //=============================================================================
 
@@ -87,7 +88,7 @@ void tc_gemm_start(
   const void* matB, int lddb, void* matC, int lddc,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int nfal, int step_2way, TCBufs& tc_bufs, CEnv& env);
+  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms, CEnv& env);
 
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env);
 size_t tc_gemm_faxis_divisibility_required(const CEnv& env);

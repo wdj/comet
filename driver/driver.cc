@@ -202,13 +202,19 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for input_file.");
-      do_->input_file_path = argv[i];
+      do_->input_file = argv[i];
+    //----------
+    } else if (strcmp(argv[i], "--histograms_file") == 0) {
+    //----------
+      ++i;
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for histograms_file.");
+      do_->histograms_file = argv[i];
     //----------
     } else if (strcmp(argv[i], "--output_file_stub") == 0) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for output_file_stub.");
-      do_->metrics_file_path_stub = argv[i];
+      do_->output_file_stub = argv[i];
       //--------------------
     } else if (strcmp(argv[i], "--problem_type") == 0) {
       //--------------------
@@ -280,8 +286,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
 void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
   COMET_INSIST(vectors && do_ && env);
 
-  if (do_->input_file_path != NULL) {
-    VectorsIO::read(*vectors, do_->input_file_path, *env);
+  if (do_->input_file != NULL) {
+    VectorsIO::read(*vectors, do_->input_file, *env);
   } else {
     set_vectors_synthetic(vectors, do_->problem_type, do_->verbosity, env);
   }
@@ -292,7 +298,7 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
 void print_output(bool do_print,
                   Checksum& cksum,
                   CEnv& env,
-                  char* metrics_file_path_stub,
+                  char* output_file_stub,
                   size_t num_written,
                   double vctime,
                   double mctime,
@@ -329,7 +335,7 @@ void print_output(bool do_print,
   }
 
   printf(" vcmp %e", env.vec_compares());
-  if (metrics_file_path_stub) {
+  if (output_file_stub) {
     printf(" vcmpout %e", (double)num_written);
   }
 
@@ -458,8 +464,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   do_.stage_max = env->num_stage() - 1;
   do_.phase_min = 0;
   do_.phase_max = env->num_phase() - 1;
-  do_.input_file_path = NULL;
-  do_.metrics_file_path_stub = NULL;
+  do_.input_file = NULL;
+  do_.histograms_file = NULL;
+  do_.output_file_stub = NULL;
   do_.problem_type = problem_type_default();
   do_.checksum = true;
   do_.num_incorrect = 0;
@@ -481,6 +488,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                                      : do_.num_vector_active,
     env->data_type_vectors(), env);
 //env->stream_compute();
+
+  Histograms histograms(do_.histograms_file, *env);
+  dm->attach_histograms(&histograms);
 
   vctime += env->synced_time() - time_beg;
 
@@ -540,7 +550,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     // Initialize output.
 
     time_beg = env->synced_time();
-    MetricsIO metrics_io(do_.metrics_file_path_stub, do_.verbosity, *env);
+    MetricsIO metrics_io(do_.output_file_stub, do_.verbosity, *env);
     outtime += env->synced_time() - time_beg;
 
   {
@@ -549,8 +559,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     MetricsMem metrics_mem(env);
 
     ComputeMetrics compute_metrics(*dm, *env);
-
-    Histograms histograms(*env);
 
   //--------------------
   // Begin loops over phases, stages.
@@ -568,7 +576,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
       GMMetrics_create(metrics, env->data_type_metrics(), dm,
                        &metrics_mem, env);
-      metrics->attach_histograms(&histograms);
       mctime += env->synced_time() - time_beg;
 
       // Calculate metrics.
@@ -629,8 +636,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
     time_beg = env->synced_time();
 
-    histograms.reduce();
-    histograms.output();
   }
     mctime += env->synced_time() - time_beg;
 
@@ -686,8 +691,11 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   // Output run information.
 
-  print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
+  print_output(do_print, cksum, *env, do_.output_file_stub, num_written,
     vctime, mctime, cktime, intime, outtime, tottime);
+
+  histograms.reduce();
+  histograms.output();
 
   // Output a local checksum, for testing purposes.
 

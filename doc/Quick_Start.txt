@@ -39,6 +39,7 @@ Options:
 
     --num_vector <value>
         (Required) the number of vectors to be processed
+
     --num_vector_local <value>
         (Required) the number of vectors to be processed on each processor
 
@@ -121,8 +122,8 @@ Options:
         for this run (0-based, default is num_phase-1)
 
     --input_file <value>
-        string denoting the filename or pathname file
-        used to store input vectors.  If this option not present,
+        string denoting the filename or file pathname of file
+        containing input vectors.  If this option not present,
         a synthetic test case is run.
 
     --problem_type <value>
@@ -130,11 +131,17 @@ Options:
         analytic (default) or random
 
     --output_file_stub <value>
-        string denoting the filename or pathname stub of filenames
-        used to store result metrics.  Metric values are stored in files
+        string denoting the filename or pathname stub of files
+        used to store result metrics.  Metric values are written to files
         whose names are formed by appending a unique identifier
         (e.g., processor number) to the end of this string.  If this
         option is absent, no output files are written.
+
+    --histograms_file <value>
+        string denoting the filename or pathname stub of file
+        used to store metrics entry histograms.  All computed metrics
+        entries are histogrammed irrespective of thresholding.
+         Only available for CCC and DUO metrics.
 
     --threshold <value>
         output each result value only if its magnitude is greater than

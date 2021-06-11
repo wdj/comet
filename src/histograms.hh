@@ -36,7 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_HISTOGRAMS_HH_
 #define _COMET_HISTOGRAMS_HH_
 
+#include "string"
+
 #include "env.hh"
+#include "utils.hh"
 #include "mirrored_buf.hh"
 
 //-----------------------------------------------------------------------------
@@ -53,13 +56,12 @@ TODO:
 - reduce function
   - NEED to retrieve from GPU - buf_.from_accel() ??
   - ? already have code for reduction - check
-- properly pass histograms through call chain
-  - metrics -> decomp_mgr -> tc_bufs
 - implement for non threshold_tc cases
-- CHECK HIP case - atomic add - ??
-- command line argument --histogram_file
-- env.histogram_file_ , env.is_computing_histogram()
-- update documentation, code_levelization.txt
+- properly pass histograms through call chain - DONE
+- CHECK HIP case - atomic add - DONE
+- command line argument --histogram_file - DONE
+- histogram_file_ , is_computing_histogram() - DONE
+- update documentation, code_levelization.txt - DONE
 - write a unit test
 
 #endif
@@ -81,6 +83,8 @@ struct HistogramID {
         LLLHHH = 4};
 };
 
+//-----------------------------------------------------------------------------
+
 class Histograms {
 
 // 2-way: LL, LH, HH, LL+HH (4)
@@ -92,11 +96,13 @@ public:
 
   enum {RECIP_BUCKET_WIDTH = 1000};
 
-  Histograms(CEnv& env);
+  Histograms(char* histograms_file, CEnv& env);
 
   void reduce();
 
   void output();
+
+  bool is_computing_histograms() const {return strlen(histograms_file_str_.c_str()) > 0;;}
 
   int num_histograms() const {return env_.num_way() + 2;}
 
@@ -123,27 +129,15 @@ public:
 
     Elt_t& elt_this = elt(ptr, num_buckets, bucket_num_clamped, histogram_id);
 
-#   if defined COMET_USE_CUDA && defined __CUDA_ARCH__
-
-      atomicAdd(&elt_this, 1e0);
-
-#   elif defined COMET_USE_HIP && defined __HIPCC__
-
-//FIX - use atomic CAS ?? does hip have atomic update double ?
-      atomicAdd(&elt_this, 1e0);
-
-#   else
-
-      elt_this++;
-
-#   endif
+    utils::atomic_add(&elt_this, 1e0);
 
   }
- 
 
 private:
 
   CEnv& env_;
+
+  const std::string histograms_file_str_;
 
   Elt_t range_;
 

@@ -744,12 +744,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
   const int num_threads_r = env.num_way() == NumWay::_2 ? nvll : nvllD2;
   const int num_threads_c = nvl;
 
-
-
-  // TODO - FIX - get this from env.
-  const bool is_computing_histograms = false;
-
-
+  const bool is_computing_histograms = histograms.is_computing_histograms();
 
   if (env.is_compute_method_gpu()) {
 
@@ -925,12 +920,9 @@ void tc_out_( int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way,
-  CEnv& env) {
+  Histograms& histograms, CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
-
-  // TODO - FIX this.
-  Histograms histograms(env);
 
   // Perform (1) swizzle and (2) reformatting to packed double format.
 

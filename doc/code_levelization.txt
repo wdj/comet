@@ -61,8 +61,7 @@ Code levelization: subpackage dependencies
      histogram.cc
           Manage histograms of metrics values.
 
-//FIX numbering
-5.   tc.hh
+6.   tc.hh
      tc_helpers.i.hh
      tc_in.i.hh
      tc_solve.i.hh
@@ -74,25 +73,25 @@ Code levelization: subpackage dependencies
           [permutation is required to make each 2x2 table contig in memory]
 
 
-6.   decomp_mgr.hh
+7.   decomp_mgr.hh
      decomp_mgr.cc
           Define distribution of vectors to MPI ranks, padding needed, etc.
           [add padding vectors and fields to make same size per proc]
           [bitwise-field methods have notion of "packed field" (whole word)]
 
 
-7.   linalg.hh
+8.   linalg.hh
      linalg.cc
           Top level routines to perform actual or modified GEMMs.
 
 
-8a.  vectors.hh
+9a.  vectors.hh
      vectors.cc
           Class to manage the set of vectors taken as input to the methods
           [need to set pad to zero since methods will compute on pad]
           [vector data can be either simple memory or pointer to mirrored buf]
           [can also copy vector memory to separate buf]
-8b.  metrics_2way_indexing.i.hh
+9b.  metrics_2way_indexing.i.hh
      metrics_2way_accessors.i.hh
      metrics_3way_indexing.i.hh
      metrics_3way_accessors.i.hh
@@ -119,24 +118,24 @@ Code levelization: subpackage dependencies
           [3-way: index cache struct to reuse expensive index calcs]
 
 
-9a.  vector_sums.hh (depends on 8a)
+10a. vector_sums.hh (depends on 8a)
      vector_sums.cc
           Compute the denominators needed by the methods
           [CCC: REF method computes 2-bits at a time, CPU whole word]
           [if num_proc_field > 1, need reduction]
-9b.  checksum.hh (depends on 8b)
+10b. checksum.hh (depends on 8b)
      checksum.cc
           Utility to compute checksum of data in a metrics object
           [checksum per element is hashed-global-index times metric-value]
           ["locality-preserving" but bitwise accurate and decomp-independent]
           [multiprecision integers used]
-9c.  comm_xfer_utils.hh
+10c. comm_xfer_utils.hh
      comm_xfer_utils.cc
           Utilities for communication and CPU/GPU transfer of vectors, metrics
           [if num_proc_field > 1, need reduction]
 
 
-10a. compute_metrics_2way_block_nums.cc
+11a. compute_metrics_2way_block_nums.cc
           Calculate metrics numerators, 2-way, for a single block
           [non-all2all special case code: every block computes triangle]
      compute_metrics_2way_block_finalize.cc
@@ -146,7 +145,7 @@ Code levelization: subpackage dependencies
           [note metrics_buf is square, metrics is combined triang and squares]
      compute_metrics_2way_block.hh
           Declarations header file.
-10b. compute_metrics_3way_block_nonlinalg.cc
+11b. compute_metrics_3way_block_nonlinalg.cc
           Calculate numerators, 3-way, for a single block, non-GPU case
           [not-all2all is always tetrahedron, otherwise tet, prism or slice]
      compute_metrics_3way_block_linalg.cc
@@ -164,7 +163,7 @@ Code levelization: subpackage dependencies
           [allocate-once memory to reuse across calls, for speed]
 
 
-11a. compute_metrics_2way.hh (depends on 10a)
+12a. compute_metrics_2way.hh (depends on 10a)
      compute_metrics_2way.cc
           Calculate metrics, 2-way
           [pipeline loop over blocks]
@@ -172,7 +171,7 @@ Code levelization: subpackage dependencies
           [use "lock" mechanism to check for potential race conditions]
           [struct to keep track of current, next-step, lagged-step variables]
           [two options for order of operations, for speed]
-11b. compute_metrics_3way.hh (depends on 10b)
+12b. compute_metrics_3way.hh (depends on 10b)
      compute_metrics_3way.cc
           Calculate metrics, 3-way
           [pipeline loops over blocks (or blocks X slices)]
@@ -185,12 +184,12 @@ Code levelization: subpackage dependencies
           [num_phase and num_proc_repl may result in some steps skipped]
 
 
-12.  compute_metrics.hh
+13.  compute_metrics.hh
      compute_metrics.cc
           Top-level function to calculate metrics
 
 
-13.  vectors_io.hh
+14.  vectors_io.hh
      vectors_io.cc
      metrics_io.hh
      metrics_io.cc
@@ -215,7 +214,7 @@ Code levelization: subpackage dependencies
           [use metrics_mem for reuse of metrics memory]
 
 
-14.  genomics_metric.cc
+15.  genomics_metric.cc
           Main program
           [warmup code to deal with GPU that might be initially slow]
           [second warmup code to detect/mark slow nodes, map out]

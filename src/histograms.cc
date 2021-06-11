@@ -44,36 +44,56 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Constructor for Histograms class.
 
-Histograms::Histograms(CEnv& env)
+Histograms::Histograms(char* histograms_file, CEnv& env)
   : env_(env)
+  , histograms_file_str_(histograms_file ? histograms_file : "")
   , range_(env_.ccc_duo_multiplier())
   , num_buckets_((int)(RECIP_BUCKET_WIDTH * range_))
   , buf_(num_buckets_, num_histograms(), env_) {
 
   COMET_INSIST(env_.is_metric_type_bitwise());
-
-
-
-
 }
 
 //-----------------------------------------------------------------------------
-
-void Histograms::output() {
-
-}
-
-//-----------------------------------------------------------------------------
+/// \brioef MPI reduce of histograms across proc_vector ranks.
 
 void Histograms::reduce() {
 
+  if (!is_computing_histograms())
+    return;
+
+  if (!env_.is_proc_active())
+    return;
+
+  // TODO
+
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Write histograms to file.
 
+void Histograms::output() {
 
-} // namespace comet
+  if (!is_computing_histograms())
+    return;
+
+  if (!env_.is_proc_active())
+    return;
+
+  if (env_.proc_num() == 0) {
+
+    FILE* file = fopen(histograms_file_str_.c_str(), "w");
+    COMET_INSIST(NULL != file && "Unable to open file.");
+
+    // TODO
+
+    fclose(file);
+  } // if
+}
 
 //=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------
 

@@ -368,7 +368,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                              CEnv* env) {
   COMET_INSIST(metrics && do_ && env);
   COMET_INSIST(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
-  COMET_INSIST(NULL == do_->input_file_path);
+  COMET_INSIST(NULL == do_->input_file);
 
   if (! env->is_proc_active()) {
     return;
@@ -851,7 +851,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env) {
   COMET_INSIST(metrics && do_ && env);
 
-  if (NULL != do_->input_file_path) {
+  if (NULL != do_->input_file) {
     return;
   }
 
