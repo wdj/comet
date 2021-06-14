@@ -489,9 +489,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     env->data_type_vectors(), env);
 //env->stream_compute();
 
-  Histograms histograms(do_.histograms_file, *env);
-  dm->attach_histograms(&histograms);
-
   vctime += env->synced_time() - time_beg;
 
 //TODO: possibly replace this with stuff from dm
@@ -552,6 +549,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     time_beg = env->synced_time();
     MetricsIO metrics_io(do_.output_file_stub, do_.verbosity, *env);
     outtime += env->synced_time() - time_beg;
+
+    Histograms histograms(do_.histograms_file, *env);
+    dm->attach_histograms(&histograms);
 
   {
     // More initializations.
@@ -643,6 +643,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
     num_local_written += metrics_io.num_written();
     time_beg = env->synced_time();
+
+    histograms.finalize();
+    histograms.output();
   }
   outtime += env->synced_time() - time_beg;
 
@@ -693,9 +696,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   print_output(do_print, cksum, *env, do_.output_file_stub, num_written,
     vctime, mctime, cktime, intime, outtime, tottime);
-
-  histograms.reduce();
-  histograms.output();
 
   // Output a local checksum, for testing purposes.
 

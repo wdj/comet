@@ -49,11 +49,11 @@ namespace comet {
 #if 0
 TODO:
 
-- V - 3way histograms helper
-- write output
+- V - 3-way histograms helper
+- write output - DONE
   - readable ascii file - csv?
   - fopen, fclose
-- reduce function
+- reduce function - DONE
   - NEED to retrieve from GPU - buf_.from_accel() ??
   - ? already have code for reduction - check
 - implement for non threshold_tc cases
@@ -68,14 +68,17 @@ TODO:
 
 
 //-----------------------------------------------------------------------------
+/// \brief Helper class to specify individual histograms.
 
 struct HistogramID {
 
+  // 2-way
   enum {LL = 0,
         LH = 1,
         HH = 2,
         LLHH = 3};
 
+  // 3-way
   enum {LLL = 0,
         LLH = 1,
         LHH = 2,
@@ -84,6 +87,7 @@ struct HistogramID {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Class to manage histograms for metrics values.
 
 class Histograms {
 
@@ -98,11 +102,11 @@ public:
 
   Histograms(char* histograms_file, CEnv& env);
 
-  void reduce();
+  void finalize();
 
   void output();
 
-  bool is_computing_histograms() const {return strlen(histograms_file_str_.c_str()) > 0;;}
+  bool is_computing_histograms() const {return is_computing_histograms_;}
 
   int num_histograms() const {return env_.num_way() + 2;}
 
@@ -133,20 +137,36 @@ public:
 
   }
 
+  Elt_t& elt(int bucket_num, int histogram_num) {
+    return Histograms::elt((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
+  }
+
+  Elt_t& elt_finalized(int bucket_num, int histogram_num) {
+    return Histograms::elt((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
+                           histogram_num);
+  }
+
+  Elt_t bucket_min(int bucket_num) const {
+    return (Elt_t)(bucket_num) / RECIP_BUCKET_WIDTH;}
+
 private:
 
   CEnv& env_;
 
+  const bool is_computing_histograms_;
+
   const std::string histograms_file_str_;
 
-  Elt_t range_;
+  const Elt_t range_;
 
-  int num_buckets_;
+  const int num_buckets_;
 
   // buf_ will represent a 2D array, dimensions are
   // num_buckets X num_histograms, and num_buckets is the stride-1 axis.
   MirroredBuf buf_;
+  MirroredBuf buf_finalized_;
 
+  bool is_finalized_;
 
 }; // Histograms
 

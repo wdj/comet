@@ -46,18 +46,20 @@ namespace comet {
 
 Histograms::Histograms(char* histograms_file, CEnv& env)
   : env_(env)
+  , is_computing_histograms_(histograms_file && env_.is_metric_type_bitwise())
   , histograms_file_str_(histograms_file ? histograms_file : "")
-  , range_(env_.ccc_duo_multiplier())
+  , range_(is_computing_histograms_ ? env_.ccc_duo_multiplier() : 0)
   , num_buckets_((int)(RECIP_BUCKET_WIDTH * range_))
-  , buf_(num_buckets_, num_histograms(), env_) {
+  , buf_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_)
+  , buf_finalized_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_) {
 
-  COMET_INSIST(env_.is_metric_type_bitwise());
+  COMET_INSIST(env_.is_metric_type_bitwise() || !histograms_file);
 }
 
 //-----------------------------------------------------------------------------
-/// \brioef MPI reduce of histograms across proc_vector ranks.
+/// \brioef FInalize computation of histograms.
 
-void Histograms::reduce() {
+void Histograms::finalize() {
 
   if (!is_computing_histograms())
     return;
@@ -65,8 +67,22 @@ void Histograms::reduce() {
   if (!env_.is_proc_active())
     return;
 
-  // TODO
+  if (is_finalized_)
+    return;
 
+  // Retrieve from accelerator if necessary.
+
+  buf_.from_accel();
+
+  // MPI reduce of histograms across proc_repl_vector ranks.
+
+  COMET_INSIST(sizeof(Elt_t) == 8);
+
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(buf_.h,
+    buf_finalized_.h, num_buckets_ * num_histograms(),
+    MPI_DOUBLE, MPI_SUM, env_.comm_repl_vector()));
+
+  is_finalized_ = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -80,15 +96,30 @@ void Histograms::output() {
   if (!env_.is_proc_active())
     return;
 
-  if (env_.proc_num() == 0) {
+  COMET_INSIST(is_finalized_);
 
-    FILE* file = fopen(histograms_file_str_.c_str(), "w");
-    COMET_INSIST(NULL != file && "Unable to open file.");
+  if (env_.proc_num() != 0)
+    return;
 
-    // TODO
+  FILE* file = fopen(histograms_file_str_.c_str(), "w");
+  COMET_INSIST(NULL != file && "Unable to open file.");
 
-    fclose(file);
-  } // if
+  // Write file header.
+  if (env_.num_way() == 2)
+    fprintf(file, "min	LL	LH	HH	LL+HH\n");
+  else
+    fprintf(file, "min	LLL	LLH	LHH	HHH	LLL+HHH\n");
+
+  // Write line for each hist. bucket.
+  for (int row = 0; row < num_buckets_ ; ++row) {
+    fprintf(file, "%.3f	",  bucket_min(row));
+    for (int col = 0; col < num_histograms(); ++col) {
+      fprintf(file, "%.0f%s", elt_finalized(row, col),
+        col < num_histograms()-1 ? "\t" : "\n");
+    }
+  }
+
+  fclose(file);
 }
 
 //=============================================================================

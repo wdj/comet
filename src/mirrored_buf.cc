@@ -144,6 +144,7 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   num_elts_ = dim0 * dim1;
   elt_size_ = elt_size;
   size_allocated_ = num_elts_ * elt_size_;
+  size_allocated_ = size_allocated_ ? size_allocated_ : 1;
 # if defined COMET_USE_CUDA
 //#ifdef COMET_PLATFORM_CORI_GPU
 #if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
@@ -195,6 +196,7 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
   num_elts_ = dim0 * dim1;
   elt_size_ = env_.matrix_buf_elt_size();
   size_allocated_ = num_elts_ * elt_size_;
+  size_allocated_ = size_allocated_ ? size_allocated_ : 1;
 
   use_linalg_ = BuildHas::MAGMA;
 

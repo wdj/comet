@@ -666,7 +666,7 @@ __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier, double threshold_eff, bool is_using_xor,
-  Histograms::Elt_t* histograms_ptr, int num_buckets) {
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
@@ -695,7 +695,7 @@ __global__ void tc_threshold_3way_kernel_(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
   double threshold_eff, bool is_using_xor,
-  Histograms::Elt_t* histograms_ptr, int num_buckets) {
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
@@ -774,8 +774,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-          param, multiplier, threshold_eff, is_using_xor,
-          histograms.get_ptr(), histograms.num_buckets());
+          param, multiplier, threshold_eff, is_using_xor);
 
 
     } else { // if (NumWay::_3 == env.num_way())
@@ -799,8 +798,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvllX2, nvllD2, nvl, vo,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
-          J, step_2way, param, multiplier, threshold_eff, is_using_xor,
-          histograms.get_ptr(), histograms.num_buckets());
+          J, step_2way, param, multiplier, threshold_eff, is_using_xor);
 
     } // if env.num_way()
 

@@ -2036,6 +2036,10 @@ void DriverTest_file_output_() {
     typedef comet::TC TC;
     typedef comet::NumWay NumWay;
 
+#if 0
+//FIX
+    // Metrics output file.
+
     for (int num_way : {NumWay::_2, NumWay::_3})
     for (int all2all : {1})
     for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
@@ -2053,7 +2057,31 @@ void DriverTest_file_output_() {
         "--output_file_stub DriverTest_file_output");
 
       test_2runs(options1, options2);
-    } 
+    }
+#endif
+
+    // Histograms.
+
+    //for (int num_way : {NumWay::_2, NumWay::_3})
+    for (int num_way : {NumWay::_2})
+    for (int all2all : {1})
+    for (int metric_type : {MT::CCC, MT::DUO})
+    for (int compute_method : {CM::GPU}) {
+      const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
+      const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
+
+      sprintf(options1, options_template,
+        MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
+        TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
+
+      sprintf(options2, options_template,
+        MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
+        TC::AUTO, CM::str(compute_method), num_phase, num_stage,
+        "--histograms_file DriverTest_file_output_histogram");
+
+      test_2runs(options1, options2);
+    }
+
 } // DriverTest_file_output_
 
 //=============================================================================
@@ -2597,7 +2625,7 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-#if 1
+#if 0
 TEST(DriverTest, subbyte_gemm) {
   DriverTest_subbyte_gemm_();
 }
@@ -2611,7 +2639,7 @@ TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
 
-#if 1
+#if 0
 TEST(DriverTest, tc) {
   DriverTest_tc_();
 }
