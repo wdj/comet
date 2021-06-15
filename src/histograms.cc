@@ -46,25 +46,32 @@ namespace comet {
 
 Histograms::Histograms(char* histograms_file, CEnv& env)
   : env_(env)
-  , is_computing_histograms_(histograms_file && env_.is_metric_type_bitwise())
+  , is_computing_histograms_(histograms_file && env_.is_metric_type_bitwise() &&
+                             env_.is_threshold_tc() && // TODO: remove/implement.
+                             env_.num_way() == 2) // TODO: remove/implement.
   , histograms_file_str_(histograms_file ? histograms_file : "")
   , range_(is_computing_histograms_ ? env_.ccc_duo_multiplier() : 0)
   , num_buckets_((int)(RECIP_BUCKET_WIDTH * range_))
+  , num_histograms_(env_.num_way() + 2)
+  , num_elts_(num_buckets_ * num_histograms_)
   , buf_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_)
   , buf_finalized_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_) {
 
   COMET_INSIST(env_.is_metric_type_bitwise() || !histograms_file);
+
+  if (!is_computing_histograms() || !env_.is_proc_active())
+    return;
+
+  buf_.set_zero_h();
+  buf_.to_accel();
 }
 
 //-----------------------------------------------------------------------------
-/// \brioef FInalize computation of histograms.
+/// \brief Finalize computation of histograms.
 
 void Histograms::finalize() {
 
-  if (!is_computing_histograms())
-    return;
-
-  if (!env_.is_proc_active())
+  if (!is_computing_histograms() || !env_.is_proc_active())
     return;
 
   if (is_finalized_)
@@ -76,11 +83,10 @@ void Histograms::finalize() {
 
   // MPI reduce of histograms across proc_repl_vector ranks.
 
-  COMET_INSIST(sizeof(Elt_t) == 8);
+  COMET_INSIST(sizeof(Elt_t) == sizeof(double));
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(buf_.h,
-    buf_finalized_.h, num_buckets_ * num_histograms(),
-    MPI_DOUBLE, MPI_SUM, env_.comm_repl_vector()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(buf_.h, buf_finalized_.h,
+    num_elts_, MPI_DOUBLE, MPI_SUM, env_.comm_repl_vector()));
 
   is_finalized_ = true;
 }
@@ -90,10 +96,7 @@ void Histograms::finalize() {
 
 void Histograms::output() {
 
-  if (!is_computing_histograms())
-    return;
-
-  if (!env_.is_proc_active())
+  if (!is_computing_histograms() || !env_.is_proc_active())
     return;
 
   COMET_INSIST(is_finalized_);
@@ -120,6 +123,36 @@ void Histograms::output() {
   }
 
   fclose(file);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Check result.
+
+void Histograms::check(size_t num_vector_active) {
+
+  if (!is_computing_histograms() || !env_.is_proc_active())
+    return;
+
+  COMET_INSIST(is_finalized_);
+
+  if (env_.proc_num() != 0)
+    return;
+
+  // NOTE: this will only work if computing all stages and phases.
+
+  const size_t num_metrics_total = env_.num_way() == 2 ?
+    ((num_vector_active) * (num_vector_active - 1))  / 2 :
+    ((num_vector_active) * (num_vector_active - 1) *
+     (num_vector_active - 2)) / 6;
+
+  const size_t expected = num_metrics_total * (1 << env_.num_way());
+  const size_t calculated = sum_();
+
+  if (calculated != expected)
+    fprintf(stderr, "Error in histogram calculation: "
+      "expected %zu, calculated %zu.\n", expected, calculated);
+
+  COMET_INSIST(calculated == expected);
 }
 
 //=============================================================================

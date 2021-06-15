@@ -665,6 +665,13 @@ void ComputeMetrics2WayBlock::compute_nums_start(
 
   if (env->is_using_linalg()) {
 
+    GemmShape2Way gemm_shape(do_compute_triang_only,
+      metrics->dm->num_vector_local, metrics->dm->num_vector_active,
+      env->proc_num_vector(), j_block);
+//printf("%i  %i %i\n", System::proc_num(), (int)metrics->dm->num_vector_active_local, do_compute_triang_only);
+    //GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
+    GemmShapes gemm_shapes(&gemm_shape);
+
     LinAlg::gemm_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
@@ -674,7 +681,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      *(vectors_left->dm), magma_wrapper, *env);
+      *(vectors_left->dm), magma_wrapper, gemm_shapes, *env);
 
   } else if(env->metric_type() == MetricType::CZEK) {
 
@@ -727,6 +734,12 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
 
   if (env->is_using_linalg()) {
 
+    GemmShape2Way gemm_shape(do_compute_triang_only,
+      metrics->dm->num_vector_local, metrics->dm->num_vector_active,
+      env->proc_num_vector(), j_block);
+    //GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
+    GemmShapes gemm_shapes(&gemm_shape);
+
     LinAlg::gemm_wait(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
@@ -736,7 +749,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      *(vectors_left->dm), *env);
+      *(vectors_left->dm), gemm_shapes, *env);
 
   } // if
 }

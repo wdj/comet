@@ -81,7 +81,7 @@ Code levelization: subpackage dependencies
 
 
 8.   linalg.hh
-     linalg.cc
+     linalg.i.hh
           Top level routines to perform actual or modified GEMMs.
 
 

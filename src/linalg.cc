@@ -33,23 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -----------------------------------------------------------------------------*/
 
-#ifdef COMET_USE_MAGMA
-//#include "magma_minproduct.h"
-//#include "magma_minproduct_lapack.h"
-//#include "magma_mgemm2.h"
-//#include "magma_mgemm2_lapack.h"
-//#include "magma_mgemm3.h"
-//#include "magma_mgemm3_lapack.h"
-//#include "magma_mgemm4.h"
-//#include "magma_mgemm4_lapack.h"
-//#include "magma_mgemm5.h"
-//#include "magma_mgemm5_lapack.h"
-//#elif defined COMET_USE_CUDA
-//  #include "cublas_v2.h"
-#elif defined COMET_USE_HIP
-//  #include "hip/hip_runtime_api.h"
-//  #include "hip/hip_runtime.h"
-#endif
+//#ifndef _COMET_LINALG_I_HH_
+//#define _COMET_LINALG_I_HH_
 
 #include "env.hh"
 #include "assertions.hh"
@@ -71,7 +56,8 @@ void LinAlg::gemm_start(
   const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
-  int step_2way, GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
+  int step_2way, GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
+  GemmShapes& gemm_shapes, CEnv& env) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
@@ -97,7 +83,8 @@ void LinAlg::gemm_start(
         matB->active, matB->dim0, matC->active, matC->dim0,
         (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(),  env);
+        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(),
+        gemm_shapes, env);
   } else {
 
     const bool is_timing_gemm = false; //System::is_proc_num_0(); //false; // true;
@@ -133,7 +120,7 @@ void LinAlg::gemm_wait(
   const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
-  int step_2way, GMDecompMgr& dm, CEnv& env) {
+  int step_2way, GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
@@ -157,7 +144,7 @@ void LinAlg::gemm_wait(
         matB->active, matB->dim0, matC->active, matC->dim0,
         (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(), env);
+        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(), gemm_shapes, env);
       // Unlock
       matA1->unlock_h();
       if (matA2 != matA1 && matA2 != matB)
@@ -190,11 +177,12 @@ void LinAlg::gemm_start(
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
+  GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
+  GemmShapes& gemm_shapes, CEnv& env) {
 
   gemm_start(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
-    magma_wrapper, env);
+    magma_wrapper, gemm_shapes, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -205,10 +193,11 @@ void LinAlg::gemm_wait(
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr& dm, CEnv& env) {
+  GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env) {
 
   gemm_wait(m, n, k, matA, matA, matB, matC,
-    sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
+    sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
+    gemm_shapes, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -219,17 +208,22 @@ void LinAlg::gemm(
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
+  GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
+  GemmShapes& gemm_shapes, CEnv& env) {
   COMET_INSIST(matA && matB && matC);
 
   gemm_start(m, n, k, matA, matB, matC,
-    sums_I, sums_J, counts_I, counts_J, dm, magma_wrapper, env);
+    sums_I, sums_J, counts_I, counts_J, dm, magma_wrapper, gemm_shapes, env);
   gemm_wait(m, n, k, matA, matB, matC,
-    sums_I, sums_J, counts_I, counts_J, dm, env);
+    sums_I, sums_J, counts_I, counts_J, dm, gemm_shapes, env);
 }
 
 //=============================================================================
 
 } // namespace comet
+
+//-----------------------------------------------------------------------------
+
+//#endif // _COMET_LINALG_I_HH_
 
 //-----------------------------------------------------------------------------

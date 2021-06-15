@@ -37,13 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdio"
 
 #if defined COMET_USE_CUDA
-//#  include "cublas_v2.h"
 #  include "cuda_fp16.h"
-#elif defined COMET_USE_HIP
-//#  include "hip/hip_runtime_api.h"
-//#  pragma GCC diagnostic ignored "-Wc99-designator"
-//#  include "hip/hip_runtime.h"
-//#  include "rocblas.h"
 #endif
 
 #if defined COMET_USE_CPUBLAS
@@ -212,7 +206,8 @@ static void tc_gemm_start_impl_(
   const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms, CEnv& env) {
+  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
+  GemmShapes& gemm_shapes, CEnv& env) {
 
   const int nvl = n;
   const int npfl = k;
@@ -282,13 +277,13 @@ static void tc_gemm_start_impl_(
 
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
-      J, step_2way, histograms, env);
+      J, step_2way, histograms, gemm_shapes, env);
 
   } else {
 
     tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
-      J, step_2way, histograms, env);
+      J, step_2way, histograms, gemm_shapes, env);
 
   }
 //t2 = env.synced_time();
@@ -309,6 +304,7 @@ void tc_gemm_start(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
+  GemmShapes& gemm_shapes,
   CEnv& env) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
@@ -330,35 +326,35 @@ void tc_gemm_start(
       tc_gemm_start_impl_<TC::FP32>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, env);
+        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env);
     } break;
     // --------------
     case TC::FP16: {
       tc_gemm_start_impl_<TC::FP16>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, env);
+        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env);
     } break;
     // --------------
     case TC::INT8: {
       tc_gemm_start_impl_<TC::INT8>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, env);
+        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env);
     } break;
     // --------------
     case TC::B1: {
       tc_gemm_start_impl_<TC::B1>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, env);
+        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env);
     } break;
     // --------------
     case TC::INT4: {
       tc_gemm_start_impl_<TC::INT4>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, env);
+        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env);
     } break;
     // --------------
     default:

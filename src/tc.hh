@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Blas handle typedefs.
 
 #if defined COMET_USE_CUDA
 typedef cublasHandle_t accelblasHandle_t;
@@ -58,6 +59,110 @@ typedef rocblas_handle accelblasHandle_t;
 #else
 typedef int accelblasHandle_t;
 #endif
+
+//-----------------------------------------------------------------------------
+/// \brief Helper to track actual values needed from GEMM for 2-way metrics.
+
+class GemmShape2Way {
+public:
+
+  GemmShape2Way(bool do_compute_triang_only, int nvl, int nva,
+                int proc_num_I, int proc_num_J)
+    : do_compute_triang_only_(do_compute_triang_only)
+    , nvl_(nvl)
+    , nva_(nva)
+    , proc_num_I_(proc_num_I)
+    , proc_num_J_(proc_num_J) {}
+
+  __host__ __device__
+  bool is_inside(int I, int J) const {
+    return (I < J || !do_compute_triang_only_) &&
+           I + nvl_*proc_num_I_ < nva_ &&
+           J + nvl_*proc_num_J_ < nva_;
+  }
+
+private:
+
+  const bool do_compute_triang_only_;
+  const int nvl_;
+  const int nva_;
+  const int proc_num_I_;
+  const int proc_num_J_;
+};
+
+//-----------------------------------------------------------------------------
+/// \brief Helper to track actual values needed from GEMM for 3-way metrics.
+
+class GemmShape3Way {
+public:
+
+  GemmShape3Way(int I_max, int K_min, int K_max, int nvl, int nva,
+                int proc_num_I, int proc_num_J, int proc_num_K)
+    : I_max_(I_max)
+    , K_min_(K_min)
+    , K_max_(K_max)
+    , nvl_(nvl)
+    , nva_(nva)
+    , proc_num_I_(proc_num_I)
+    , proc_num_J_(proc_num_J)
+    , proc_num_K_(proc_num_K)
+ {}
+  __host__ __device__
+
+  bool is_inside(int I, int J, int K) const {
+    return I < I_max_ && K >= K_min_ && K < K_max_ &&
+           I + nvl_*proc_num_I_ < nva_ &&
+           J + nvl_*proc_num_J_ < nva_ &&
+           K + nvl_*proc_num_K_ < nva_;
+  }
+
+private:
+
+  const int I_max_;
+  const int K_min_;
+  const int K_max_;
+  const int nvl_;
+  const int nva_;
+  const int proc_num_I_;
+  const int proc_num_J_;
+  const int proc_num_K_;
+};
+
+//-----------------------------------------------------------------------------
+/// \brief GemmShape version for unused/uncollected case.
+
+class GemmShapeNone {
+public:
+
+  __host__ __device__ bool is_inside(int I, int J, int K = 0) const {
+    return false;
+  }
+};
+
+//-----------------------------------------------------------------------------
+/// \brief Aggregator for all possible kinds of gemm shape.
+
+struct GemmShapes {
+
+  GemmShapes(GemmShape2Way* p)
+    : gemm_shape_2way(p)
+    , gemm_shape_3way(NULL)
+    , gemm_shape_none(NULL) {}
+
+  GemmShapes(GemmShape3Way* p)
+    : gemm_shape_2way(NULL)
+    , gemm_shape_3way(p)
+    , gemm_shape_none(NULL) {}
+
+  GemmShapes(GemmShapeNone* p)
+    : gemm_shape_2way(NULL)
+    , gemm_shape_3way(NULL)
+    , gemm_shape_none(p) {}
+
+  GemmShape2Way* gemm_shape_2way;
+  GemmShape3Way* gemm_shape_3way;
+  GemmShapeNone* gemm_shape_none;
+};
 
 //-----------------------------------------------------------------------------
 /// \brief Struct to hold info for tc buffers.
@@ -88,7 +193,8 @@ void tc_gemm_start(
   const void* matB, int lddb, void* matC, int lddc,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms, CEnv& env);
+  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
+  GemmShapes& gemm_shapes, CEnv& env);
 
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env);
 size_t tc_gemm_faxis_divisibility_required(const CEnv& env);
@@ -96,50 +202,6 @@ size_t tc_nvl_divisibility_required_for_gemm(const CEnv& env);
 size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env);
 size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env);
 size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env);
-
-//-----------------------------------------------------------------------------
-/// \brief Helper to track actual values needed from GEMM for 2-way metrics.
-
-class GemmShape2Way {
-public:
-
-  GemmShape2Way(bool do_compute_triang_only, int nval)
-    : do_compute_triang_only_(do_compute_triang_only), nval_(nval) {}
-
-  __host__ __device__
-  bool is_inside(int I, int J) const {
-    return (I < J || !do_compute_triang_only_) &&
-           I < nval_ && J < nval_;
-  }
-
-private:
-
-  const bool do_compute_triang_only_;
-  const int nval_;
-};
-
-//-----------------------------------------------------------------------------
-/// \brief Helper to track actual values needed from GEMM for 3-way metrics.
-
-class GemmShape3Way {
-public:
-
-  GemmShape3Way(int I_max, int K_min, int K_max, int nval)
-    : I_max_(I_max), K_min_(K_min), K_max_(K_max), nval_(nval) {}
-  __host__ __device__
-
-  bool is_inside(int I, int J, int K) const {
-    return I < I_max_ && K >= K_min_ && K < K_max_ &&
-           I < nval_ && J < nval_ && K < nval_;
-  }
-
-private:
-
-  const int I_max_;
-  const int K_min_;
-  const int K_max_;
-  const int nval_;
-};
 
 //=============================================================================
 

@@ -646,6 +646,10 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
     histograms.finalize();
     histograms.output();
+    if (do_.phase_min==0 && do_.phase_max==env->num_phase() - 1 &&
+        do_.stage_min==0 && do_.stage_max==env->num_stage() - 1) {
+      histograms.check(do_.num_vector_active);
+    }
   }
   outtime += env->synced_time() - time_beg;
 
@@ -673,20 +677,20 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
     if (env->num_way() == NumWay::_2 && env->all2all() && !env->is_shrink() &&
         do_.phase_min==0 && do_.phase_max==env->num_phase() - 1) {
+      const size_t num_metrics_total = ((do_.num_vector) * (size_t)
+                                        (do_.num_vector - 1)) / 2;
       COMET_INSIST(num_metric_items_computed ==
-                   env->num_metric_items_per_metric() * (
-                   (do_.num_vector) * (size_t)
-                   (do_.num_vector - 1) / 2 ) );
+                   env->num_metric_items_per_metric() * num_metrics_total);
     }
 
     if (env->num_way() == NumWay::_3 && env->all2all() && !env->is_shrink() &&
         do_.phase_min==0 && do_.phase_max==env->num_phase() - 1 &&
         do_.stage_min==0 && do_.stage_max==env->num_stage() - 1) {
+      const size_t num_metrics_total = ((do_.num_vector) * (size_t)
+                                        (do_.num_vector - 1) * (size_t)
+                                        (do_.num_vector - 2)) / 6;
       COMET_INSIST(num_metric_items_computed ==
-                   env->num_metric_items_per_metric() * (
-                     (do_.num_vector) * (size_t)
-                     (do_.num_vector - 1) * (size_t)
-                     (do_.num_vector - 2) / 6 ) );
+                   env->num_metric_items_per_metric() * num_metrics_total);
     }
   } // if is_proc_active
 

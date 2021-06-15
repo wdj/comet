@@ -2013,6 +2013,7 @@ void DriverTest_file_output_() {
     char options2[1024];
 
     //const int num_proc_vector = 5;
+    //const int num_proc_vector = 2;
     const int num_proc_vector = comet::System::num_proc() >= 2 ? 5 : 1;
 
     char options_template[] =
@@ -2062,13 +2063,14 @@ void DriverTest_file_output_() {
 
     // Histograms.
 
-    //for (int num_way : {NumWay::_2, NumWay::_3})
-    for (int num_way : {NumWay::_2})
+    for (int num_way : {NumWay::_2, NumWay::_3})
     for (int all2all : {1})
     for (int metric_type : {MT::CCC, MT::DUO})
+    //for (int metric_type : {MT::DUO})
     for (int compute_method : {CM::GPU}) {
       const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
       const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
+      //const int num_phase = 1;
 
       sprintf(options1, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
@@ -2077,7 +2079,7 @@ void DriverTest_file_output_() {
       sprintf(options2, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
         TC::AUTO, CM::str(compute_method), num_phase, num_stage,
-        "--histograms_file DriverTest_file_output_histogram");
+        "--histograms_file DriverTest_file_output_histogram.csv");
 
       test_2runs(options1, options2);
     }

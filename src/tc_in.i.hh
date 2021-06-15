@@ -899,7 +899,10 @@ __global__ static void tc_compute_matX_counts_kernel_(
 
   // Adapted from https://www.olcf.ornl.gov/wp-content/uploads/2019/12/05_Atomics_Reductions_Warp_Shuffle.pdf
 
-  extern __shared__ uint32_t sdata[];
+  extern __shared__ uint32_t sdata_tc_compute_matX_counts_kernel_[];
+
+  uint32_t* sdata = &(sdata_tc_compute_matX_counts_kernel_[0]);
+
 
   sdata[fl_ind0] = 0;
   int fl = fl_thread;

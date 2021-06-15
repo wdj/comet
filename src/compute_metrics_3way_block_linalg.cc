@@ -742,11 +742,14 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   if (need_mat_ij) {
     MirroredBuf* matM_ij_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_ij_buf;
 
+    GemmShapeNone gemm_shape;
+    //GemmShapes gemm_shapes(NULL, NULL, &gemm_shape);
+    GemmShapes gemm_shapes(&gemm_shape);
     LinAlg::gemm(nvl, nvl, npfl,
                  vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
                  vdata_i.sums->sums(), vdata_j.sums->sums(),
                  vdata_i.sums->counts(), vdata_j.sums->counts(),
-                 *dm, magma_wrapper, env_);
+                 *dm, magma_wrapper, gemm_shapes, env_);
 
     matM_ij_buf_ptr->from_accel();
 
@@ -765,11 +768,14 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   if (need_mat_jk) {
     MirroredBuf* matM_jk_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_jk_buf;
 
+    GemmShapeNone gemm_shape;
+    //GemmShapes gemm_shapes(NULL, NULL, &gemm_shape);
+    GemmShapes gemm_shapes(&gemm_shape);
     LinAlg::gemm(nvl, nvl, npfl,
                  vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
                  vdata_j.sums->sums(), vdata_k.sums->sums(),
                  vdata_j.sums->counts(), vdata_k.sums->counts(),
-                 *dm, magma_wrapper, env_);
+                 *dm, magma_wrapper, gemm_shapes, env_);
 
     matM_jk_buf_ptr->from_accel();
 
@@ -791,11 +797,14 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     MirroredBuf* matM_kik_buf_ptr =
         env_.do_reduce() ? tmp_buf_[0] : matM_kik_buf;
 
+    GemmShapeNone gemm_shape;
+    //GemmShapes gemm_shapes(NULL, NULL, &gemm_shape);
+    GemmShapes gemm_shapes(&gemm_shape);
     LinAlg::gemm(nvl, nvl, npfl,
                  vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
                  vdata_k.sums->sums(), vdata_i.sums->sums(),
                  vdata_k.sums->counts(), vdata_i.sums->counts(),
-                 *dm, magma_wrapper, env_);
+                 *dm, magma_wrapper, gemm_shapes, env_);
 
     matM_kik_buf_ptr->from_accel();
 
@@ -834,6 +843,10 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                         si->perm1(matM_ij_buf, matM_jk_buf, matM_kik_buf);
   MirroredBuf* const matM_KIK_buf =
                         si->perm2(matM_ij_buf, matM_jk_buf, matM_kik_buf);
+
+  const int I_block = si->perm0(i_block, j_block, k_block);
+  const int J_block = si->perm1(i_block, j_block, k_block);
+  const int K_block = si->perm2(i_block, j_block, k_block);
 
   const int J_min = si->J_lb;
   const int J_max = si->J_ub;
@@ -956,12 +969,20 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
+
+
+      GemmShape3Way gemm_shape(vars_prev.I_max, vars_prev.K_min,
+        vars_prev.K_max, metrics.dm->num_vector_local,
+        metrics.dm->num_vector_active,
+        I_block, J_block, K_block);
+      //GemmShapes gemm_shapes(NULL, &gemm_shape, NULL);
+      GemmShapes gemm_shapes(&gemm_shape);
       LinAlg::gemm_wait(vars_prev.I_max, nvl, npfl,
           matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
           vars_prev.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
-          vars_prev.J, vars_prev.step_2way, *dm, env_);
+          vars_prev.J, vars_prev.step_2way, *dm, gemm_shapes, env_);
       matB_cbuf->attach(*vars_prev.matB_buf_ptr());
       matB_cbuf->compress();
     }
@@ -988,12 +1009,18 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
     if (vars.do_compute) {
+      GemmShape3Way gemm_shape(vars.I_max, vars.K_min,
+        vars.K_max, metrics.dm->num_vector_local,
+        metrics.dm->num_vector_active,
+        I_block, J_block, K_block);
+      //GemmShapes gemm_shapes(NULL, &gemm_shape, NULL);
+      GemmShapes gemm_shapes(&gemm_shape);
       LinAlg::gemm_start(vars.I_max, nvl, npfl,
           matXitem_buf_[vars.index_01], vectors_I_buf, vectors_K_buf,
           vars.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
-          vars.J, vars.step_2way, *dm, magma_wrapper, env_);
+          vars.J, vars.step_2way, *dm, magma_wrapper, gemm_shapes, env_);
     }
 
     //========== Copy result matrix matB from GPU - WAIT

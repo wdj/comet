@@ -56,16 +56,18 @@ TODO:
 - reduce function - DONE
   - NEED to retrieve from GPU - buf_.from_accel() ??
   - ? already have code for reduction - check
-- implement for non threshold_tc cases
 - properly pass histograms through call chain - DONE
 - CHECK HIP case - atomic add - DONE
 - command line argument --histogram_file - DONE
 - histogram_file_ , is_computing_histogram() - DONE
 - update documentation, code_levelization.txt - DONE
-- write a unit test
 - function to return total number of histogram entries (ex. LLHH, LLLHHH) -
   in driver.cc try check against known metric count.
-  only if is_computing_histograms.
+  only if is_computing_histograms. - DONE
+
+- write a unit test
+
+- implement for non threshold_tc cases
 
 #endif
 
@@ -111,7 +113,7 @@ public:
 
   bool is_computing_histograms() const {return is_computing_histograms_;}
 
-  int num_histograms() const {return env_.num_way() + 2;}
+  int num_histograms() const {return num_histograms_;}
 
   Elt_t* get_ptr() {return (Elt_t*)(buf_.active);}
 
@@ -134,6 +136,9 @@ public:
                                    bucket_num > num_buckets-1 ? num_buckets-1 :
                                    bucket_num;
 
+
+//printf("%i %i %i %f %i\n", num_buckets, bucket_num_clamped, bucket_num, value, histogram_id);
+
     Elt_t& elt_this = elt(ptr, num_buckets, bucket_num_clamped, histogram_id);
 
     utils::atomic_add(&elt_this, 1e0);
@@ -152,6 +157,8 @@ public:
   Elt_t bucket_min(int bucket_num) const {
     return (Elt_t)(bucket_num) / RECIP_BUCKET_WIDTH;}
 
+  void check(size_t num_vector);
+
 private:
 
   CEnv& env_;
@@ -164,12 +171,27 @@ private:
 
   const int num_buckets_;
 
+  const int num_histograms_;
+
+  const int num_elts_;
+
   // buf_ will represent a 2D array, dimensions are
   // num_buckets X num_histograms, and num_buckets is the stride-1 axis.
   MirroredBuf buf_;
   MirroredBuf buf_finalized_;
 
   bool is_finalized_;
+
+  Elt_t sum_() {
+    Elt_t result = 0;
+    for (int col = 0; col < num_histograms_; ++col) {
+      const int multiplier = env_.num_way() + 1 == col ? 0 : 1;
+      for (int row = 0; row < num_buckets_ ; ++row) {
+        result += multiplier * elt_finalized(row, col);
+      }
+    }
+    return result;
+  }
 
 }; // Histograms
 

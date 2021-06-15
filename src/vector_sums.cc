@@ -297,7 +297,9 @@ static void VectorSums_compute_float_accel_kernel_(
 
   // Adapted from https://www.olcf.ornl.gov/wp-content/uploads/2019/12/05_Atomics_Reductions_Warp_Shuffle.pdf
 
-  extern __shared__ Out_t sdata[];
+  extern __shared__ Out_t sdata_vector_sums_1[];
+
+  Out_t* sdata = &(sdata_vector_sums_1[0]);
 
   sdata[pfl_ind0] = (Out_t)0;
 
@@ -369,7 +371,9 @@ static void VectorSums_compute_bits2_accel_kernel_(
 
   // Adapted from https://www.olcf.ornl.gov/wp-content/uploads/2019/12/05_Atomics_Reductions_Warp_Shuffle.pdf
 
-  extern __shared__ Out_t sdata[];
+  extern __shared__ Out_t sdata_vector_sums_2[];
+
+  Out_t* sdata = &(sdata_vector_sums_2[0]);
 
   Out_t* sdata_sums = &(sdata[0]);
   Out_t* sdata_counts = sdata_sums + pfl_dim0;
