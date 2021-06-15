@@ -97,6 +97,50 @@ size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env);
 size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env);
 size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env);
 
+//-----------------------------------------------------------------------------
+/// \brief Helper to track actual values needed from GEMM for 2-way metrics.
+
+class GemmShape2Way {
+public:
+
+  GemmShape2Way(bool do_compute_triang_only, int nval)
+    : do_compute_triang_only_(do_compute_triang_only), nval_(nval) {}
+
+  __host__ __device__
+  bool is_inside(int I, int J) const {
+    return (I < J || !do_compute_triang_only_) &&
+           I < nval_ && J < nval_;
+  }
+
+private:
+
+  const bool do_compute_triang_only_;
+  const int nval_;
+};
+
+//-----------------------------------------------------------------------------
+/// \brief Helper to track actual values needed from GEMM for 3-way metrics.
+
+class GemmShape3Way {
+public:
+
+  GemmShape3Way(int I_max, int K_min, int K_max, int nval)
+    : I_max_(I_max), K_min_(K_min), K_max_(K_max), nval_(nval) {}
+  __host__ __device__
+
+  bool is_inside(int I, int J, int K) const {
+    return I < I_max_ && K >= K_min_ && K < K_max_ &&
+           I < nval_ && J < nval_ && K < nval_;
+  }
+
+private:
+
+  const int I_max_;
+  const int K_min_;
+  const int K_max_;
+  const int nval_;
+};
+
 //=============================================================================
 
 } // namespace comet

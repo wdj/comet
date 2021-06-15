@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdint"
 
 #include "env.hh"
+#include "tc.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
 #include "vectors.hh"

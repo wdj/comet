@@ -254,6 +254,16 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 
 //=============================================================================
 
+class GemmShapeNone {
+public:
+
+  __host__ __device__ bool is_inside(int I, int J, int K = 0) const {
+    return true;
+  }
+};
+
+//=============================================================================
+
 class HistogramsHelperNone {
 public:
 
@@ -308,13 +318,14 @@ public:
 //=============================================================================
 /// \brief Do thresholding of metrics: individual elements, 2-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper,
+         class GemmShape = GemmShapeNone>
 __host__ __device__ void tc_threshold_2way_kernel_elt_(
+  int thread_r, int thread_c,
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier, double threshold_eff, bool is_using_xor,
-  Histograms::Elt_t* histograms_ptr, int num_buckets,
-  int thread_r, int thread_c) {
+  Histograms::Elt_t* histograms_ptr, int num_buckets, GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvll);
@@ -459,21 +470,23 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
     MFT::encode(dvo_this, values[indT_J_0], values[indT_J_1]);
   } // indT_I
 
-  helper.finalize(histograms_ptr, num_buckets);
+  if (gemm_shape.is_inside(I, J))
+    helper.finalize(histograms_ptr, num_buckets);
 }
 
 //=============================================================================
 /// \brief Do thresholding of metrics: individual elements, 3-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper,
+         class GemmShape = GemmShapeNone>
 __host__ __device__ void tc_threshold_3way_kernel_elt_(
+  int thread_r, int thread_c,
   int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
   double threshold_eff, bool is_using_xor,
-  Histograms::Elt_t* histograms_ptr, int num_buckets,
-  int thread_r, int thread_c) {
+  Histograms::Elt_t* histograms_ptr, int num_buckets, GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(nvll*2 == nvllX2 && nvll/2 == nvllD2);
@@ -655,18 +668,21 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
     } // indT_J
   } // indT_I
 
-  helper.finalize(histograms_ptr, num_buckets);
+  if (gemm_shape.is_inside(I, J, K))
+    helper.finalize(histograms_ptr, num_buckets);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Do thresholding of metrics: GPU kernel, 2-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper,
+         class GemmShape = GemmShapeNone>
 __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier, double threshold_eff, bool is_using_xor,
-  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0) {
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
+  GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
@@ -679,23 +695,25 @@ __global__ void tc_threshold_2way_kernel_(
 
   tc_threshold_2way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT,
                                 HistogramsHelper>(
+    thread_r, thread_c,
     nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
     param, multiplier, threshold_eff, is_using_xor,
-    histograms_ptr, num_buckets,
-    thread_r, thread_c);
+    histograms_ptr, num_buckets, gemm_shape);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Do thresholding of metrics: GPU kernel, 3-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT, class HistogramsHelper,
+         class GemmShape = GemmShapeNone>
 __global__ void tc_threshold_3way_kernel_(
   int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
   double threshold_eff, bool is_using_xor,
-  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0) {
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
+  GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
@@ -709,11 +727,11 @@ __global__ void tc_threshold_3way_kernel_(
 
   tc_threshold_3way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT,
                                 HistogramsHelper>(
+    thread_r, thread_c,
     nvll, nvllX2, nvllD2, nvl, vo,
     sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
     J, step_2way, param, multiplier, threshold_eff, is_using_xor,
-    histograms_ptr, num_buckets,
-    thread_r, thread_c);
+    histograms_ptr, num_buckets, gemm_shape);
 }
 
 //-----------------------------------------------------------------------------
@@ -813,10 +831,10 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
         for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
           for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
             tc_threshold_2way_kernel_elt_<CBPE, MF, HistogramsHelper2Way>(
+              thread_r, thread_c,
               nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
               param, multiplier, threshold_eff, is_using_xor,
-              histograms.get_ptr(), histograms.num_buckets(),
-              thread_r, thread_c);
+              histograms.get_ptr(), histograms.num_buckets());
           } // for
         } // for
 
@@ -825,10 +843,10 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
         for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
           for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
             tc_threshold_2way_kernel_elt_<CBPE, MF, HistogramsHelperNone>(
+              thread_r, thread_c,
               nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
               param, multiplier, threshold_eff, is_using_xor,
-              histograms.get_ptr(), histograms.num_buckets(),
-              thread_r, thread_c);
+              histograms.get_ptr(), histograms.num_buckets());
           } // for
         } // for
 
@@ -839,11 +857,11 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
         for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
           for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
             tc_threshold_3way_kernel_elt_<CBPE, MF, HistogramsHelper3Way>(
+              thread_r, thread_c,
               nvll, nvllX2, nvllD2, nvl, vo,
               sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
               J, step_2way, param, multiplier, threshold_eff, is_using_xor,
-              histograms.get_ptr(), histograms.num_buckets(),
-              thread_r, thread_c);
+              histograms.get_ptr(), histograms.num_buckets());
           } // for
         } // for
 
@@ -852,11 +870,11 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
         for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
           for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
             tc_threshold_3way_kernel_elt_<CBPE, MF, HistogramsHelperNone>(
+              thread_r, thread_c,
               nvll, nvllX2, nvllD2, nvl, vo,
               sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
               J, step_2way, param, multiplier, threshold_eff, is_using_xor,
-              histograms.get_ptr(), histograms.num_buckets(),
-              thread_r, thread_c);
+              histograms.get_ptr(), histograms.num_buckets());
           } // for
         } // for
 

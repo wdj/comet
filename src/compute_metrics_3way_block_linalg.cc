@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "string.h"
 
 #include "env.hh"
+#include "tc.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
 #include "compressed_buf.hh"

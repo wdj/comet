@@ -63,6 +63,9 @@ TODO:
 - histogram_file_ , is_computing_histogram() - DONE
 - update documentation, code_levelization.txt - DONE
 - write a unit test
+- function to return total number of histogram entries (ex. LLHH, LLLHHH) -
+  in driver.cc try check against known metric count.
+  only if is_computing_histograms.
 
 #endif
 
