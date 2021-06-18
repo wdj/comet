@@ -68,6 +68,7 @@ public:
     int j_proc,
     bool compute_triang_only,
     MagmaWrapper& magma_wrapper,
+    GemmShapes& gemm_shapes,
     CEnv* env);
 
   static void compute_nums_wait(
@@ -81,6 +82,7 @@ public:
     VectorSums* vector_sums_right,
     int j_proc,
     bool compute_triang_only,
+    GemmShapes& gemm_shapes,
     CEnv* env);
 
   static void finalize(

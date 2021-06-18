@@ -105,7 +105,7 @@ public:
 
   enum {RECIP_BUCKET_WIDTH = 1000};
 
-  Histograms(char* histograms_file, CEnv& env);
+  Histograms(const char* histograms_file, CEnv& env);
 
   void finalize();
 

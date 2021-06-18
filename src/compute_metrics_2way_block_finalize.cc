@@ -60,8 +60,8 @@ static void finalize_czek_(
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
-   bool do_compute_triang_only,
-   CEnv* env) {
+  bool do_compute_triang_only,
+  CEnv* env) {
 
   COMET_INSIST(metrics && matB_cbuf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);

@@ -657,6 +657,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
   int j_block,
   bool do_compute_triang_only,
   MagmaWrapper& magma_wrapper,
+  GemmShapes& gemm_shapes,
   CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
@@ -665,12 +666,12 @@ void ComputeMetrics2WayBlock::compute_nums_start(
 
   if (env->is_using_linalg()) {
 
-    GemmShape2Way gemm_shape(do_compute_triang_only,
-      metrics->dm->num_vector_local, metrics->dm->num_vector_active,
-      env->proc_num_vector(), j_block);
+    //GemmShape2Way gemm_shape(do_compute_triang_only,
+    //  metrics->dm->num_vector_local, metrics->dm->num_vector_active,
+    //  env->proc_num_vector(), j_block);
 //printf("%i  %i %i\n", System::proc_num(), (int)metrics->dm->num_vector_active_local, do_compute_triang_only);
-    //GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
-    GemmShapes gemm_shapes(&gemm_shape);
+    ////GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
+    //GemmShapes gemm_shapes(&gemm_shape);
 
     LinAlg::gemm_start(
       vectors_left->num_vector_local,
@@ -726,6 +727,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
   VectorSums* vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
+  GemmShapes& gemm_shapes,
   CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
@@ -734,11 +736,11 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
 
   if (env->is_using_linalg()) {
 
-    GemmShape2Way gemm_shape(do_compute_triang_only,
-      metrics->dm->num_vector_local, metrics->dm->num_vector_active,
-      env->proc_num_vector(), j_block);
-    //GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
-    GemmShapes gemm_shapes(&gemm_shape);
+    //GemmShape2Way gemm_shape(do_compute_triang_only,
+    //  metrics->dm->num_vector_local, metrics->dm->num_vector_active,
+    //  env->proc_num_vector(), j_block);
+    ////GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
+    //GemmShapes gemm_shapes(&gemm_shape);
 
     LinAlg::gemm_wait(
       vectors_left->num_vector_local,

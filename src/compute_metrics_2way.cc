@@ -163,13 +163,18 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   vectors_buf.to_accel();
 
+  GemmShape2Way gemm_shape(true,
+    metrics.dm->num_vector_local, metrics.dm->num_vector_active,
+    env_.proc_num_vector(), env_.proc_num_vector());
+  GemmShapes gemm_shapes(&gemm_shape);
+
   ComputeMetrics2WayBlock::compute_nums_start(
     &vectors, &vectors, &metrics, &vectors_buf,
      &vectors_buf, metrics_buf_ptr,
      &vector_sums_onproc_,
      &vector_sums_onproc_,
      env_.proc_num_vector(),
-     true, magma_wrapper, &env_);
+     true, magma_wrapper, gemm_shapes, &env_);
 
   ComputeMetrics2WayBlock::compute_nums_wait(
     &vectors, &vectors, &metrics, &vectors_buf,
@@ -177,7 +182,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
     &vector_sums_onproc_,
     &vector_sums_onproc_,
     env_.proc_num_vector(),
-    true, &env_);
+    true, gemm_shapes, &env_);
 
   // Copy result from GPU
 
@@ -268,6 +273,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   const int j_i_offset_this_row_max = metrics_bdiag_thisphase_thisbrow_max(env_);
 
   // Convenience struct to remember loop state across cycles.
+  // NOTE: ensures values are persistent across lifespan of async launches.
 
   struct LoopVars {
     GMVectors* vectors_right;
@@ -284,11 +290,38 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     int index_01;
     int j_i_offset;
     int j_block;
+    GemmShape2Way gemm_shape;
+    GemmShapes gemm_shapes;
+    LoopVars(CEnv& env)
+      : vectors_right(NULL)
+      , vectors_right_buf(NULL)
+      , metrics_buf(NULL)
+      , vector_sums_right(NULL)
+      , is_compute_step(false)
+      , is_first_compute_step(false)
+      , do_compute_block(false)
+      , needs_comm(false)
+      , is_main_diag(false)
+      , is_right_aliased(false)
+      , step_num(0)
+      , index_01(0)
+      , j_i_offset(0)
+      , j_block(0)
+      , gemm_shape()
+      , gemm_shapes(&gemm_shape) {}
   };
 
-  LoopVars vars = {};
-  LoopVars vars_prev = {};
-  LoopVars vars_next = {};
+//  LoopVars vars = {};
+//  LoopVars vars_prev = {};
+//  LoopVars vars_next = {};
+
+  const int num_buf = 3;
+
+  LoopVars vars_buf0(env_);
+  LoopVars vars_buf1(env_);
+  LoopVars vars_buf2(env_);
+
+  LoopVars* const vars_buf[num_buf] = {&vars_buf0, &vars_buf1, &vars_buf2};
 
   // Optionally compress the result data on the GPU.
 
@@ -314,8 +347,12 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     // Set per-step variables
 
-    vars_prev = vars;
-    vars = vars_next;
+    LoopVars& vars_prev = *vars_buf[(step_num - first_step + 1) % num_buf];
+    LoopVars& vars = *vars_buf[(step_num - first_step + 2) % num_buf];
+    LoopVars& vars_next = *vars_buf[(step_num - first_step + 3) % num_buf];
+
+    //vars_prev = vars;
+    //vars = vars_next;
 
     vars_next.step_num = step_num + 1;
     vars_next.is_compute_step = vars_next.step_num >= 0 &&
@@ -365,6 +402,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // Pointer to metrics buffer
 
     vars_next.metrics_buf = metrics_buf_01_[vars_next.index_01];
+
+
 
     //========== Send left matrix to GPU on first step - is_comm_gpu.
 
@@ -466,11 +505,23 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //========== Perform pseudo GEMM - START
 
     if (vars.is_compute_step && vars.do_compute_block) {
+
+     // vars.gemm_shape.set(vars.is_main_diag,
+     //  metrics.dm->num_vector_local, metrics.dm->num_vector_active,
+     //   env_.proc_num_vector(), vars.j_block);
+
+      GemmShape2Way gemm_shape(vars.is_main_diag,
+        metrics.dm->num_vector_local, metrics.dm->num_vector_active,
+        env_.proc_num_vector(), vars.j_block);
+
+      GemmShapes gemm_shapes(&gemm_shape);
+
+
       ComputeMetrics2WayBlock::compute_nums_start(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_alt_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
-        vars.j_block, vars.is_main_diag, magma_wrapper, &env_);
+        vars.j_block, vars.is_main_diag, magma_wrapper, gemm_shapes, &env_);
     }
 
     //========== Copy result matrix from GPU - WAIT
@@ -549,11 +600,23 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //========== Perform pseudo GEMM - WAIT
 
     if (vars.is_compute_step && vars.do_compute_block) {
+
+     // vars.gemm_shape.set(vars.is_main_diag,
+     // metrics.dm->num_vector_local, metrics.dm->num_vector_active,
+     // env_.proc_num_vector(), vars.j_block);
+
+      GemmShape2Way gemm_shape(vars.is_main_diag,
+        metrics.dm->num_vector_local, metrics.dm->num_vector_active,
+        env_.proc_num_vector(), vars.j_block);
+
+      GemmShapes gemm_shapes(&gemm_shape);
+
+
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_alt_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
-        vars.j_block, vars.is_main_diag, &env_);
+        vars.j_block, vars.is_main_diag, gemm_shapes, &env_);
         matB_buf_compressed.attach(*vars.metrics_buf);
         matB_buf_compressed.compress();
     }

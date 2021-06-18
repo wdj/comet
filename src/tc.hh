@@ -66,6 +66,8 @@ typedef int accelblasHandle_t;
 class GemmShape2Way {
 public:
 
+  GemmShape2Way() {}
+
   GemmShape2Way(bool do_compute_triang_only, int nvl, int nva,
                 int proc_num_I, int proc_num_J)
     : do_compute_triang_only_(do_compute_triang_only)
@@ -73,6 +75,15 @@ public:
     , nva_(nva)
     , proc_num_I_(proc_num_I)
     , proc_num_J_(proc_num_J) {}
+
+  void set(bool do_compute_triang_only, int nvl, int nva,
+           int proc_num_I, int proc_num_J) {
+    do_compute_triang_only_ = do_compute_triang_only;
+    nvl_ = nvl;
+    nva_ = nva;
+    proc_num_I_ = proc_num_I;
+    proc_num_J_ = proc_num_J; 
+  }
 
   __host__ __device__
   bool is_inside(int I, int J) const {
@@ -83,11 +94,11 @@ public:
 
 private:
 
-  const bool do_compute_triang_only_;
-  const int nvl_;
-  const int nva_;
-  const int proc_num_I_;
-  const int proc_num_J_;
+  bool do_compute_triang_only_;
+  int nvl_;
+  int nva_;
+  int proc_num_I_;
+  int proc_num_J_;
 };
 
 //-----------------------------------------------------------------------------
@@ -95,6 +106,8 @@ private:
 
 class GemmShape3Way {
 public:
+
+  GemmShape3Way() {}
 
   GemmShape3Way(int I_max, int K_min, int K_max, int nvl, int nva,
                 int proc_num_I, int proc_num_J, int proc_num_K)
@@ -105,10 +118,21 @@ public:
     , nva_(nva)
     , proc_num_I_(proc_num_I)
     , proc_num_J_(proc_num_J)
-    , proc_num_K_(proc_num_K)
- {}
-  __host__ __device__
+    , proc_num_K_(proc_num_K) {}
 
+  void set(int I_max, int K_min, int K_max, int nvl, int nva,
+           int proc_num_I, int proc_num_J, int proc_num_K) {
+    I_max_ = I_max;
+    K_min_ = K_min;
+    K_max_ = K_max;
+    nvl_ = nvl;
+    nva_ = nva;
+    proc_num_I_ = proc_num_I;
+    proc_num_J_ = proc_num_J;
+    proc_num_K_ = proc_num_K;
+  }
+
+  __host__ __device__
   bool is_inside(int I, int J, int K) const {
     return I < I_max_ && K >= K_min_ && K < K_max_ &&
            I + nvl_*proc_num_I_ < nva_ &&
@@ -118,14 +142,14 @@ public:
 
 private:
 
-  const int I_max_;
-  const int K_min_;
-  const int K_max_;
-  const int nvl_;
-  const int nva_;
-  const int proc_num_I_;
-  const int proc_num_J_;
-  const int proc_num_K_;
+  int I_max_;
+  int K_min_;
+  int K_max_;
+  int nvl_;
+  int nva_;
+  int proc_num_I_;
+  int proc_num_J_;
+  int proc_num_K_;
 };
 
 //-----------------------------------------------------------------------------
@@ -154,10 +178,28 @@ struct GemmShapes {
     , gemm_shape_3way(p)
     , gemm_shape_none(NULL) {}
 
-  GemmShapes(GemmShapeNone* p)
+  GemmShapes(GemmShapeNone* p = 0)
     : gemm_shape_2way(NULL)
     , gemm_shape_3way(NULL)
     , gemm_shape_none(p) {}
+
+  void attach(GemmShape2Way* gemm_shape_2way_) {
+    gemm_shape_2way = gemm_shape_2way_;
+    gemm_shape_3way = NULL;
+    gemm_shape_none = NULL;
+  }
+
+  void attach(GemmShape3Way* gemm_shape_3way_) {
+    gemm_shape_2way = NULL;
+    gemm_shape_3way = gemm_shape_3way_;
+    gemm_shape_none = NULL;
+  }
+
+  void attach(GemmShapeNone* gemm_shape_none_) {
+    gemm_shape_2way = NULL;
+    gemm_shape_3way = NULL;
+    gemm_shape_none = gemm_shape_none_;
+  }
 
   GemmShape2Way* gemm_shape_2way;
   GemmShape3Way* gemm_shape_3way;

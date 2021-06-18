@@ -2013,7 +2013,7 @@ void DriverTest_file_output_() {
     char options2[1024];
 
     //const int num_proc_vector = 5;
-    //const int num_proc_vector = 2;
+    //const int num_proc_vector = 1;
     const int num_proc_vector = comet::System::num_proc() >= 2 ? 5 : 1;
 
     char options_template[] =
@@ -2037,8 +2037,6 @@ void DriverTest_file_output_() {
     typedef comet::TC TC;
     typedef comet::NumWay NumWay;
 
-#if 0
-//FIX
     // Metrics output file.
 
     for (int num_way : {NumWay::_2, NumWay::_3})
@@ -2059,7 +2057,6 @@ void DriverTest_file_output_() {
 
       test_2runs(options1, options2);
     }
-#endif
 
     // Histograms.
 
@@ -2628,12 +2625,12 @@ void DriverTest_duo3_() {
 BEGIN_TESTS
 
 #if 0
-TEST(DriverTest, subbyte_gemm) {
-  DriverTest_subbyte_gemm_();
-}
-
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
+}
+
+TEST(DriverTest, subbyte_gemm) {
+  DriverTest_subbyte_gemm_();
 }
 #endif
 

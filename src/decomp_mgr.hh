@@ -75,6 +75,7 @@ typedef struct {
 //private:
 
   Histograms* histograms_;
+  Histograms* histograms_default_;
 
 } GMDecompMgr;
 

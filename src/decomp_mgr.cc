@@ -109,10 +109,10 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                         CEnv* env) {
   COMET_INSIST(dm && env);
 
-  if (! env->is_proc_active()) {
-    *dm = GMDecompMgr_null();
+  *dm = GMDecompMgr_null();
+
+  if (!env->is_proc_active())
     return;
-  }
 
   //--------------------
   // Vector counts
@@ -297,6 +297,14 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
   TCBufs::malloc(dm->num_vector_local, //dm->num_field_local,
                  dm->num_packedfield_local, dm->tc_bufs, *env);
+
+  //--------------------
+  // histograms
+  //--------------------
+
+  dm->histograms_default_ = new Histograms("", *env);
+
+  dm->histograms_ = dm->histograms_default_;
 }
 
 //-----------------------------------------------------------------------------
@@ -313,6 +321,15 @@ void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env) {
   //--------------------
 
   TCBufs::free(dm->tc_bufs, *env);
+
+  //--------------------
+  // histograms
+  //--------------------
+
+  dm->histograms_ = NULL;
+
+  delete dm->histograms_default_;
+  dm->histograms_default_ = NULL;
 }
 
 //=============================================================================

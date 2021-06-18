@@ -44,7 +44,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Constructor for Histograms class.
 
-Histograms::Histograms(char* histograms_file, CEnv& env)
+Histograms::Histograms(const char* histograms_file, CEnv& env)
   : env_(env)
   , is_computing_histograms_(histograms_file && env_.is_metric_type_bitwise() &&
                              env_.is_threshold_tc() && // TODO: remove/implement.
@@ -57,7 +57,7 @@ Histograms::Histograms(char* histograms_file, CEnv& env)
   , buf_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_)
   , buf_finalized_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_) {
 
-  COMET_INSIST(env_.is_metric_type_bitwise() || !histograms_file);
+  //COMET_INSIST(env_.is_metric_type_bitwise() || !histograms_file);
 
   if (!is_computing_histograms() || !env_.is_proc_active())
     return;
