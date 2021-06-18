@@ -943,37 +943,50 @@ void MetricsIO::open_(const char* mode) {
   }
 
   // Create a formt string for forming filename.
-
-  //char format[255];
+  char format[100];
 
   if (is_leaving_files_open_()) {
 
-    //sprintf(format, "%s0%ii.bin", "%s_%", num_digits_proc);
-    //sprintf(format, "%%s" "0" "%i" "i.bin", "%s_%", num_digits_proc);
-    //sprintf(path, format, path_stub, env.proc_num());
+    //sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
+    sprintf(format, "%%s"
+                    "_"
+                    "%%0" "%i" "i"
+                    ".bin",
+            num_digits_proc);
+    sprintf(path, format, path_stub, env_.proc_num());
 
-    sprintf(path, "%s_%*i.bin", path_stub, num_digits_proc, env_.proc_num());
+    //sprintf(path, "%s_%*i.bin", path_stub, num_digits_proc, env_.proc_num());
 
   } else { // ! is_leaving_files_open_()
 
     int num_digits_phase = 0;
     for (int tmp = 1; ; tmp*=10, ++num_digits_phase) {
-      if (tmp > env_.num_phase()) {
+      if (tmp > env_.num_phase())
         break;
-      }
     }
 
     int num_digits_stage = 0;
     for (int tmp = 1; ; tmp*=10, ++num_digits_stage) {
-      if (tmp > env_.num_stage()) {
+      if (tmp > env_.num_stage())
         break;
-      }
     }
 
-    sprintf(path, "%s_%*i_%*i_%*i.bin", path_stub,
-      num_digits_proc, env_.proc_num(),
-      num_digits_phase, env_.phase_num(),
-      num_digits_stage, env_.stage_num());
+    sprintf(format, "%%s"
+                    "_"
+                    "%%0" "%i" "i"
+                    "_"
+                    "%%0" "%i" "i"
+                    "_"
+                    "%%0" "%i" "i"
+                    ".bin",
+            num_digits_proc, num_digits_phase, num_digits_stage);
+    sprintf(path, format, path_stub,
+            env_.proc_num(), env_.phase_num(), env_.stage_num());
+
+    //sprintf(path, "%s_%*i_%*i_%*i.bin", path_stub,
+    //  num_digits_proc, env_.proc_num(),
+    //  num_digits_phase, env_.phase_num(),
+    //  num_digits_stage, env_.stage_num());
 
   } // is_leaving_files_open_()
 

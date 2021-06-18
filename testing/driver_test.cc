@@ -2014,7 +2014,7 @@ void DriverTest_file_output_() {
 
     //const int num_proc_vector = 5;
     //const int num_proc_vector = 1;
-    const int num_proc_vector = comet::System::num_proc() >= 2 ? 5 : 1;
+    const int num_proc_vector = comet::System::num_proc() >= 2 ? 11 : 1;
 
     char options_template[] =
         "--metric_type %s "
@@ -2624,7 +2624,7 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-#if 0
+#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
@@ -2638,7 +2638,7 @@ TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
 
-#if 0
+#if 1
 TEST(DriverTest, tc) {
   DriverTest_tc_();
 }
