@@ -142,6 +142,7 @@ struct GMMetrics {
     return num_metric_items_local == num_metric_items_local_computed ? 1 :
       num_metric_items_local / (num_metric_items_local_computed + fuzz);
   }
+  size_t num_metrics_active_local;
   // Other.
   int data_type_id;
   GMDecompMgr* dm;
@@ -353,7 +354,7 @@ void GMMetrics_create(GMMetrics* metrics, int data_type_id,
 
 //-----------------------------------------------------------------------------
 
-void GMMetrics_set_num_metrics(GMMetrics& metrics, int nvl, CEnv& env);
+void GMMetrics_set_num_metrics(GMMetrics& metrics, int nvl, const CEnv& env);
 
 //=============================================================================
 // Metrics pseudo-destructor.

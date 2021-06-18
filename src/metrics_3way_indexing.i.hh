@@ -150,7 +150,7 @@ static int gm_section_num_part3(int i_block, int j_block, int k_block) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_J_lo(int section_num, int nvl, int part_num, CEnv* env) {
+static int gm_J_lo(int section_num, int nvl, int part_num, const CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(section_num >= 0 && section_num < 6);
   COMET_ASSERT(nvl >= 0);
@@ -168,7 +168,7 @@ static int gm_J_lo(int section_num, int nvl, int part_num, CEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_J_hi(int section_num, int nvl, int part_num, CEnv* env) {
+static int gm_J_hi(int section_num, int nvl, int part_num, const CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(section_num >= 0 && section_num < 6);
   COMET_ASSERT(nvl >= 0);
@@ -350,9 +350,9 @@ static int GMSectionInfo_i_max(
 // Accessors: indexing: (contig) index from coord, 3-way.
 
 //-----------------------------------------------------------------------------
-/// \brief Helper: number of elts in part of a trapezoid, cut orthog to j axis.
+/// \brief Helper: number of elts in part of tetrahedron, cut orthog to j axis.
 
-static size_t trapezoid_size(int j, int nvl) {
+static size_t tetrahedron_size(int j, int nvl) {
   return ( j *(size_t) (j-1) *(size_t) (3*nvl-2*j-2) ) / 6;
 }
 
@@ -381,7 +381,7 @@ static size_t Metrics_index_3_part1(GMMetrics& metrics,
   const int64_t index = elts_offset +
                         i +
                         (k-j-1)*(size_t)j +
-                        trapezoid_size(j, nvl);
+                        tetrahedron_size(j, nvl);
   /* clang-format on */
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_metrics_local);

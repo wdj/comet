@@ -105,33 +105,58 @@ void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors) {
 
 void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 
+  //--------------------
   // Check computed element count.
+  //--------------------
 
   COMET_INSIST((metrics.num_metric_items_local ==
                 metrics.num_metric_items_local_computed ||
                 env_.is_shrink()) &&
            "Failure to compute all requested metrics.");
 
+  // NOTE: below: metrics elts have no field axis so just sum across
+  // repl/vector procs.
+
+  //--------------------
   // Compute counter values: compares.
+  //--------------------
 
   const double num_metrics_local = metrics.num_metrics_local;
   double num_metrics = 0;
 
-  // NOTE: metrics elts have no field axis so just sum across repl/vector procs.
-
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_metrics_local, &num_metrics,
-    1, MPI_DOUBLE, MPI_SUM, env_.comm_repl_vector()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_metrics_local,
+    &num_metrics, 1, MPI_DOUBLE, MPI_SUM, env_.comm_repl_vector()));
 
   const double num_metric_compares = num_metrics * metrics.num_field_active;
   const double num_entry_compares = num_metric_compares *
                                     env_.num_entries_per_metric();
-//if (env_.proc_num()==0) printf("%zu %zu %zu\n", num_metrics, num_metric_compares, num_entry_compares);
 
   env_.vec_compares_inc(num_metrics);
   env_.metric_compares_inc(num_metric_compares);
   env_.entry_compares_inc(num_entry_compares);
 
-  // Compute counter values: metric entries.
+  //--------------------
+  // Compute counter values: active compares.
+  //--------------------
+
+  const double num_metrics_active_local = metrics.num_metrics_active_local;
+  double num_metrics_active = 0;
+
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_metrics_active_local,
+    &num_metrics_active, 1, MPI_DOUBLE, MPI_SUM, env_.comm_repl_vector()));
+
+  const double num_metric_active_compares = num_metrics_active *
+                                            metrics.num_field_active;
+  const double num_entry_active_compares = num_metric_active_compares *
+                                    env_.num_entries_per_metric();
+
+  env_.vec_active_compares_inc(num_metrics_active);
+  env_.metric_active_compares_inc(num_metric_active_compares);
+  env_.entry_active_compares_inc(num_entry_active_compares);
+
+  //--------------------
+  // Compute counter values: computed metric entries.
+  //--------------------
 
   const size_t metric_entries_local = metrics.num_metric_items_local *
     env_.num_entries_per_metric_item();
@@ -150,7 +175,9 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
   env_.metric_entries_inc(metric_entries);
   env_.metric_entries_computed_inc(metric_entries_computed);
 
+  //--------------------
   // Compute counter values: shrink_achieved.
+  //--------------------
 
   const double shrink_achieved_tmp = utils::min(env_.shrink_achieved(),
     metrics.shrink_achieved_local());

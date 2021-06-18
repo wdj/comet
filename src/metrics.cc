@@ -193,11 +193,11 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl,
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(env.num_way() == NumWay::_2);
 
-  const size_t nchoosek = utils::nchoosek(nvl, env.num_way());
+  const size_t nvlchoosek = utils::nchoosek(nvl, env.num_way());
 
   if (!env.all2all()) {
     // Triangle of values.
-    metrics.num_metrics_local = nchoosek;
+    metrics.num_metrics_local = nvlchoosek;
     return;
   }
 
@@ -227,11 +227,11 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl,
   const bool have_main_bdiag = proc_num_repl == 0 &&
                                metrics_bdiag_thisphase_min(env) == 0;
 
-  metrics.num_metrics_local += have_main_bdiag ? nchoosek : 0;
+  metrics.num_metrics_local += have_main_bdiag ? nvlchoosek : 0;
   // Subtract nvlsq here because later in Metrics_index_2_part2,
   // the stored block number that is used includes the main diag block
   // (if present), thus need to compensate here for this.
-  metrics.index_offset_part2_ = have_main_bdiag ? nchoosek - nvlsq : 0;
+  metrics.index_offset_part2_ = have_main_bdiag ? nvlchoosek - nvlsq : 0;
 
   // Block number, in this block row of the full matrix, where current phase
   // starts (measured in blocks).
@@ -263,7 +263,8 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl,
 
 //=============================================================================
 
-void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
+void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl,
+  const CEnv& env) {
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(env.num_block_vector() <= 2 || nvl % 6 == 0);
   COMET_INSIST(env.num_way() == NumWay::_3);
@@ -287,17 +288,17 @@ void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
     const int section_num = section_step;
     const int J_lo = gm_J_lo(section_num, nvl, 1, &env);
     const int J_hi = gm_J_hi(section_num, nvl, 1, &env);
-    const int64_t trap_size_lo = trapezoid_size(J_lo, nvl);
-    const int64_t trap_size_hi = trapezoid_size(J_hi, nvl);
-    COMET_INSIST(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
+    const int64_t tet_size_lo = tetrahedron_size(J_lo, nvl);
+    const int64_t tet_size_hi = tetrahedron_size(J_hi, nvl);
+    COMET_INSIST(tet_size_hi >= tet_size_lo && "Error in sizes calculation.");
     //---Absorb size_lo into offset for speed in indexing function.
     metrics.index_offset_section_part1_[section_num]
-      = (int64_t)metrics.num_metrics_local - trap_size_lo;
+      = (int64_t)metrics.num_metrics_local - tet_size_lo;
     if (gm_is_section_block_in_phase(&env, section_block_num)) {
       //if (gm_proc_r_active(section_block_num, &env)) {
       if (metrics_is_proc_repl_active(metrics, section_block_num, env)) {
-        //---Elements in slice of trapezoid.
-        const int64_t elts_local = trap_size_hi - trap_size_lo;
+        //---Elements in slice of tetrahedron.
+        const int64_t elts_local = tet_size_hi - tet_size_lo;
         COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
         metrics.num_metrics_local += elts_local;
         metrics.is_section_num_valid_part1_[section_num] = (elts_local != 0);
@@ -389,7 +390,7 @@ void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
 
 //=============================================================================
 
-void GMMetrics_set_num_metrics(GMMetrics& metrics, int nvl, CEnv& env) {
+void GMMetrics_set_num_metrics(GMMetrics& metrics, int nvl, const CEnv& env) {
   COMET_INSIST(nvl >= 0);
 
   if (env.num_way() == NumWay::_2)
@@ -507,6 +508,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_metric_items_local = 0;
   metrics->num_metric_items_local_allocated = 0;
   metrics->num_metric_items_local_computed = 0;
+  metrics->num_metrics_active_local = 0;
 
   //--------------------
   // Calcuate number of metrics to be computed.
@@ -595,8 +597,10 @@ void GMMetrics_create(GMMetrics* metrics,
   // Set coords.
   //--------------------
 
-  if (env->is_shrink())
-    return;
+  const bool is_shrink = env->is_shrink();
+
+  //if (env->is_shrink())
+  //  return;
 
   // TODO: put the following in its own function.
 
@@ -605,6 +609,9 @@ void GMMetrics_create(GMMetrics* metrics,
   // TODO: (maybe) make nvl to be type size_t.
   const int nvl = metrics->num_vector_local;
   const size_t nvlsq = nvl * (size_t)nvl;
+  const size_t nva = dm->num_vector_active;
+
+  size_t& num_metrics_active_local = metrics->num_metrics_active_local;
 
   /*==================================================*/
   if (env->num_way() == NumWay::_2 && env->all2all()) {
@@ -633,6 +640,9 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t jG = j + nvl * (size_t)i_block;
         for (int i = 0; i < j; ++i) {
           const size_t iG = i + nvl * (size_t)i_block;
+          num_metrics_active_local += iG < nva && jG < nva;
+          if (is_shrink)
+            continue;
           COMET_ASSERT(Metrics_index_2_part1(*metrics, i, j, i_block, *env) ==
                        index);
           metrics->data_coords_values_[index++] =
@@ -657,12 +667,15 @@ void GMMetrics_create(GMMetrics* metrics,
       const int j_block_unwrapped = i_block + bdiag;
       // don't collapse because overflow for large sizes, tho could use size_t j
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-      #pragma omp parallel for schedule(dynamic,1000)
+      #pragma omp parallel for schedule(dynamic,1000) reduction(+:num_metrics_active_local)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
         const size_t jG_unwrapped = j + j_block_unwrapped * (size_t)nvl;
         const size_t jG = jG_unwrapped % metrics->num_vector;
           const size_t iG = i + nvl * i_block;
+          num_metrics_active_local += iG < nva && jG < nva;
+          if (is_shrink)
+            continue;
           const size_t index_this = index + i + j * (size_t)nvl;
           COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
           metrics->data_coords_values_[index_this] =
@@ -673,7 +686,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } // for bdiag
 
     // Final check.
-    COMET_INSIST(index == metrics->num_metrics_local &&
+    COMET_INSIST((index == metrics->num_metrics_local || is_shrink) &&
                  "Error in sizes calculation.");
 
   /*==================================================*/
@@ -705,17 +718,20 @@ void GMMetrics_create(GMMetrics* metrics,
             const size_t jG = j + nvl * (size_t)j_block;
             // don't use collapse because of overflow for large sizes
             //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-            #pragma omp parallel for schedule(dynamic,1000)
+            #pragma omp parallel for schedule(dynamic,1000) reduction(+:num_metrics_active_local)
             for (int k = j+1; k < nvl; ++k) {
               for (int i = 0; i < j; ++i) {
               const int k_block = i_block;
               const size_t kG = k + nvl * (size_t)k_block;
                 const size_t iG = i + nvl * (size_t)i_block;
+                num_metrics_active_local += iG < nva && jG < nva && kG < nva;
+                if (is_shrink)
+                  continue;
                 const size_t index_this = index + i + j*(size_t)(k-(j+1));
                 COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_metrics_local);
                 metrics->data_coords_values_[index_this] =
-                //  iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
+                  //  iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
                   CoordsInfo::set(iG, jG, kG, *metrics, *env);
               }
             }
@@ -744,18 +760,21 @@ void GMMetrics_create(GMMetrics* metrics,
               const size_t jG = j + nvl * (size_t)j_block;
               // don't use collapse because of overflow for large sizes
               //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-              #pragma omp parallel for schedule(dynamic,1000)
+              #pragma omp parallel for schedule(dynamic,1000) reduction(+:num_metrics_active_local)
               for (int k = j+1; k < nvl; ++k) {
                 for (int i = 0; i < nvl; ++i) {
                   const int k_block = j_block;
                   const size_t kG = k + nvl * (size_t)k_block;
                   const size_t iG = i + nvl * (size_t)i_block;
+                  num_metrics_active_local += iG < nva && jG < nva && kG < nva;
+                  if (is_shrink)
+                    continue;
                   const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
                   COMET_ASSERT(index_this>=0 &&
                                index_this<metrics->num_metrics_local);
                   metrics->data_coords_values_[index_this] =
-                  //  iG + metrics->num_vector * (
-                  //  jG + metrics->num_vector * (kG));
+                    //  iG + metrics->num_vector * (
+                    //  jG + metrics->num_vector * (kG));
                     CoordsInfo::set(iG, jG, kG, *metrics, *env);
                 } // for i
               } // for k
@@ -796,7 +815,7 @@ void GMMetrics_create(GMMetrics* metrics,
               for (int J = J_lo; J < J_hi; ++J) {
                 // don't use collapse because of overflow for large sizes
                 //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-                #pragma omp parallel for schedule(dynamic,1000)
+                #pragma omp parallel for schedule(dynamic,1000) reduction(+:num_metrics_active_local)
                 for (int K = 0; K < nvl; ++K) {
                   for (int I = 0; I < nvl; ++I) {
 
@@ -818,18 +837,20 @@ void GMMetrics_create(GMMetrics* metrics,
                     COMET_ASSERT(iG >= 0 && iG < metrics->num_vector);
                     COMET_ASSERT(jG >= 0 && jG < metrics->num_vector);
                     COMET_ASSERT(kG >= 0 && kG < metrics->num_vector);
+                    num_metrics_active_local +=
+                      iG < nva && jG < nva && kG < nva;
+                    if (is_shrink)
+                      continue;
                     const size_t index_this = index + I + K * (size_t)nvl;
                     COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_metrics_local);
-
                     COMET_ASSERT(Metrics_index_3_part3_permuted(*metrics,
                       I, J, K, i_block, j_block, k_block, *env) == index_this);
-
                     COMET_ASSERT(Metrics_index_3_part3(*metrics,
                       i, j, k, i_block, j_block, k_block, *env) == index_this);
                     metrics->data_coords_values_[index_this] =
-                    //  iG + metrics->num_vector * (
-                    //  jG + metrics->num_vector * (kG));
+                      //  iG + metrics->num_vector * (
+                      //  jG + metrics->num_vector * (kG));
                       CoordsInfo::set(iG, jG, kG, *metrics, *env);
                   } // for I
                 } // for K
@@ -842,7 +863,7 @@ void GMMetrics_create(GMMetrics* metrics,
       } // k_i_offset
     } // section_step
 
-    COMET_INSIST(index == metrics->num_metrics_local &&
+    COMET_INSIST((index == metrics->num_metrics_local || is_shrink) &&
                  "Error in sizes calculation.");
 
   /*==================================================*/
@@ -856,11 +877,16 @@ void GMMetrics_create(GMMetrics* metrics,
       const size_t jG = j + nvl * (size_t)j_block;
       for (int i = 0; i < j; ++i) {
         const size_t iG = i + nvl * (size_t)i_block;
+        num_metrics_active_local += iG < nva && jG < nva;
+        if (is_shrink)
+          continue;
+        COMET_ASSERT(index < metrics->num_metrics_local);
         metrics->data_coords_values_[index++] =
           CoordsInfo::set(iG, jG, *metrics, *env);
       } // for i
     } // for j
-    COMET_INSIST(index == metrics->num_metrics_local &&
+
+    COMET_INSIST((index == metrics->num_metrics_local || is_shrink) &&
                  "Error in sizes calculation.");
 
   /*==================================================*/
@@ -877,13 +903,17 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t kG = k + nvl * (size_t)k_block;
         for (int i = 0; i < j; ++i) {
           const size_t iG = i + nvl * (size_t)i_block;
+          num_metrics_active_local += iG < nva && jG < nva && kG < nva;
+          if (is_shrink)
+            continue;
           COMET_ASSERT(index < metrics->num_metrics_local);
           metrics->data_coords_values_[index++] =
             CoordsInfo::set(iG, jG, kG, *metrics, *env);
         } // for i
       } // for k
     } // for j
-    COMET_INSIST(index == metrics->num_metrics_local &&
+
+    COMET_INSIST((index == metrics->num_metrics_local || is_shrink) &&
                  "Error in sizes calculation.");
 
   } // if / else
@@ -892,17 +922,37 @@ void GMMetrics_create(GMMetrics* metrics,
   // Checks.
   //--------------------
 
-  size_t num_elts = 0;
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_metrics_local, &num_elts, 1,
-    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
+  size_t num_metrics = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_metrics_local, &num_metrics,
+    1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
+
+  size_t num_metrics_active = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_metrics_active_local,
+    &num_metrics_active,
+    1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
   if (env->num_stage() == 1 && env->num_phase() == 1 && env->all2all())
     COMET_INSIST(utils::nchoosek(metrics->num_vector, env->num_way()) ==
-                 num_elts);
+                 num_metrics && "Error in metrics count.");
 
-  COMET_INSIST(env->all2all() ||
+//if (env->num_stage() == 1 && env->num_phase() == 1 && env->all2all())
+//if (!(utils::nchoosek(dm->num_vector_active, env->num_way()) ==
+//                 num_metrics_active))
+//printf("%zu %zu\n", utils::nchoosek(dm->num_vector_active, env->num_way()), num_metrics_active);
+
+  if (env->num_stage() == 1 && env->num_phase() == 1 && env->all2all())
+    COMET_INSIST(utils::nchoosek(dm->num_vector_active, env->num_way()) ==
+                 num_metrics_active && "Error in metrics count.");
+
+  COMET_INSIST((env->all2all() ||
     utils::nchoosek(metrics->num_vector_local, env->num_way()) ==
-                    metrics->num_metrics_local);
+                    metrics->num_metrics_local) &&
+    "Error in local metrics count.");
+
+  COMET_INSIST((env->all2all() ||
+    utils::nchoosek(dm->num_vector_active_local, env->num_way()) ==
+                    metrics->num_metrics_active_local) &&
+    "Error in local metrics count.");
 }
 
 //=============================================================================

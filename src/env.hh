@@ -775,15 +775,21 @@ public:
   void ops_gemm_local_inc(double n) {ops_gemm_local_ += n;}
   double ops() const;
   double ops_gemm() const;
-  double entry_compares() const {return entry_compares_;}
-  double metric_compares() const {return metric_compares_;}
   double vec_compares() const {return vec_compares_;}
-  void entry_compares_inc(double n) {entry_compares_ += n;}
-  void metric_compares_inc(double n) {metric_compares_ += n;}
   void vec_compares_inc(double n) {vec_compares_ += n;}
+  double vec_active_compares() const {return vec_compares_;}
+  void vec_active_compares_inc(double n) {vec_compares_ += n;}
+  double metric_compares() const {return metric_compares_;}
+  void metric_compares_inc(double n) {metric_compares_ += n;}
+  double metric_active_compares() const {return metric_compares_;}
+  void metric_active_compares_inc(double n) {metric_compares_ += n;}
+  double entry_compares() const {return entry_compares_;}
+  void entry_compares_inc(double n) {entry_compares_ += n;}
+  double entry_active_compares() const {return entry_compares_;}
+  void entry_active_compares_inc(double n) {entry_compares_ += n;}
   size_t metric_entries() const {return metric_entries_;}
-  size_t metric_entries_computed() const {return metric_entries_computed_;}
   void metric_entries_inc(size_t n) {metric_entries_ += n;}
+  size_t metric_entries_computed() const {return metric_entries_computed_;}
   void metric_entries_computed_inc(size_t n) {metric_entries_computed_ += n;}
   double shrink_achieved() const {return shrink_achieved_;}
   void shrink_achieved_set(double v) {shrink_achieved_ = v;}
@@ -944,9 +950,12 @@ private:
   size_t gpu_mem_local_;
   size_t cpu_mem_max_local_;
   size_t gpu_mem_max_local_;
+  double vec_compares_;
   double metric_compares_;
   double entry_compares_;
-  double vec_compares_;
+  double vec_active_compares_;
+  double metric_active_compares_;
+  double entry_active_compares_;
   size_t metric_entries_;
   size_t metric_entries_computed_;
   double shrink_achieved_;

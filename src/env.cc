@@ -281,9 +281,12 @@ void CEnv::set_defaults_() {
   gpu_mem_local_ = 0;
   cpu_mem_max_local_ = 0;
   gpu_mem_max_local_ = 0;
-  entry_compares_ = 0;
-  metric_compares_ = 0;
   vec_compares_ = 0;
+  metric_compares_ = 0;
+  entry_compares_ = 0;
+  vec_active_compares_ = 0;
+  metric_active_compares_ = 0;
+  entry_active_compares_ = 0;
   metric_entries_ = 0;
   metric_entries_computed_ = 0;
   shrink_achieved_ = DBL_MAX;
