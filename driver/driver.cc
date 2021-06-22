@@ -335,13 +335,16 @@ void print_output(bool do_print,
   }
 
   printf(" vcmp %e", env.vec_compares());
+  printf(" vacmp %e", env.vec_active_compares());
   if (output_file_stub) {
     printf(" vcmpout %e", (double)num_written);
   }
 
   printf(" cmp %e", env.entry_compares());
+  printf(" acmp %e", env.entry_active_compares());
 
   printf(" ecmp %e", env.metric_compares());
+  printf(" eacmp %e", env.metric_active_compares());
   if (env.ctime() > 0) {
     printf(" ecmp_rate %e", env.metric_compares() / env.ctime());
     printf(" ecmp_rate/proc %e", env.metric_compares() /
@@ -541,6 +544,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   double cktime = 0;
 
   size_t num_metric_items_local_computed = 0;
+  size_t num_metrics_active_local = 0;
   size_t num_local_written = 0;
 
   {
@@ -582,6 +586,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       compute_metrics.compute(*metrics, *vectors);
       num_metric_items_local_computed += metrics->num_metric_items_local_computed;
+      num_metrics_active_local += metrics->num_metrics_active_local;
 
       // Output results.
 
@@ -666,32 +671,68 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   COMET_INSIST(env->gpu_mem_local() == 0);
 
   size_t num_written = 0;
+  size_t num_metric_items_computed = 0;
+  size_t num_metrics_active = 0;
+
   if (env->is_proc_active()) {
-    size_t num_metric_items_computed = 0;
+
     COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_metric_items_local_computed,
       &num_metric_items_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+      env->comm_repl_vector()));
+
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_metrics_active_local,
+      &num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
       env->comm_repl_vector()));
 
     COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_local_written, &num_written, 1,
       MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
+    const size_t num_metrics_expected =
+      utils::nchoosek(dm->num_vector, env->num_way());
+
+    const size_t num_metrics_active_expected =
+      utils::nchoosek(dm->num_vector_active, env->num_way());
+
+    if (env->all2all() &&
+        do_.phase_min==0 && do_.phase_max==env->num_phase() - 1 &&
+        do_.stage_min==0 && do_.stage_max==env->num_stage() - 1) {
+
+      COMET_INSIST(num_metrics_active == num_metrics_active_expected);
+
+      if (!env->is_shrink()) {
+        COMET_INSIST(num_metric_items_computed ==
+                     env->num_metric_items_per_metric() * num_metrics_expected);
+      }
+    }
+
+#if 0
     if (env->num_way() == NumWay::_2 && env->all2all() && !env->is_shrink() &&
         do_.phase_min==0 && do_.phase_max==env->num_phase() - 1) {
-      const size_t num_metrics_total = ((do_.num_vector) * (size_t)
-                                        (do_.num_vector - 1)) / 2;
+
+      //const size_t num_metrics_expected = ((do_.num_vector) * (size_t)
+      //                                  (do_.num_vector - 1)) / 2;
+
       COMET_INSIST(num_metric_items_computed ==
-                   env->num_metric_items_per_metric() * num_metrics_total);
+                   env->num_metric_items_per_metric() * num_metrics_expected);
+
+      COMET_INSIST(num_metrics_active == num_metrics_active_expected);
     }
 
     if (env->num_way() == NumWay::_3 && env->all2all() && !env->is_shrink() &&
         do_.phase_min==0 && do_.phase_max==env->num_phase() - 1 &&
         do_.stage_min==0 && do_.stage_max==env->num_stage() - 1) {
-      const size_t num_metrics_total = ((do_.num_vector) * (size_t)
-                                        (do_.num_vector - 1) * (size_t)
-                                        (do_.num_vector - 2)) / 6;
+
+      //const size_t num_metrics_expected = ((do_.num_vector) * (size_t)
+      //                                  (do_.num_vector - 1) * (size_t)
+      //                                  (do_.num_vector - 2)) / 6;
+
       COMET_INSIST(num_metric_items_computed ==
-                   env->num_metric_items_per_metric() * num_metrics_total);
+                   env->num_metric_items_per_metric() * num_metrics_expected);
+
+      COMET_INSIST(num_metrics_active == num_metrics_active_expected);
     }
+#endif
+
   } // if is_proc_active
 
   double tottime = env->synced_time() - total_time_beg;

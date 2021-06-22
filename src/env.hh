@@ -94,9 +94,9 @@ static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
 #else
 # define COMET_LAUNCH_KERNEL(name, \
     numthreadblocks, threadblocksize, sharedmem, stream, ...) \
-    {numthreadblocks;} \
-    {threadblocksize;} \
-    {COMET_INSIST(false && "Attempt to launch kernel for non-accelerator build.");};
+    {numthreadblocks; \
+     threadblocksize; \
+     COMET_INSIST(false && "Attempt to launch kernel for non-accelerator build.");};
 #endif
 
 //-----------------------------------------------------------------------------
@@ -775,18 +775,20 @@ public:
   void ops_gemm_local_inc(double n) {ops_gemm_local_ += n;}
   double ops() const;
   double ops_gemm() const;
+
   double vec_compares() const {return vec_compares_;}
   void vec_compares_inc(double n) {vec_compares_ += n;}
-  double vec_active_compares() const {return vec_compares_;}
-  void vec_active_compares_inc(double n) {vec_compares_ += n;}
+  double vec_active_compares() const {return vec_active_compares_;}
+  void vec_active_compares_inc(double n) {vec_active_compares_ += n;}
   double metric_compares() const {return metric_compares_;}
   void metric_compares_inc(double n) {metric_compares_ += n;}
-  double metric_active_compares() const {return metric_compares_;}
-  void metric_active_compares_inc(double n) {metric_compares_ += n;}
+  double metric_active_compares() const {return metric_active_compares_;}
+  void metric_active_compares_inc(double n) {metric_active_compares_ += n;}
   double entry_compares() const {return entry_compares_;}
   void entry_compares_inc(double n) {entry_compares_ += n;}
-  double entry_active_compares() const {return entry_compares_;}
-  void entry_active_compares_inc(double n) {entry_compares_ += n;}
+  double entry_active_compares() const {return entry_active_compares_;}
+  void entry_active_compares_inc(double n) {entry_active_compares_ += n;}
+
   size_t metric_entries() const {return metric_entries_;}
   void metric_entries_inc(size_t n) {metric_entries_ += n;}
   size_t metric_entries_computed() const {return metric_entries_computed_;}

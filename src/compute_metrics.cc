@@ -139,6 +139,8 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
   // Compute counter values: active compares.
   //--------------------
 
+  COMET_INSIST(metrics.num_metrics_active_local <= metrics.num_metrics_local);
+
   const double num_metrics_active_local = metrics.num_metrics_active_local;
   double num_metrics_active = 0;
 
@@ -155,7 +157,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
   env_.entry_active_compares_inc(num_entry_active_compares);
 
   //--------------------
-  // Compute counter values: computed metric entries.
+  // Compute counter values: metric entries computed.
   //--------------------
 
   const size_t metric_entries_local = metrics.num_metric_items_local *
