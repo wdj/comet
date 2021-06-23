@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tc_solve_cutlass_split.i.hh"
 #include "tc_solve_cutlass_split2.i.hh"
+#include "tc_solve_cutlass_single.i.hh"
 
 // GPU bit count routine
 //#define gm_popcount64(x) __popcll(x)
@@ -184,6 +185,7 @@ void b1_comet_gemm_gpu_simple2_(int m, int n, int k, GMBits2x64* a,
 
   // Stores element of block sub-matrix computed by thread
   double c0 = 0, c1 = 0;
+  //uint64_t ci0=0, ci1=0, ci2=0, ci3=0;
 
   // Each thread computes one element of block sub-matrix
   for (int l=0; l<k; ++l) {
@@ -249,7 +251,7 @@ void b1_comet_gemm_gpu_simple2_(int m, int n, int k, GMBits2x64* a,
     // Swap order or r01 and r10 when swapping order of A and B matrices
     c0 += r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
     c1 += r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
-
+    //ci0 += r00; ci1 += r10; ci2 += r01; ci3 += r11;
     //printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld sum0=%lf sum1=%lfi c0123=%d,%d,%d,%d\n",
     //       bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,ci0,ci1,ci2,ci3);
   }
@@ -258,7 +260,8 @@ void b1_comet_gemm_gpu_simple2_(int m, int n, int k, GMBits2x64* a,
   // Assume c is row major
   int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
   int cInd   = cBegin + tx*n + ty;
-  //if(tx==0 && ty==0) printf("b=%d,%d t=%d,%d c=%d c01=%lf,%lf c0123=%d,%d,%d,%d\n",bx,by,tx,ty,cInd,c0,c1,ci0,ci1,ci2,ci3);
+  //if(tx==0 && ty==0)
+  //  printf("b=%d,%d t=%d,%d c=%d c01=%lf,%lf c0123=%lu,%lu,%lu,%lu\n",bx,by,tx,ty,cInd,c0,c1,ci0,ci1,ci2,ci3);
   c[cInd].data[0] = c0;
   c[cInd].data[1] = c1;
 }
@@ -320,8 +323,8 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
     const uint64_t vj1 = vj.data[1];
 
     //if(bx==0 && by==0)
-    //  printf("b=%d,%d t=%d,%d g=%d,%d a=%d=%d b=%d=%d mnk=%d,%d,%d l=%d vi0=%lu vi1=%lu vj0=%lu vj1=%lu\n",
-    //         bx,by,tx,ty,gridDim.x,gridDim.y,aBegin,aInd,bBegin,bInd,m,n,k,l,vi0,vi1,vj0,vj1);
+      printf("b=%d,%d t=%d,%d g=%d,%d a=%d=%d b=%d=%d mnk=%d,%d,%d l=%d vi0=%lu vi1=%lu vj0=%lu vj1=%lu\n",
+             bx,by,tx,ty,gridDim.x,gridDim.y,aBegin,aInd,bBegin,bInd,m,n,k,l,vi0,vi1,vj0,vj1);
 
     // Compute masks to sample the single needed bit from each seminibble,
     // and to ignore undefined vector entries.
@@ -372,8 +375,8 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
   int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
   int cInd   = cBegin + tx*n + ty;
   //if(bx==0 && by==0)
-  //  printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci=%d c01=%lf,%lf ci0123=%d,%d,%d,%d\n",
-  //         bx,by,tx,ty,cBegin,n*bx*BLOCK_SIZE,by*BLOCK_SIZE,cInd,c0,c1,ci0,ci1,ci2,ci3);
+    printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci=%d c01=%lf,%lf ci0123=%d,%d,%d,%d\n",
+           bx,by,tx,ty,cBegin,n*bx*BLOCK_SIZE,by*BLOCK_SIZE,cInd,c0,c1,ci0,ci1,ci2,ci3);
   c[cInd].data[0] = c0;
   c[cInd].data[1] = c1;
 }
@@ -440,6 +443,12 @@ void tc_solve_comet_(size_t m, size_t n, size_t k,
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_split2\n");
       tc_solve_comet_impl_cutlass_split2(m,n,k,(GMBits2x64*)matA,
         (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
+    } break;
+    case 7: {
+      // Cutlass Split-mma GEMM
+      if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_single\n");
+      tc_solve_comet_impl_cutlass_single(m,n,k,(GMBits2x64*)matA,
+        (GMBits2x64*)matB, beta, (int*)matC); //(GMTally2x2*)matC);
     } break;
     default:
       COMET_INSIST(false && "Invalid num_kernel type.");
