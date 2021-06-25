@@ -798,9 +798,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                                            (f_one / 8) * metrics->recip_m;
   
             value_expected_floatcalc = cbpe == CBPE::CCC ?
-              Metrics_ccc_duo_value<CBPE::CCC>(*metrics, rijk, si, sj, sk,
+              ccc_duo_value<CBPE::CCC>(rijk, si, sj, sk,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, *env) :
-              Metrics_ccc_duo_value<CBPE::DUO>(*metrics, rijk, si, sj, sk,
+              ccc_duo_value<CBPE::DUO>(rijk, si, sj, sk,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
           } // is_zero_denom
 

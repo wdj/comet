@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief Formula for a single 2-way CCC or DUO result.
+/// \brief Formula for a single 2-way CCC or DUO result, lower-level version.
 
 template<int COUNTED_BITS_PER_ELT, typename Float_t = double>
 static __host__ __device__ Float_t ccc_duo_value(
@@ -79,7 +79,7 @@ static __host__ __device__ Float_t ccc_duo_value(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Formula for a single 3-way CCC or DUO result.
+/// \brief Formula for a single 3-way CCC or DUO result, lower-level version.
 
 template<int COUNTED_BITS_PER_ELT, typename Float_t = double>
 static __host__ __device__ Float_t ccc_duo_value(
@@ -116,7 +116,7 @@ static __host__ __device__ Float_t ccc_duo_value(
 }
 
 //=============================================================================
-/// \brief Formula for a single 2-way CCC or DUO result, higher level.
+/// \brief Formula for a single 2-way CCC or DUO result, higher-level version.
 
 template<int CBPE, int MF, typename Float_t = double>
 static Float_t ccc_duo_value(
@@ -245,9 +245,24 @@ static Float_t ccc_duo_value(
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Formula for a single 3-way CCC or DUO result, higher-level version.
 
+template<int CBPE, typename Float_t = double>
+static Float_t ccc_duo_value(
+  const GMTally1 rijk,
+  const GMTally1 si,
+  const GMTally1 sj,
+  const GMTally1 sk,
+  const double recip_ci,
+  const double recip_cj,
+  const double recip_ck,
+  const double recip_sumcijk,
+  CEnv& env) {
 
-
+  return ccc_duo_value<CBPE, Float_t>(
+    rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk,
+    env_ccc_duo_multiplier<CBPE>(env), env.ccc_param());
+}
 
 //=============================================================================
 

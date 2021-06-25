@@ -524,7 +524,9 @@ static void finalize_ccc_duo_(
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
 
-          if (metrics->is_computing_histograms()) {
+          if (metrics->is_computing_histograms() &&
+              (size_t)i < metrics->dm->num_vector_active_local &&
+              (size_t)j < metrics->dm->num_vector_active_local) {
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
             const GMTally1 ci = env->sparse() ? vs_l->count(i) :
@@ -569,7 +571,9 @@ static void finalize_ccc_duo_(
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
 
-          if (metrics->is_computing_histograms()) {
+          if (metrics->is_computing_histograms() &&
+              (size_t)i < metrics->dm->num_vector_active_local &&
+              (size_t)j < metrics->dm->num_vector_active_local) {
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
             const GMTally1 ci = env->sparse() ? vs_l->count(i) :
@@ -613,7 +617,9 @@ static void finalize_ccc_duo_(
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
 
-          if (metrics->is_computing_histograms()) {
+          if (metrics->is_computing_histograms() &&
+              (size_t)i < metrics->dm->num_vector_active_local &&
+              (size_t)j < metrics->dm->num_vector_active_local) {
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
             const GMTally1 ci = env->sparse() ? vs_l->count(i) :

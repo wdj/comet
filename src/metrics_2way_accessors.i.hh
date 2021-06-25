@@ -186,6 +186,40 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
+  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(metrics,
+    index, env);
+  GMTally1 si1, sj1;
+  GMFloat2_decode(si1, sj1, si1_sj1);
+
+  enum {MF = MetricFormat::PACKED_DOUBLE};
+
+  typedef Tally2x2<MF> TTable_t;
+  const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+
+  Float_t result_floatcalc = 0;
+
+  if (env.sparse()) {
+
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(metrics,
+      index, env);
+    GMTally1 ci, cj;
+    GMFloat2_decode(ci, cj, ci_cj);
+
+    result_floatcalc = ccc_duo_value<CBPE, MF>(ttable,
+      iE, jE, si1, sj1, ci, cj, metrics.num_field_active, env);
+
+  } else { // !env.sparse
+
+    GMTally1 ci = CBPE * CBPE * metrics.num_field_active;
+    GMTally1 cj = CBPE * CBPE * metrics.num_field_active;
+
+    result_floatcalc = ccc_duo_value<CBPE, MF>(ttable,
+      iE, jE, si1, sj1, ci, cj, metrics.num_field_active, env);
+
+  } // if (env.sparse())
+
+#if 0
+
   const Float_t f_one = 1;
   const Float_t recip_m = metrics.recip_m;
 
@@ -299,6 +333,8 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
   } // if (env.sparse())
 
+#endif
+
   if (BuildHas::INT128 && env.metric_type() == MetricType::CCC &&
       env.are_ccc_params_default()) {
     const Float_t result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(&metrics,
@@ -317,6 +353,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
       COMET_INSIST(diff < eps);
     }
   }
+
   return (FloatResult_t)result_floatcalc;
 }
 

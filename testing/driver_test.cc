@@ -2064,7 +2064,8 @@ void DriverTest_file_output_() {
     for (int all2all : {1})
     for (int metric_type : {MT::CCC, MT::DUO})
     //for (int metric_type : {MT::DUO})
-    for (int compute_method : {CM::GPU}) {
+    for (int compute_method : {CM::GPU})
+    for (int tc : {TC::NO, TC::AUTO}) {
       const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
       const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
       //const int num_phase = 1;
@@ -2075,7 +2076,7 @@ void DriverTest_file_output_() {
 
       sprintf(options2, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
-        TC::AUTO, CM::str(compute_method), num_phase, num_stage,
+        tc, CM::str(compute_method), num_phase, num_stage,
         "--histograms_file DriverTest_file_output_histogram.csv");
 
       test_2runs(options1, options2);
@@ -2624,6 +2625,10 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
+TEST(DriverTest, file_output) {
+  DriverTest_file_output_();
+}
+
 #if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
@@ -2633,10 +2638,6 @@ TEST(DriverTest, subbyte_gemm) {
   DriverTest_subbyte_gemm_();
 }
 #endif
-
-TEST(DriverTest, file_output) {
-  DriverTest_file_output_();
-}
 
 #if 1
 TEST(DriverTest, tc) {

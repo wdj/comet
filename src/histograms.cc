@@ -47,7 +47,7 @@ namespace comet {
 Histograms::Histograms(const char* histograms_file, CEnv& env)
   : env_(env)
   , is_computing_histograms_(histograms_file && env_.is_metric_type_bitwise() &&
-                             env_.is_threshold_tc() && // TODO: remove/implement.
+                             //env_.is_threshold_tc() &&
                              env_.num_way() == 2) // TODO: remove/implement.
   , histograms_file_str_(histograms_file ? histograms_file : "")
   , range_(is_computing_histograms_ ? env_.ccc_duo_multiplier() : 0)
@@ -55,7 +55,8 @@ Histograms::Histograms(const char* histograms_file, CEnv& env)
   , num_histograms_(env_.num_way() + 2)
   , num_elts_(num_buckets_ * num_histograms_)
   , buf_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_)
-  , buf_finalized_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_) {
+  , buf_finalized_(num_buckets_, num_histograms(), sizeof(Elt_t),  env_)
+  , is_finalized_(false) {
 
   //COMET_INSIST(env_.is_metric_type_bitwise() || !histograms_file);
 
@@ -154,6 +155,21 @@ void Histograms::check(size_t num_vector_active) {
       "expected %zu, calculated %zu.\n", expected, calculated);
 
   COMET_INSIST(calculated == expected);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute sum of all (finalized) histogram elements.
+
+Histograms::Elt_t Histograms::sum_() const {
+  COMET_INSIST(is_finalized_);
+  Elt_t result = 0;
+  for (int col = 0; col < num_histograms_; ++col) {
+    const int multiplier = env_.num_way() + 1 == col ? 0 : 1;
+    for (int row = 0; row < num_buckets_ ; ++row) {
+      result += multiplier * elt_finalized_const(row, col);
+    }
+  }
+  return result;
 }
 
 //=============================================================================

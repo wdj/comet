@@ -133,6 +133,14 @@ public:
 
   //----------
 
+  // access an entry of the histogram (static) (const)
+  static __host__ __device__ Elt_t elt_const(Elt_t* ptr, int num_buckets,
+    int bucket_num, int histogram_num) {
+    return ptr[bucket_num + num_buckets * histogram_num];
+  }
+
+  //----------
+
   // Add value to correct bucket of the histogram (static).
   template<typename T>
   static __host__ __device__ void add(Elt_t* ptr, int num_buckets,
@@ -156,6 +164,7 @@ public:
   // Add value to correct bucket of the histogram (non-static, host only).
   template<typename T>
   void add(T value, int histogram_id) {
+    COMET_ASSERT(!is_computing_on_accel());
     Histograms::add((Elt_t*)buf_.h, num_buckets_, value, histogram_id);
   }
 
@@ -205,19 +214,34 @@ public:
 
   //----------
 
-  // accessor for element of histogram.
+  // accessor for element of histogram
   Elt_t& elt(int bucket_num, int histogram_num) {
     return Histograms::elt((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
   }
 
   //----------
 
-  // accessor for element of finalized histogram.
+  // accessor for element of histogram (const)
+  Elt_t elt_const(int bucket_num, int histogram_num) const {
+    return Histograms::elt_const((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
+  }
+
+  //----------
+
+  // accessor for element of finalized histogram
   Elt_t& elt_finalized(int bucket_num, int histogram_num) {
     return Histograms::elt((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
                            histogram_num);
   }
 
+  //----------
+
+  // accessor for element of finalized histogram (const)
+  Elt_t elt_finalized_const(int bucket_num, int histogram_num) const {
+    COMET_ASSERT(is_finalized_);
+    return Histograms::elt_const((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
+                           histogram_num);
+  }
   //----------
 
   // Return the lowest real-number value assigned to specified bucket.
@@ -251,16 +275,21 @@ private:
 
   bool is_finalized_;
 
+  // Compute sum of all (finalized) histogram elements.
+  Elt_t sum_() const;
+#if 0
   Elt_t sum_() {
+    COMET_INSIST(is_finalized_);
     Elt_t result = 0;
     for (int col = 0; col < num_histograms_; ++col) {
       const int multiplier = env_.num_way() + 1 == col ? 0 : 1;
       for (int row = 0; row < num_buckets_ ; ++row) {
-        result += multiplier * elt_finalized(row, col);
+        result += multiplier * elt_finalized_const(row, col);
       }
     }
     return result;
   }
+#endif
 
 }; // Histograms
 
