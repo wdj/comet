@@ -79,7 +79,8 @@ void Histograms::finalize() {
 
   // Retrieve from accelerator if necessary.
 
-  buf_.from_accel();
+  if (is_computing_on_accel())
+    buf_.from_accel();
 
   // MPI reduce of histograms across proc_repl_vector ranks.
 

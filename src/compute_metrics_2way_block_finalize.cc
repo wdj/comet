@@ -307,6 +307,7 @@ static void finalize_ccc_duo_(
         for (int i = 0; i < i_max; ++i) {
           const auto value = matB_cbuf->elt_const<Tally2x2<MF>>(i, j);
           Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
+//FIXHIST // disble omp if hist
 #         ifdef COMET_ASSERTIONS_ON
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse() && ! env->is_threshold_tc()) {
@@ -385,6 +386,7 @@ static void finalize_ccc_duo_(
           const Tally2x2<MF> value =
             matB_cbuf->elt_const<Tally2x2<MF>>(i, j);
           Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
+//FIXHIST // disble omp if hist
 #         ifdef COMET_ASSERTIONS_ON
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse() && ! env->is_threshold_tc()) {
@@ -465,6 +467,7 @@ static void finalize_ccc_duo_(
           const Tally2x2<MF> value =
               matB_cbuf->elt_const<Tally2x2<MF>>(i, j);
           Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
+//FIXHIST // disble omp if hist
 #         ifdef COMET_ASSERTIONS_ON
             if (! env->sparse() && ! env->is_threshold_tc()) {
               const int cbpe = env->counted_bits_per_elt();
@@ -505,7 +508,7 @@ static void finalize_ccc_duo_(
 
     if (!env->is_threshold_tc()) {
       COMET_INSIST(!matB_cbuf->do_compress());
-#     pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000) if (!metrics->is_computing_histograms())
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
         const int i_max = j;
@@ -513,12 +516,26 @@ static void finalize_ccc_duo_(
           const GMTally1 si1 = vs_l->sum(i);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
+
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
+
+          if (metrics->is_computing_histograms()) {
+            const int cbpe = env->counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env->sparse() ? vs_l->count(i) :
+                                                cbpe * cbpe * nfa;
+            const GMTally1 cj = env->sparse() ? vs_r->count(j) :
+                                                cbpe * cbpe * nfa;
+            Tally2x2<MF> ttable = Metrics_elt_2<Tally2x2<MF>>(*metrics,
+              i, j, j_block, *env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, ci, cj, nfa);
+          } // if is_computing_histograms
+//FIXHIST // disble omp if hist
         }   // for i
       }   // for j
     } // if (!env->is_threshold_tc())
@@ -537,19 +554,33 @@ static void finalize_ccc_duo_(
 
     if (!env->is_threshold_tc()) {
       COMET_INSIST(!matB_cbuf->do_compress());
-#     pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000) if (!metrics->is_computing_histograms())
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const GMTally1 si1 = vs_l->sum(i);
           const GMTally1 sj1 = vs_r->sum(j);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
+
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
+
+          if (metrics->is_computing_histograms()) {
+            const int cbpe = env->counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env->sparse() ? vs_l->count(i) :
+                                                cbpe * cbpe * nfa;
+            const GMTally1 cj = env->sparse() ? vs_r->count(j) :
+                                                cbpe * cbpe * nfa;
+            Tally2x2<MF> ttable = Metrics_elt_2<Tally2x2<MF>>(*metrics,
+              i, j, j_block, *env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, ci, cj, nfa);
+          } // if is_computing_histograms
+//FIXHIST // disble omp if hist
         }   // for i
       }   // for j
     } // if (!env->is_threshold_tc())
@@ -566,7 +597,7 @@ static void finalize_ccc_duo_(
     if (!env->is_threshold_tc()) {
       const int j_block = env->proc_num_vector();
       COMET_INSIST(!matB_cbuf->do_compress());
-#     pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000) if (!metrics->is_computing_histograms())
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
         const int i_max = do_compute_triang_only ? j : nvl;
@@ -574,12 +605,26 @@ static void finalize_ccc_duo_(
           const GMTally1 si1 = vs_l->sum(i);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
+
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
+
+          if (metrics->is_computing_histograms()) {
+            const int cbpe = env->counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env->sparse() ? vs_l->count(i) :
+                                                cbpe * cbpe * nfa;
+            const GMTally1 cj = env->sparse() ? vs_r->count(j) :
+                                                cbpe * cbpe * nfa;
+            Tally2x2<MF> ttable = Metrics_elt_2<Tally2x2<MF>>(*metrics,
+              i, j, j_block, *env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, ci, cj, nfa);
+          } // if is_computing_histograms
+//FIXHIST // disble omp if hist
         } // for i
       }   // for j
     } // if (!env->is_threshold_tc())

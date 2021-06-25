@@ -306,6 +306,11 @@ template<int METRIC_FORMAT> struct Tally2x2 {
   }
 
   __host__ __device__ 
+  TypeIn get(int iE, int jE) const {
+    return This_t::get(*this, iE, jE);
+  }
+
+  __host__ __device__ 
   static void set(This_t& value, int iE, int jE, TypeIn v) {
     Type& data = value.data[iE];
     TypeIn results[2];

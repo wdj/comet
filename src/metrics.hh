@@ -146,6 +146,10 @@ struct GMMetrics {
   // Other.
   int data_type_id;
   GMDecompMgr* dm;
+
+  bool is_computing_histograms() const {
+    return dm->histograms()->is_computing_histograms();
+  }
 };
 
 //=============================================================================

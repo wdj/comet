@@ -628,6 +628,7 @@ static void finalize_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
           } // if sparse
+//FIXHIST // disble omp if hist // do only on last step _IF_ appropriate
 
         } // if ((!env.is_threshold_tc()) && ...
 

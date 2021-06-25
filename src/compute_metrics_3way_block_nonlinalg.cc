@@ -430,6 +430,7 @@ static void compute_nonlinalg_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
           } // if sparse
+//FIXHIST
 
         } // for I
         metrics->num_metric_items_local_computed_inc(I_max - I_min);
@@ -746,6 +747,7 @@ static void compute_nonlinalg_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
           } // if sparse
+//FIXHIST
 
         } //---I
         metrics->num_metric_items_local_computed_inc(I_max - I_min);
@@ -963,6 +965,7 @@ static void compute_nonlinalg_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
           } // if sparse
+//FIXHIST
 
         } //---I
         metrics->num_metric_items_local_computed_inc(I_max - I_min);

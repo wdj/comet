@@ -38,8 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "string"
 
+#include "types.hh"
 #include "env.hh"
 #include "utils.hh"
+#include "formulas.hh"
 #include "mirrored_buf.hh"
 
 //-----------------------------------------------------------------------------
@@ -113,19 +115,25 @@ public:
 
   bool is_computing_histograms() const {return is_computing_histograms_;}
 
+  bool is_computing_on_accel() const {return env_.is_threshold_tc();}
+
   int num_histograms() const {return num_histograms_;}
 
   Elt_t* get_ptr() {return (Elt_t*)(buf_.active);}
 
   int num_buckets() const {return num_buckets_;}
 
-  // Access an entry of the histogram
+  //----------
+
+  // access an entry of the histogram (static)
   static __host__ __device__ Elt_t& elt(Elt_t* ptr, int num_buckets,
     int bucket_num, int histogram_num) {
     return ptr[bucket_num + num_buckets * histogram_num];
   }
 
-  // Add value to correct bucket of the histogram.
+  //----------
+
+  // Add value to correct bucket of the histogram (static).
   template<typename T>
   static __host__ __device__ void add(Elt_t* ptr, int num_buckets,
     T value, int histogram_id) {
@@ -136,26 +144,87 @@ public:
                                    bucket_num > num_buckets-1 ? num_buckets-1 :
                                    bucket_num;
 
-
-//printf("%i %i %i %f %i\n", num_buckets, bucket_num_clamped, bucket_num, value, histogram_id);
-
     Elt_t& elt_this = elt(ptr, num_buckets, bucket_num_clamped, histogram_id);
 
+    // TODO: make this OMP 3.1 thread aware.
     utils::atomic_add(&elt_this, 1e0);
 
   }
 
+  //----------
+
+  // Add value to correct bucket of the histogram (non-static, host only).
+  template<typename T>
+  void add(T value, int histogram_id) {
+    Histograms::add((Elt_t*)buf_.h, num_buckets_, value, histogram_id);
+  }
+
+  //----------
+
+  // Add 2X2 table entries to histogram buckets.
+  template<int MF>
+  void add(const Tally2x2<MF> ttable, GMTally1 si1, GMTally1 sj1,
+           GMTally1 ci, GMTally1 cj, int nfa) {
+    if (!is_computing_histograms_)
+      return;
+
+    const int cbpe = env_.counted_bits_per_elt();
+
+    double metric[2][2] = {0};
+
+    for (int iE=0; iE<2; ++iE) {
+      for (int jE=0; jE<2; ++jE) {
+
+        metric[iE][jE] = cbpe == CBPE::DUO ?
+          ccc_duo_value<CBPE::DUO, MF>(ttable, iE, jE, si1, sj1,
+                                       ci, cj, nfa, env_) :
+          ccc_duo_value<CBPE::CCC, MF>(ttable, iE, jE, si1, sj1,
+                                       ci, cj, nfa, env_);
+      }
+    }
+
+    add(metric[0][0], HistogramID::LL);
+    add(metric[0][1], HistogramID::LH);
+    add(metric[1][0], HistogramID::LH);
+    add(metric[1][1], HistogramID::HH);
+    add(metric[0][0] + metric[1][1],
+                      HistogramID::LLHH);
+  }
+
+  //----------
+
+  // Add 4X2 table entries to histogram buckets.
+
+// TODO
+
+
+
+
+
+
+
+  //----------
+
+  // accessor for element of histogram.
   Elt_t& elt(int bucket_num, int histogram_num) {
     return Histograms::elt((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
   }
 
+  //----------
+
+  // accessor for element of finalized histogram.
   Elt_t& elt_finalized(int bucket_num, int histogram_num) {
     return Histograms::elt((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
                            histogram_num);
   }
 
+  //----------
+
+  // Return the lowest real-number value assigned to specified bucket.
   Elt_t bucket_min(int bucket_num) const {
     return (Elt_t)(bucket_num) / RECIP_BUCKET_WIDTH;}
+
+  //----------
 
   void check(size_t num_vector);
 
