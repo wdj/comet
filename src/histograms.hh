@@ -203,14 +203,39 @@ public:
   //----------
 
   // Add 4X2 table entries to histogram buckets.
+  template<int MF>
+  void add(const Tally4x2<MF> ttable, GMTally1 si1, GMTally1 sj1, GMTally1 sk1,
+           GMTally1 ci, GMTally1 cj, GMTally1 ck, int nfa) {
+    if (!is_computing_histograms_)
+      return;
 
-// TODO
+    const int cbpe = env_.counted_bits_per_elt();
 
+    double metric[2][2][2] = {0};
 
+    for (int iE=0; iE<2; ++iE) {
+      for (int jE=0; jE<2; ++jE) {
+        for (int kE=0; kE<2; ++kE) {
+          metric[iE][jE][kE] = cbpe == CBPE::DUO ?
+            ccc_duo_value<CBPE::DUO, MF>(ttable, iE, jE, kE, si1, sj1, sk1,
+                                         ci, cj, ck,  nfa, env_) :
+            ccc_duo_value<CBPE::CCC, MF>(ttable, iE, jE, kE, si1, sj1, sk1,
+                                         ci, cj, ck,  nfa, env_);
+        }
+      }
+    }
 
-
-
-
+    add(metric[0][0][0], HistogramID::LLL);
+    add(metric[0][0][1], HistogramID::LLH);
+    add(metric[0][1][0], HistogramID::LLH);
+    add(metric[1][0][0], HistogramID::LLH);
+    add(metric[0][1][1], HistogramID::LHH);
+    add(metric[1][0][1], HistogramID::LHH);
+    add(metric[1][1][0], HistogramID::LHH);
+    add(metric[1][1][1], HistogramID::HHH);
+    add(metric[0][0][0] + metric[1][1][1],
+                         HistogramID::LLLHHH);
+  }
 
   //----------
 

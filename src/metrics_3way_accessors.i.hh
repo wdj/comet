@@ -228,6 +228,10 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     return (FloatResult_t)result;
   }
 
+
+
+
+
   typedef double Float_t; // Perform all calcs in double until return.
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
@@ -274,10 +278,10 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     // them here.
 
     const GMTally1 cijk =
-           GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
-         GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
-         GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
-         GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
+        GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
+        GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
+        GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
+        GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
     if (0 == cijk)
       return (FloatResult_t)0;
 
@@ -306,6 +310,10 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
       rijk, si, sj, sk, recip_m, recip_m, recip_m, recip_sumcijk, env);
 
   } // if (env.sparse())
+
+
+
+
 
 
   if (BuildHas::INT128 && env.metric_type() == MetricType::CCC &&

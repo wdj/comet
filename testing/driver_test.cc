@@ -2013,7 +2013,7 @@ void DriverTest_file_output_() {
     char options2[1024];
 
     //const int num_proc_vector = 5;
-    //const int num_proc_vector = 1;
+    //const int num_proc_vector = 2;
     const int num_proc_vector = comet::System::num_proc() >= 2 ? 11 : 1;
 
     char options_template[] =

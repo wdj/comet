@@ -434,7 +434,7 @@ static void finalize_ccc_duo_(
     MetricsIndexCache index_cache = {};
 
     // don't use collapse because of overflow for large sizes
-    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000) if (!matB_cbuf->do_compress())
+    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000) if ((!matB_cbuf->do_compress()) && (!metrics->is_computing_histograms()))
     for (int K = K_min; K < K_max; ++K) {
 
       for (int half_num = 0; half_num < num_halves; ++half_num) {
@@ -605,7 +605,7 @@ static void finalize_ccc_duo_(
 
         // Denominator.
 
-        if ((!env.is_threshold_tc()) &&
+        if (!env.is_threshold_tc() &&
             step_2way == env.num_step_2way_for_3way() - 1) {
 
           const auto si1 = (GMTally1)vs_i->sum(i);
@@ -620,6 +620,7 @@ static void finalize_ccc_duo_(
           
           Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
+
           if (env.sparse()) {
             const auto ci1 = (GMTally1)vs_i->count(i);
             const auto cj1 = (GMTally1)vs_j->count(j);
@@ -628,8 +629,25 @@ static void finalize_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
           } // if sparse
-//FIXHIST // disble omp if hist // do only on last step _IF_ appropriate
 
+          if (metrics->is_computing_histograms() &&
+              (size_t)i < metrics->dm->num_vector_active_local &&
+              (size_t)j < metrics->dm->num_vector_active_local &&
+              (size_t)k < metrics->dm->num_vector_active_local) {
+            const int cbpe = env.counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env.sparse() ? vs_i->count(i) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 cj = env.sparse() ? vs_j->count(j) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 ck = env.sparse() ? vs_k->count(k) :
+                                                cbpe * cbpe * cbpe * nfa;
+            COMET_ASSERT(!is_halved);
+            Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
+              i, j, k, j_block_eff, k_block_eff, env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, sk1, ci, cj, ck, nfa);
+          } // if is_computing_histograms
+//FIXHIST // disble omp if hist // do only on last step _IF_ appropriate
         } // if ((!env.is_threshold_tc()) && ...
 
       } // I

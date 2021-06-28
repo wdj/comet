@@ -157,6 +157,45 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     COMET_INSIST(nvl * proc_num == dm->vector_base || 0 == dm->num_vector_active_local);
   } // if vectors_by_local
 
+  // Notes on vector decompositon.
+  //
+  // If num_vector is specified (the typical production case) then:
+  // nva = num_vector_active = the actual number requested by the user
+  // nvl = num_vector_local = number of vectors stored per rank, to satisfy
+  //   both nva and also divisibility conditions (same for all ranks).
+  // nval = num_vector_active_local = number of active vectors on
+  //   given rank (excluding padding for divisbility).
+  //
+  // The way it is set up now, the lower ranks are fully packed with active
+  // vectors (nval = nvl) until vectors are exhausted, then possibly one
+  // partly-full rank, then all ranks empty (all padding).
+  // This is in some sense a simple arrangement.  However, it will be noted
+  // different settings, e.g., tc, could require different padding values,
+  // thus the parallel decomposition of vectors could be slightly different --
+  // which would mean that partial runs based on stages and/or phases
+  // could give different results.  Therefore, settings like "tc" and
+  // "compute_method" should be kept constant across runs for such
+  // run campaign, otherwise surprising results.
+  //
+  // This approach using padding is guaranteed to give exactly one copy
+  // of each unique metric value, for the following reason:
+  // 1) the original unpadded matrix (square) or tensor (cube) contains
+  // a set of unique metrics, and additionally redundancies.
+  // 2) this is mapped by a 1-1 map into a larger matrix or tensor,
+  // by adding pad vectors at the high end.
+  // 3) a subset of the entries of the larger (padded) tensor is taken to
+  // eliminate redundancies.
+  // 4) at the end, this is cropped back down to the original pre-padded
+  // size.
+  // 5) it is clear that no pair of elements of 4) can be redundant, since 
+  // in such case so would 3).
+  // 6) suppose some unique value of 4) is missing. Then also all of its
+  // redundant copies must be missing.  This is to say, a tuple of 4)
+  // is missing along with all permutations of its tuple indices.
+  // But then they all must be missing from 3) since 3) only adds back
+  // some tuples that have at least one index > nva. 3) must have all unique
+  // (up to index ordering) tuples. Thus contradiction.
+
   //--------------------
   // Check the sizes
   //--------------------

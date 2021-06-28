@@ -244,8 +244,105 @@ static Float_t ccc_duo_value(
   } // if (env.sparse())
 }
 
+//=============================================================================
+/// \brief Formula for a single 2-way CCC or DUO result, higher-level version.
+
+template<int CBPE, int MF, typename Float_t = double>
+static Float_t ccc_duo_value(
+  const Tally4x2<MF>& ttable,
+  int iE,
+  int jE,
+  int kE,
+  GMTally1 si1,
+  GMTally1 sj1,
+  GMTally1 sk1,
+  GMTally1 ci,
+  GMTally1 cj,
+  GMTally1 ck,
+  int num_field_active,
+  CEnv& env) {
+  COMET_ASSERT(iE == 0 || iE == 1);
+  COMET_ASSERT(jE == 0 || jE == 1);
+  COMET_ASSERT(kE == 0 || kE == 1);
+  COMET_ASSERT(si1+1 >= 0+1);
+  COMET_ASSERT(sj1+1 >= 0+1);
+  COMET_ASSERT(sk1+1 >= 0+1);
+  COMET_ASSERT(ci+1 >= 0+1);
+  COMET_ASSERT(cj+1 >= 0+1);
+  COMET_ASSERT(ck+1 >= 0+1);
+  COMET_ASSERT(num_field_active > 0);
+
+  if (env.is_threshold_tc()) {
+    COMET_ASSERT(MF == MetricFormat::SINGLE);
+    return (Float_t)ttable.get(iE, jE, kE);
+  }
+
+  COMET_ASSERT(MF == MetricFormat::PACKED_DOUBLE);
+
+  if (0 == ci || 0 == cj || 0 == ck)
+    return (Float_t)0;
+
+  const Float_t f_one = 1;
+  const Float_t recip_m = f_one / num_field_active;
+
+  const GMTally1 rijk = ttable.get(iE, jE, kE);
+
+  if (env.sparse()) {
+
+    // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
+    const GMTally1 si0 = CBPE * ci - si1;
+    const GMTally1 sj0 = CBPE * cj - sj1;
+    const GMTally1 sk0 = CBPE * ck - sk1;
+    const GMTally1 si = iE == 0 ? si0 : si1;
+    const GMTally1 sj = jE == 0 ? sj0 : sj1;
+    const GMTally1 sk = kE == 0 ? sk0 : sk1;
+
+    // TODO: it may be possible to decrease the number of divides
+    // here - see GMMetrics_ccc_get_from_index_2.
+    const Float_t recip_ci = f_one / ci;
+    const Float_t recip_cj = f_one / cj;
+    const Float_t recip_ck = f_one / ck;
+
+    // NOTE: we are assuming here that xor gemm values have already been
+    // adjusted to true gemm values.  Changing this in the future would
+    // require computing and storing matX sum values somewhere and then using
+    // them here.
+
+    const GMTally1 cijk =
+        ttable.get(0, 0, 0) + ttable.get(0, 0, 1) +
+        ttable.get(0, 1, 0) + ttable.get(0, 1, 1) +
+        ttable.get(1, 0, 0) + ttable.get(1, 0, 1) +
+        ttable.get(1, 1, 0) + ttable.get(1, 1, 1);
+    if (0 == cijk)
+      return (Float_t)0;
+
+    const Float_t recip_sumcijk = f_one / cijk;
+
+    return ccc_duo_value<CBPE>(
+      rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
+
+  } else { // !env.sparse
+
+    COMET_ASSERT(!(env.is_using_xor() && !env.sparse())); // should never occur
+
+    // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
+    const GMTally1 si =
+      iE == 0 ? (CBPE * num_field_active - si1) : si1;
+    const GMTally1 sj =
+      jE == 0 ? (CBPE * num_field_active - sj1) : sj1;
+    const GMTally1 sk =
+      kE == 0 ? (CBPE * num_field_active - sk1) : sk1;
+
+    const Float_t recip_sumcijk = (f_one / (CBPE*CBPE*CBPE)) * recip_m;
+
+    return ccc_duo_value<CBPE>(
+      rijk, si, sj, sk, recip_m, recip_m, recip_m, recip_sumcijk, env);
+
+  } // if (env.sparse())
+}
+
 //-----------------------------------------------------------------------------
-/// \brief Formula for a single 3-way CCC or DUO result, higher-level version.
+/// \brief Formula for a single 3-way CCC or DUO result, higher-level version2.
 
 template<int CBPE, typename Float_t = double>
 static Float_t ccc_duo_value(
