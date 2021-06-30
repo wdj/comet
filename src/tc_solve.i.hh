@@ -794,7 +794,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
             (uint8_t*)tc_bufs.tc_buf_left, beta, (int32_t*)matC);
         } break;
         // Cutlass kernels
-        /*case 11: {
+        case 11: {
           if(env.print_details()) printf("Using Cutlass kernel 128x256x512\n");
           CutlassTCGemm1B<TCTBlockType::_128_256_512,
                           TCWarpType::_64_64_512,
@@ -803,7 +803,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
-	case 12: {
+	/*case 12: {
           if(env.print_details()) printf("Using Cutlass kernel 256x128x512\n");
           CutlassTCGemm1B<TCTBlockType::_256_128_512,
 		          TCWarpType::_64_64_512,
@@ -1005,7 +1005,6 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
             n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
-
 	case 51: {
           if(env.print_details()) printf("Using Cutlass kernel TB=256x128x1024 W=64x64x1024 I=16x8x256 NStages=3\n");
           CutlassTCGemm1B<TCTBlockType::_256_128_1024,
@@ -1015,8 +1014,16 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
             n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
+        case 52: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=256x128x1024 W=64x64x1024 I=16x8x128 NStages=3\n");
+          CutlassTCGemm1B<TCTBlockType::_128_256_512,
+                          TCWarpType::_64_64_512,
+                          TCInstType::_8_8_128,
+                          TCOpType::Mult, 2>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
 #endif
-
 
 	default: {
           printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",

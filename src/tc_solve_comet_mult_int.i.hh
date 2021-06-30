@@ -963,10 +963,10 @@ static void tc_solve_comet_mult_int_impl(bool is_first, int m, int n, int k, int
         dim3(gridblockx, gridblocky, 1),
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
         n, m, (int32_t*)matC);
-      COMET_LAUNCH_KERNEL(b1_print_matrix_int_3way_alt,
+      /*COMET_LAUNCH_KERNEL(b1_print_matrix_int_3way_alt,
         dim3(gridblockx, gridblocky, 1),
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
-        n, m, (int32_t*)matC);
+        n, m, (int32_t*)matC);*/
     } break;
     default: {
       printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",

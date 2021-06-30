@@ -1,8 +1,8 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   tc_solve_cutlass_split.i.hh
+ * \file   tc_solve_cutlass_nvidia.i.hh
  * \author Paul Eller
- * \date   Tue Nov  3 08:26:29 EST 2020
+ * \date   Wed Nov  11 16:44:20 EST 2020
  * \brief  CUDA code, gemm operation, 
  */
 //-----------------------------------------------------------------------------
@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -----------------------------------------------------------------------------*/
 
-#ifndef _COMET_TC_SOLVE_CUTLASS_SPLIT_I_HH_
-#define _COMET_TC_SOLVE_CUTLASS_SPLIT_I_HH_
+#ifndef _COMET_TC_SOLVE_CUTLASS_WARP_I_HH_
+#define _COMET_TC_SOLVE_CUTLASS_WARP_I_HH_
 
 #define WMMA1B_M 8
 #define WMMA1B_N 8
@@ -75,7 +75,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// 
 
-__device__ inline void process_bits_split(GMBits2x64 vi, uint64_t &nvi, uint64_t &pvi)
+__device__ inline void process_bits_int(GMBits2x64 vi, uint64_t &nvi, uint64_t &pvi)
 { 
   //--------------------
   // Nomenclature:
@@ -100,11 +100,11 @@ __device__ inline void process_bits_split(GMBits2x64 vi, uint64_t &nvi, uint64_t
   // Extract elts that are a "1" bit (=01).
   const uint64_t pvi0 = vi0 & vi0mask;
   const uint64_t pvi1 = vi1 & vi1mask;
-    
+
   // Extract elts that are an "0" bit (=00).
   const uint64_t nvi0 = ~vi0 & vi0mask;
   const uint64_t nvi1 = ~vi1 & vi1mask;
-    
+
   // Combine lower, upper words - each only uses odd bits - make packed.
   pvi = pvi0 | (pvi1 << 1);
   nvi = nvi0 | (nvi1 << 1);
@@ -115,7 +115,7 @@ __device__ inline void process_bits_split(GMBits2x64 vi, uint64_t &nvi, uint64_t
 //-----------------------------------------------------------------------------
 /// 
 
-__device__ inline void combine_bits_split(int nn, int np, int pn, int pp, double &c0, double &c1)
+__device__ inline void combine_bits_int(int nn, int np, int pn, int pp, double &c0, double &c1)
 {
   enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
@@ -124,39 +124,15 @@ __device__ inline void combine_bits_split(int nn, int np, int pn, int pp, double
   const uint64_t r10 = pn;
   const uint64_t r11 = pp;
 
-  //c0 = r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
-  //c1 = r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
   c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
   c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
-}
-
-//-----------------------------------------------------------------------------
-/// 
-
-__device__ inline void combine_bits_sum_split(int nn, int np, int pn, int pp, double &c0, double &c1,
-                                              double &cc0, double &cc1)
-{
-  enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
-
-  const uint64_t r00 = nn;
-  const uint64_t r01 = np;
-  const uint64_t r10 = pn;
-  const uint64_t r11 = pp;
-
-  //c0 = r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
-  //c1 = r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
-  c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
-  c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
-
-  cc0 += c0;
-  cc1 += c1;
 }
 
 //-----------------------------------------------------------------------------
 ///
 
 template <int pM, int pK, int block_x, int block_y>
-__device__ inline void g2r_split(GMBits2x64 *gmem, int begin, int k, uint64_t frag[])
+__device__ inline void g2r_int(GMBits2x64 *gmem, int begin, int k, uint64_t frag[])
 {
   constexpr int iter_y = pM / block_y;
   constexpr int iter_x = pK / block_x;
@@ -184,7 +160,7 @@ __device__ inline void g2r_split(GMBits2x64 *gmem, int begin, int k, uint64_t fr
 
       uint64_t nvi;
       uint64_t pvi;
-      process_bits_split(vi, nvi, pvi);
+      process_bits_int(vi, nvi, pvi);
 
       frag[y * iter_x + x] = nvi;
       frag[y * iter_x + x + iter_xy] = pvi;
@@ -196,7 +172,7 @@ __device__ inline void g2r_split(GMBits2x64 *gmem, int begin, int k, uint64_t fr
 /// 
 
 template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
-__device__ inline void r2s_split(uint64_t frag[], uint64_t *smem, Layout layout)
+__device__ inline void r2s_int(uint64_t frag[], uint64_t *smem, Layout layout)
 {
   constexpr int iter_y = pM / block_y;
   constexpr int iter_x = pK / block_x;
@@ -231,8 +207,8 @@ __device__ inline void r2s_split(uint64_t frag[], uint64_t *smem, Layout layout)
 //-----------------------------------------------------------------------------
 /// 
 
-/*template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
-__device__ inline void g2s_split(uint64_t *smem, GMBits2x64 *gmem, int begin, int k, Layout layout)
+template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
+__device__ inline void g2s_int(uint64_t *smem, GMBits2x64 *gmem, int begin, int k, Layout layout)
 {
 #pragma unroll
   for (int y = 0; y < pM; y += block_y) {
@@ -253,52 +229,49 @@ __device__ inline void g2s_split(uint64_t *smem, GMBits2x64 *gmem, int begin, in
       vi.data[0] = u2.x;
       vi.data[1] = u2.y;
 
-      int nbrow = nrow;
+      int nbrow = nrow*2;
       int nbcol = kval;
+
+      printf("nrow=%d kval=%d ind=%d nbrow=%d nbcol=%d x=%d xr=0:blx=%d:pK=%d y=%d yr=0:bly=%d:pM=%d\n",
+             nrow,kval,ind,nbrow,nbcol,x,block_x,pK,y,block_y,pM);
 
       const int patch = 64; // sizeof(uint64_t) / sizeof(cutlass::uint1b_t)
 
       uint64_t nvi;
       uint64_t pvi;
-      process_bits_split(vi, nvi, pvi);
+      process_bits_int(vi, nvi, pvi);
 
       if (is_a) {
         // operand A
         smem[layout({nbrow, nbcol * patch}) / patch] = nvi;
-        smem[layout({nbrow + pM, nbcol * patch}) / patch] = pvi;
+        smem[layout({nbrow + 1, nbcol * patch}) / patch] = pvi;
+        printf("A smem[%d]=%lu [%d]=%lu\n",(int)layout({nbrow, nbcol * patch}) / patch,nvi,
+               (int)layout({nbrow + 1, nbcol * patch}) / patch,pvi);
       } else {
         // operand B
         smem[layout({nbcol * patch, nbrow}) / patch] = nvi;
-        smem[layout({nbcol * patch, nbrow + pM}) / patch] = pvi;
+        smem[layout({nbcol * patch, nbrow + 1}) / patch] = pvi;
+        printf("B smem[%d]=%lu [%d]=%lu\n",(int)layout({nbcol * patch, nbrow}) / patch,nvi,
+               (int)layout({nbcol * patch, nbrow + 1}) / patch,pvi);
       }
     }
   }
-}*/
+}
 
 //-----------------------------------------------------------------------------
 /// 
 
 template <int bM, int bN, int bK, int wM, int wN, int wK, int block_x, int block_y>
 __global__ void __launch_bounds__(block_x *block_y, 1)
-b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b, bool beta, GMTally2x2 *c)
+b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b, int *c)
 {
   /**
     bM, bN, bK - threadblock MMA shape: bK is expressed in bits
     pM, pN, pK - threadblock MMA shape: bK is expressed in uint64_t's, and pM and pN are the shapes for loading GMBits2x64
-
-    When loading data from gmem to smem, the "n" and "p" parts are stored to separate parts of smem, and then
-    each warp works on and accumulates on the "nn", "np", "pn" and "pp" results separately. At the end each
-    warp combines results stored in the 4 accumualtes and then write to gmem, which does not need to go through
-    smem anymore.
-
-    In other words, in each threadblock, this specific MMA problem is decomposed into 4 natural sub-problems.
     */
 
   // Block indices
   int bx = blockIdx.x, by = blockIdx.y;
-
-  //if(bx==0 && by==0 && threadIdx.x==0 && threadIdx.y==0)
-  //  printf("In b1_comet_mult_gemm_gpu_cutlass\n");
 
   int thread_idx = threadIdx.y * blockDim.x + threadIdx.x;
 
@@ -308,6 +281,9 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
   constexpr int pM = bM / 2;
   constexpr int pN = bN / 2;
   constexpr int pK = bK / 64;
+
+  printf("b=%d,%d tid=%d warp=%d lane=%d block_x=%d block_y=%d bMNK=%d,%d,%d pMNK=%d,%d,%d wMNK=%d,%d,%d\n",
+         bx,by,thread_idx,warp_id,lane_id,block_x,block_y,bM,bN,bK,pM,pN,pK,wM,wN,wK);
 
   // Matrix block location
   int aBegin = k * pM * bx;
@@ -323,9 +299,9 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
   using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
 #endif
 
-  static_assert(wK % alignment == 0, "alignment");
+  //static_assert(wK % alignment == 0, "alignment");
 
-  using WarpShape = cutlass::gemm::GemmShape<wM, wN, wK>;
+  using WarpShape = cutlass::gemm::GemmShape<wM*2, wN*2, wK>;
   using ElementA = cutlass::uint1b_t;
   using ElementB = cutlass::uint1b_t;
   using ElementC = int;
@@ -335,20 +311,17 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
     = cutlass::layout::ColumnMajorTensorOpMultiplicandCrosswise<cutlass::sizeof_bits<ElementB>::value, alignment>;
   using LayoutC = cutlass::layout::RowMajor;
 
-  //using Mma =
-  //  typename cutlass::gemm::warp::DefaultMmaTensorOp<WarpShape, InstructionShape, ElementA, LayoutA, ElementB,
-  //                                                   LayoutB, ElementC, LayoutC, cutlass::arch::OpXorPopc>::Type;
   using Mma =
     typename cutlass::gemm::warp::DefaultMmaTensorOp<WarpShape, InstructionShape, ElementA, LayoutA, ElementB,
-                                                     LayoutB, ElementC, LayoutC, cutlass::arch::OpMultiplyAdd>::Type;
+                                                     LayoutB, ElementC, LayoutC, cutlass::arch::OpXorPopc>::Type;
 
   using ThreadblockShape = cutlass::gemm::GemmShape<bM, bN, bK>;
 
   //
   // Distribute each sub-problem to the warps.
   //
-  constexpr int warp_count_m = pM / WarpShape::kM;
-  constexpr int warp_count_n = pN / WarpShape::kN;
+  constexpr int warp_count_m = pM * 2 / WarpShape::kM;
+  constexpr int warp_count_n = pN * 2 / WarpShape::kN;
 
   int warp_idx_mn = warp_id % (warp_count_m * warp_count_n);
   int warp_idx_m = warp_idx_mn % warp_count_m;
@@ -356,57 +329,39 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
 
   extern __shared__ char smem_ptr[];
 
-  char *smem_ptr_A = smem_ptr;
-  char *smem_ptr_B = &smem_ptr_A[ThreadblockShape::kM * ThreadblockShape::kK * 1 / 8];
+  //char *smem_ptr_A = smem_ptr;
+  //char *smem_ptr_B = &smem_ptr_A[ThreadblockShape::kM*2 * ThreadblockShape::kK * 1 / 8];
 
-  uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
-  uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
-
-  printf("b=%d,%d t=%d warp=%d lane=%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d block=%d,%d aBegin=%d bBegin=%d warp_count=%d,%d warp_idx=%d,%d=%d smemA=0 smemB=%d TBmnk=%d,%d,%d\n",
-         bx,by,thread_idx,warp_id,lane_id,bM,bN,bK,pM,pN,pK,wM,wN,wK,block_x,block_y,aBegin,bBegin,warp_count_m,warp_count_n,warp_idx_m,warp_idx_n,warp_idx_mn,ThreadblockShape::kM * ThreadblockShape::kK * 1 / 8,ThreadblockShape::kM,ThreadblockShape::kN,ThreadblockShape::kK);
+  //uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
+  //uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
 
   using FragmentA = typename Mma::FragmentA;
   using FragmentB = typename Mma::FragmentB;
   using FragmentC = typename Mma::FragmentC;
 
-  typename Mma::LayoutA layout_A = Mma::LayoutA::packed({ThreadblockShape::kM, ThreadblockShape::kK});
-  typename Mma::LayoutB layout_B = Mma::LayoutB::packed({ThreadblockShape::kK, ThreadblockShape::kN});
-  typename Mma::LayoutC layout_C = Mma::LayoutC::packed({m, n});
+  typename Mma::LayoutA layout_A = Mma::LayoutA::packed({ThreadblockShape::kM*2, ThreadblockShape::kK});
+  typename Mma::LayoutB layout_B = Mma::LayoutB::packed({ThreadblockShape::kK,   ThreadblockShape::kN*2});
+  typename Mma::LayoutC layout_C = Mma::LayoutC::packed({m*2, n*2});
 
-  FragmentC accum_nn, accum_np;
-  FragmentC accum_pn, accum_pp;
-
-  accum_nn.clear();
-  accum_np.clear();
-  accum_pn.clear();
-  accum_pp.clear();
+  FragmentC accum;
+  accum.clear();
 
   static_assert(pM % block_y == 0, "block-global-memory-loader needs to be in shape.");
   static_assert(pN % block_y == 0, "block-global-memory-loader needs to be in shape.");
   static_assert(pK % block_x == 0, "block-global-memory-loader needs to be in shape.");
 
-  constexpr int iter_x = pK / block_x;
-  constexpr int iter_y_a = pM / block_y;
-  constexpr int iter_xy_a = iter_x * iter_y_a;
-  constexpr int iter_y_b = pN / block_y;
-  constexpr int iter_xy_b = iter_x * iter_y_b;
+  printf("b=%d,%d tid=%d Asize=%dx%d Astart=0 aBegin=%d Bsize=%dx%d Bstart=%d bBegin=%d ABTotal=%d "
+         "warpshape=%d,%d warp_id=%d warp_count=%d,%d warp_idx=%d,%d=%d\n",
+         bx,by,thread_idx,ThreadblockShape::kM*2,ThreadblockShape::kK,aBegin,
+         ThreadblockShape::kK,ThreadblockShape::kN*2,ThreadblockShape::kM*2 * ThreadblockShape::kK * 1 / 8,bBegin,
+         (ThreadblockShape::kM*2 + ThreadblockShape::kN) * ThreadblockShape::kK / 8,
+         wM*2,wN*2,warp_id,warp_count_m,warp_count_n,warp_idx_m,warp_idx_n,warp_idx_mn);
 
-  uint64_t frag_a[2 * iter_xy_a];
-  uint64_t frag_b[2 * iter_xy_b];
-
-  for (int l = 0; l < k; l += pK) {
-    // Here gmem -> register == "g2r" and then register -> smem == "r2s".
+  /*for (int l = 0; l < k; l += pK) {
     // Operand A
-    g2r_split<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
+    g2s_int<pM,pK,block_x,block_y,1>(smem_buffer_A, a, aBegin+l, k, layout_A);
     // Operand B
-    g2r_split<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
-    // Operand A
-    r2s_split<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
-    // Operand B
-    r2s_split<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);
-
-    //g2s<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, k, layout_A);
-    //g2s<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, k, layout_B);
+    g2s_int<pN,pK,block_x,block_y,0>(smem_buffer_B, b, bBegin+l, k, layout_B);
 
     __syncthreads();
 
@@ -420,8 +375,8 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
     iter_A.add_tile_offset({warp_idx_m, 0});
     iter_B.add_tile_offset({0, warp_idx_n});
 
-    FragmentA frag_A_n, frag_A_p;
-    FragmentB frag_B_n, frag_B_p;
+    FragmentA frag_A;
+    FragmentB frag_B;
 
     if (warp_id < warp_count_n * warp_count_m) {
 
@@ -429,23 +384,13 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
 
       CUTLASS_PRAGMA_UNROLL
       for (int warp_k = 0; warp_k < ThreadblockShape::kK; warp_k += Mma::Policy::MmaShape::kK) {
-        iter_A.load(frag_A_n);
-        iter_A.add_tile_offset({+warp_count_m, 0});
-        iter_A.load(frag_A_p);
-        iter_A.add_tile_offset({-warp_count_m, 0});
-
-        iter_B.load(frag_B_n);
-        iter_B.add_tile_offset({0, +warp_count_n});
-        iter_B.load(frag_B_p);
-        iter_B.add_tile_offset({0, -warp_count_n});
+        iter_A.load(frag_A);
+        iter_B.load(frag_B);
 
         ++iter_A;
         ++iter_B;
 
-        mma(accum_nn, frag_A_n, frag_B_n, accum_nn);
-        mma(accum_np, frag_A_n, frag_B_p, accum_np);
-        mma(accum_pn, frag_A_p, frag_B_n, accum_pn);
-        mma(accum_pp, frag_A_p, frag_B_p, accum_pp);
+        mma(accum, frag_A, frag_B, accum);
       }
     }
 
@@ -453,56 +398,35 @@ b1_comet_mult_gemm_gpu_cutlass_split(int m, int n, int k, GMBits2x64 *a, GMBits2
   }
 
   if (warp_id < warp_count_n * warp_count_m) {
-    // use "double2" instead of "GMTally2x2" to make sure compiler issue 128-bit store instructions.
-    using output_type = double2;
+    using output_type = int;
 
-    using IteratorTallyC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
+    using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
       typename cutlass::MatrixShape<WarpShape::kM, WarpShape::kN>, output_type, LayoutC, InstructionShape,
       typename Mma::Policy::OpDelta>;
 
-    typename IteratorTallyC::Fragment accum_tally;
-    IteratorTallyC iter_tally_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
+    IteratorC iter_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
 
-    //if(true) { //!beta) {
-#pragma unroll
-      for (int idx = 0; idx < FragmentC::kElements; idx++) {
-        // Combine the results in the sub-problems.
-        combine_bits_split(accum_nn[idx], accum_np[idx], accum_pn[idx], accum_pp[idx], accum_tally[idx].x, accum_tally[idx].y);
-      }
-
-      iter_tally_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
-      //iter_tally_C.add_tile_offset({(pN / wN) * by + warp_idx_n, (pM / wM) * bx + warp_idx_m});
-      // The following code does not translates into the most efficient instructions, even with 128-bit stores.
-      // With current version of CUTLASS this is as far as we can go.
-      iter_tally_C.store(accum_tally);
-    /*}
-    else {
-      // Add Accum to C then store
-      using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
-        typename cutlass::MatrixShape<WarpShape::kM, WarpShape::kN>, output_type, LayoutC, InstructionShape,
-        typename Mma::Policy::OpDelta>;
-
-      typename IteratorC::Fragment frag_C;
-      IteratorC iter_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
-      iter_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
-      iter_C.load(frag_C);
-
-#pragma unroll
-      for (int idx = 0; idx < FragmentC::kElements; idx++) {
-        // Combine the results in the sub-problems.
-        combine_bits_sum_split(accum_nn[idx], accum_np[idx], accum_pn[idx], accum_pp[idx],
-                               accum_tally[idx].x, accum_tally[idx].y, frag_C[idx].x, frag_C[idx].y);
-      }
-
-      iter_C.store(frag_C);
-    }*/
+    iter_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
+    iter_C.store(accum);
+    printf("b=%d,%d tid=%d mnk=%d,%d,%d warp_id=%d warp_count_m=%d warp_count_n=%d offset=%d,%d warpshape=%d,%d c=%d\n",
+           bx,by,thread_idx,m,n,k,warp_id,warp_count_m,warp_count_n,
+           (pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n,
+           wM*2,wN*2,c[0]);
+  } else {
+    printf("b=%d,%d tid=%d warp_id=%d warp_count_m=%d warp_count_n=%d\n",
+           bx,by,thread_idx,warp_id,warp_count_m,warp_count_n);
   }
+  __syncthreads();
+  int cStart = bx*blockDim.x*n + blockDim.y*by;
+  printf("b=%d,%d t=%d,%d bD=%d,%d c[%d]=%d\n",bx,by,
+         threadIdx.x,threadIdx.y,blockDim.x,blockDim.y,
+         cStart+threadIdx.x*n+threadIdx.y,c[cStart+threadIdx.x*n+threadIdx.y]);*/
 }
 
 //-----------------------------------------------------------------------------
 /// 
 
-void set_max_shared_bytes_split(const void *func)
+void set_max_shared_bytes_int(const void *func)
 {
   cudaFuncSetAttribute(func, cudaFuncAttributePreferredSharedMemoryCarveout, (int)cudaSharedmemCarveoutMaxShared);
   int max_shared_bytes;
@@ -514,11 +438,11 @@ void set_max_shared_bytes_split(const void *func)
 //-----------------------------------------------------------------------------
 /// \brief Perform required GEMM.
 
-void tc_solve_comet_impl_cutlass_split(int m, int n, int k, const void *matA, const void *matB, bool beta, void *matC)
+void tc_solve_comet_impl_cutlass_int(int m, int n, int k, const void *matA, const void *matB, void *matC)
 {
-#if defined COMET_USE_TURING
+#if 1
   // Use following for Turing
-  constexpr int block_x = 8;
+  /*constexpr int block_x = 8;
   constexpr int block_y = 16;
 
   constexpr int threadblock_m = 128;
@@ -527,9 +451,8 @@ void tc_solve_comet_impl_cutlass_split(int m, int n, int k, const void *matA, co
 
   constexpr int warp_m = 32;
   constexpr int warp_n = 32;
-  constexpr int warp_k = 512; // 64 * 8
-
-#elif defined COMET_USE_AMPERE
+  constexpr int warp_k = 512;*/ // 64 * 8
+#else
   // Use following for Ampere
   constexpr int block_x = 16;
   constexpr int block_y = 8;
@@ -542,21 +465,46 @@ void tc_solve_comet_impl_cutlass_split(int m, int n, int k, const void *matA, co
   constexpr int warp_n = 32;
   constexpr int warp_k = 1024; // 64 * 16
 #endif
+
+  // Smaller test settings
+  constexpr int block_x = 8;
+  constexpr int block_y = 8;
+
+  constexpr int threadblock_m = 16; // 4 blocks per thread block
+  constexpr int threadblock_n = 16;
+  constexpr int threadblock_k = 512; // 64 * 8
+
+  constexpr int warp_m = 8; // 64 threads per block
+  constexpr int warp_n = 8;
+  constexpr int warp_k = 512; // 64 * 8
+
+  // Smallest test settings
+  constexpr int block_x = 8;
+  constexpr int block_y = 8;
+
+  constexpr int threadblock_m = 8; // 1 block per thread block
+  constexpr int threadblock_n = 8;
+  constexpr int threadblock_k = 512; // 64 * 8
+
+  constexpr int warp_m = 8; // 64 threads per block
+  constexpr int warp_n = 8;
+  constexpr int warp_k = 512; // 64 * 8
+
   int grid_x = m / (threadblock_m / 2);
   int grid_y = n / (threadblock_n / 2);
 
   auto gemm_kernel
-    = b1_comet_mult_gemm_gpu_cutlass_split<threadblock_m, threadblock_n, threadblock_k, warp_m, warp_n, warp_k, block_x, block_y>;
+    = b1_comet_xor_gemm_gpu_cutlass_int<threadblock_m, threadblock_n, threadblock_k, warp_m, warp_n, warp_k, block_x, block_y>;
 
   int shared_bytes = (threadblock_m + threadblock_n) * threadblock_k / 8;
-  set_max_shared_bytes_split((const void *)gemm_kernel);
+  set_max_shared_bytes_int((const void *)gemm_kernel);
 
-  printf("Calling b1_comet_mult_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
-    m, n, k, grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
-    warp_m, warp_n, warp_k, shared_bytes, beta);
+  printf("Calling b1_comet_xor_gemm_gpu_cutlass_int kernel gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d\n",
+    grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
+    warp_m, warp_n, warp_k, shared_bytes);
 
   gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
-    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, beta, (GMTally2x2 *)matC);
+    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, (int*)matC);
 }
 
 //=============================================================================
@@ -565,6 +513,6 @@ void tc_solve_comet_impl_cutlass_split(int m, int n, int k, const void *matA, co
 
 //-----------------------------------------------------------------------------
 
-#endif // _COMET_TC_SOLVE_CUTLASS_SPLIT_I_HH_
+#endif
 
 //-----------------------------------------------------------------------------

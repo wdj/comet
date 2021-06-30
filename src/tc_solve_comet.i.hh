@@ -366,8 +366,8 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
     c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
     ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
     //if(tx==0 && ty==0)
-    //  printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld sum0=%lf sum1=%lf c0123=%d,%d,%d,%d\n",
-    //         bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,ci0,ci1,ci2,ci3);
+    printf("b=%d,%d t=%d,%d a=%d b=%d mnk=%d,%d,%d l=%d nvij=%lu,%lu pvij=%lu,%lu r00=%ld r01=%ld r10=%ld r11=%ld sum0=%lf sum1=%lf c0123=%d,%d,%d,%d\n",
+           bx,by,tx,ty,aInd,bInd,m,n,k,l,nvi,nvj,pvi,pvj,r00,r01,r10,r11,c0,c1,ci0,ci1,ci2,ci3);
   }
 
   // Each thread writes one element of block sub-matrix to memory

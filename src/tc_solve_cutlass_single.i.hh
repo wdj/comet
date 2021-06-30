@@ -232,7 +232,7 @@ __device__ inline void r2s_single(uint64_t frag[], uint64_t *smem, Layout layout
 /// 
 
 template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
-__device__ inline void g2s_single(uint64_t *smem, GMBits2x64 *gmem, int begin, int k, Layout layout)
+__device__ inline void g2s_single(uint64_t *smem, GMBits2x64 *gmem, int begin, int m, int n, int k, Layout layout)
 {
   // Block indices
   int bx = blockIdx.x, by = blockIdx.y;
@@ -248,49 +248,52 @@ __device__ inline void g2s_single(uint64_t *smem, GMBits2x64 *gmem, int begin, i
       int nrow = threadIdx.y + y;
       int kval = threadIdx.x + x;
 
-      int nbrown = nrow*2;
-      int nbrowp = nrow*2 + 1;
-      int nbcol = kval;
-      const int patch = 64; // sizeof(uint64_t) / sizeof(cutlass::uint1b_t)
+        int nbrown = nrow*2;
+        int nbrowp = nrow*2 + 1;
+        int nbcol  = kval;
+        const int patch = 64; // sizeof(uint64_t) / sizeof(cutlass::uint1b_t)
 
-      // A row major and B col major
-      int ind = begin + k * nrow + kval;
+        // A row major and B col major
+        int ind = begin + k * nrow + kval;
 
-      if(kval<k) {
+        //---Extract input values to process---
+        // GMBits2x64 vi = a[aInd];
+        auto gmem_u2 = reinterpret_cast<ulonglong2 *>(gmem);
+        auto u2 = gmem_u2[ind];
+        GMBits2x64 vi;
 
-      //---Extract input values to process---
-      // GMBits2x64 vi = a[aInd];
-      auto gmem_u2 = reinterpret_cast<ulonglong2 *>(gmem);
-      auto u2 = gmem_u2[ind];
-      GMBits2x64 vi;
-      vi.data[0] = u2.x;
-      vi.data[1] = u2.y;
+	if(kval<k && nrow< m) {
+          vi.data[0] = u2.x;
+          vi.data[1] = u2.y;
+        } else {
+	  vi.data[0] = 0;
+	  vi.data[1] = 0;
+	}
+        process_bits_single(vi, nvi, pvi);
 
-      process_bits_single(vi, nvi, pvi);
-      } else {
-	nvi = 0;
-	pvi = 0;
-      }
-
-      if (is_a) {
-        // operand A
-        smem[layout({nbrown, nbcol * patch}) / patch] = nvi;
-        smem[layout({nbrowp, nbcol * patch}) / patch] = pvi;
-        printf("b=%d,%d tidx=%d k=%d isA=%d xy=%d,%d xyblock=%d,%d nrow=%d kval=%d ind=%d nvi=%lu pvi=%lu "
-             "nbrown/rowp/col=%d,%d,%d smemn=%d,%d=%ld=%ld smemp=%d,%d=%ld=%ld\n",
-             bx,by,thread_idx,k,is_a,x,y,block_x,block_y,nrow,kval,ind,nvi,pvi,nbrown,nbrowp,nbcol,
-             nbrown,nbcol*patch,layout({nbrown, nbcol * patch}),layout({nbrown, nbcol * patch})/patch,
-             nbrowp,nbcol*patch,layout({nbrowp, nbcol * patch}),layout({nbrowp, nbcol * patch})/patch);
-      } else {
-        // operand B
-        smem[layout({nbcol * patch, nbrown}) / patch] = nvi;
-        smem[layout({nbcol * patch, nbrowp}) / patch] = pvi;
-	printf("b=%d,%d tidx=%d k=%d isA=%d xy=%d,%d xyblock=%d,%d nrow=%d kval=%d ind=%d nvi=%lu pvi=%lu "
-             "nbrown/rowp/col=%d,%d,%d smemn=%d,%d=%ld=%ld smemp=%d,%d=%ld=%ld\n",
-             bx,by,thread_idx,k,is_a,x,y,block_x,block_y,nrow,kval,ind,nvi,pvi,nbrown,nbrowp,nbcol,
-             nbcol*patch,nbrown,layout({nbcol * patch, nbrown}),layout({nbcol * patch, nbrown})/patch,
-             nbcol*patch,nbrowp,layout({nbcol * patch, nbrowp}),layout({nbcol * patch, nbrowp})/patch);
-      }
+        if (is_a) {
+          // operand A
+          smem[layout({nbrown, nbcol * patch}) / patch] = nvi;
+          smem[layout({nbrowp, nbcol * patch}) / patch] = pvi;
+          if(kval<k && nrow<m) {
+	  printf("b=%d,%d tidx=%d k=%d isA=%d xy=%d,%d xyblock=%d,%d nrow=%d kval=%d patch=%d ind=%d vi=%lu,%lu nvi=%lu pvi=%lu "
+               "nbrown/rowp/col=%d,%d,%d smemn=%d,%d=%lu=%lu smemp=%d,%d=%lu=%lu\n",
+               bx,by,thread_idx,k,is_a,x,y,block_x,block_y,nrow,kval,patch,ind,vi.data[0],vi.data[1],nvi,pvi,nbrown,nbrowp,nbcol,
+               nbrown,nbcol*patch,layout({nbrown, nbcol * patch}),layout({nbrown, nbcol * patch})/patch,
+               nbrowp,nbcol*patch,layout({nbrowp, nbcol * patch}),layout({nbrowp, nbcol * patch})/patch);
+          }
+        } else {
+          // operand B
+          smem[layout({nbcol * patch, nbrown}) / patch] = nvi;
+          smem[layout({nbcol * patch, nbrowp}) / patch] = pvi;
+          if(kval<k && nrow<m) {
+	  printf("b=%d,%d tidx=%d k=%d isA=%d xy=%d,%d xyblock=%d,%d nrow=%d kval=%d patch=%d ind=%d vi=%lu,%lu nvi=%lu pvi=%lu "
+               "nbrown/rowp/col=%d,%d,%d smemn=%d,%d=%lu=%lu smemp=%d,%d=%lu=%lu\n",
+               bx,by,thread_idx,k,is_a,x,y,block_x,block_y,nrow,kval,patch,ind,vi.data[0],vi.data[1],nvi,pvi,nbrown,nbrowp,nbcol,
+               nbcol*patch,nbrown,layout({nbcol * patch, nbrown}),layout({nbcol * patch, nbrown})/patch,
+               nbcol*patch,nbrowp,layout({nbcol * patch, nbrowp}),layout({nbcol * patch, nbrowp})/patch);
+          }
+        }
     }
   }
 }
@@ -308,6 +311,7 @@ b1_comet_mult_gemm_gpu_cutlass_single(int m, int n, int k, GMBits2x64 *a, GMBits
 
     When loading data from gmem to smem, the "n" and "p" parts are stored to separate parts of smem, and then
     each warp works on and accumulates on the "nn", "np", "pn" and "pp" results separately. At the end each
+    t
     warp combines results stored in the 4 accumualtes and then write to gmem, which does not need to go through
     smem anymore.
 
@@ -325,8 +329,8 @@ b1_comet_mult_gemm_gpu_cutlass_single(int m, int n, int k, GMBits2x64 *a, GMBits
   int warp_id = thread_idx / 32;
   int lane_id = thread_idx % 32;
 
-  constexpr int pM = bM / 2;
-  constexpr int pN = bN / 2;
+  constexpr int pM = bM;
+  constexpr int pN = bN;
   constexpr int pK = bK / 64;
 
   // Matrix block location
@@ -342,20 +346,22 @@ b1_comet_mult_gemm_gpu_cutlass_single(int m, int n, int k, GMBits2x64 *a, GMBits
   constexpr int alignment = 1024;
   using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
 #endif*/
-  constexpr int alignment = 128; //512;
+  //constexpr int alignment = 512;
   //using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
   using InstructionShape = cutlass::gemm::GemmShape<8, 8, 128>;
 
-  static_assert(wK % alignment == 0, "alignment");
+  //static_assert(wK % alignment == 0, "alignment");
 
   using WarpShape = cutlass::gemm::GemmShape<wM, wN, wK>;
   using ElementA = cutlass::uint1b_t;
   using ElementB = cutlass::uint1b_t;
   using ElementC = int;
-  using LayoutA
-    = cutlass::layout::RowMajorTensorOpMultiplicandCrosswise<cutlass::sizeof_bits<ElementA>::value, alignment>;
-  using LayoutB
-    = cutlass::layout::ColumnMajorTensorOpMultiplicandCrosswise<cutlass::sizeof_bits<ElementB>::value, alignment>;
+  using LayoutA = cutlass::layout::RowMajor;
+  //using LayoutA
+  //  = cutlass::layout::RowMajorTensorOpMultiplicandCrosswise<cutlass::sizeof_bits<ElementA>::value, alignment>;
+  using LayoutB = cutlass::layout::ColumnMajor;
+  //using LayoutB
+  //  = cutlass::layout::ColumnMajorTensorOpMultiplicandCrosswise<cutlass::sizeof_bits<ElementB>::value, alignment>;
   using LayoutC = cutlass::layout::RowMajor;
 
   using Mma =
@@ -379,8 +385,11 @@ b1_comet_mult_gemm_gpu_cutlass_single(int m, int n, int k, GMBits2x64 *a, GMBits
   char *smem_ptr_A = smem_ptr;
   char *smem_ptr_B = &smem_ptr_A[ThreadblockShape::kM * ThreadblockShape::kK * 1 / 8];
 
-  printf("b=%d,%d t=%d warp=%d lane=%d p=%d,%d,%d aBegin=%d bBegin=%d warp_count=%d,%d warp_idx=%d,%d=%d smemA=0 smemB=%d TBmnk=%d,%d,%d\n",
-         bx,by,thread_idx,warp_id,lane_id,pM,pN,pK,aBegin,bBegin,warp_count_m,warp_count_n,warp_idx_m,warp_idx_n,warp_idx_mn,ThreadblockShape::kM * ThreadblockShape::kK * 1 / 8,ThreadblockShape::kM,ThreadblockShape::kN,ThreadblockShape::kK);
+  printf("b=%d,%d t=%d warp=%d lane=%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d block=%d,%d "
+	 "aBegin=%d bBegin=%d warp_count=%d,%d warp_idx=%d,%d=%d smemA=0 smemB=%d TBmnk=%d,%d,%d\n",
+         bx,by,thread_idx,warp_id,lane_id,bM,bN,bK,pM,pN,pK,wM,wN,wK,block_x,block_y,
+	 aBegin,bBegin,warp_count_m,warp_count_n,warp_idx_m,warp_idx_n,warp_idx_mn,
+	 ThreadblockShape::kM * ThreadblockShape::kK * 1 / 8,ThreadblockShape::kM,ThreadblockShape::kN,ThreadblockShape::kK);
 
   uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
   uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
@@ -389,9 +398,9 @@ b1_comet_mult_gemm_gpu_cutlass_single(int m, int n, int k, GMBits2x64 *a, GMBits
   using FragmentB = typename Mma::FragmentB;
   using FragmentC = typename Mma::FragmentC;
 
-  typename Mma::LayoutA layout_A = Mma::LayoutA::packed({ThreadblockShape::kM, ThreadblockShape::kK});
-  typename Mma::LayoutB layout_B = Mma::LayoutB::packed({ThreadblockShape::kK, ThreadblockShape::kN});
-  typename Mma::LayoutC layout_C = Mma::LayoutC::packed({m, n});
+  typename Mma::LayoutA layout_A = Mma::LayoutA::packed({ThreadblockShape::kM*2, ThreadblockShape::kK});
+  typename Mma::LayoutB layout_B = Mma::LayoutB::packed({ThreadblockShape::kK, ThreadblockShape::kN*2});
+  typename Mma::LayoutC layout_C = Mma::LayoutC::packed({m*2, n*2});
 
   FragmentC accum;
   accum.clear();
@@ -400,94 +409,111 @@ b1_comet_mult_gemm_gpu_cutlass_single(int m, int n, int k, GMBits2x64 *a, GMBits
   //static_assert(pN % block_y == 0, "block-global-memory-loader needs to be in shape.");
   //static_assert(pK % block_x == 0, "block-global-memory-loader needs to be in shape.");
 
-  /*constexpr int iter_x = pK / block_x;
-  constexpr int iter_y_a = pM / block_y;
-  constexpr int iter_xy_a = iter_x * iter_y_a;
-  constexpr int iter_y_b = pN / block_y;
-  constexpr int iter_xy_b = iter_x * iter_y_b;*/
+  //constexpr int iter_x = pK / block_x;
+  //constexpr int iter_y_a = pM / block_y;
+  //constexpr int iter_xy_a = iter_x * iter_y_a;
+  //constexpr int iter_y_b = pN / block_y;
+  //constexpr int iter_xy_b = iter_x * iter_y_b;
 
   //uint64_t frag_a[2 * iter_xy_a];
   //uint64_t frag_b[2 * iter_xy_b];
 
-  for (int l = 0; l < k; l += pK) {
+  for (int l = 0; l < 1; l += 1) { //k; l += pK) {
     // Here gmem -> register == "g2r" and then register -> smem == "r2s".
     // Operand A
-    /*g2r_single<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
+    //g2r_single<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
     // Operand B
-    g2r_single<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
+    //g2r_single<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
     // Operand A
-    r2s_single<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
+    //r2s_single<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
     // Operand B
-    r2s_single<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);*/
+    //r2s_single<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);
 
-    g2s_single<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, k, layout_A);
-    g2s_single<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, k, layout_B);
+    printf("b=%d,%d t=%d l=%d/%d a=%d=%d b=%d=%d\n",
+	   bx,by,thread_idx,l,k,aBegin,aBegin+l,bBegin,bBegin+l);
+
+    g2s_single<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, m, n, k, layout_A);
+    g2s_single<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, m, n, k, layout_B);
 
     __syncthreads();
 
-    //
     // Construct warp-level matrix product
-    //
-
     typename Mma::IteratorA iter_A({reinterpret_cast<typename cutlass::uint1b_t *>(smem_buffer_A), layout_A}, lane_id);
     typename Mma::IteratorB iter_B({reinterpret_cast<typename cutlass::uint1b_t *>(smem_buffer_B), layout_B}, lane_id);
 
-    iter_A.add_tile_offset({warp_idx_m, 0});
-    iter_B.add_tile_offset({0, warp_idx_n});
+    iter_A.add_tile_offset({0, 0});
+    iter_B.add_tile_offset({0, 0});
+    //iter_A.add_tile_offset({warp_idx_m, 0});
+    //iter_B.add_tile_offset({0, warp_idx_n});
 
     FragmentA frag_A;
     FragmentB frag_B;
+    Mma mma;
 
-    //if (warp_id < warp_count_n * warp_count_m) {
+    int nwarps = 1; //max(k*64,ThreadblockShape::kK);
 
-      Mma mma;
+    CUTLASS_PRAGMA_UNROLL
+    for (int warp_k = 0; warp_k < nwarps; warp_k += Mma::Policy::MmaShape::kK) {
 
-      CUTLASS_PRAGMA_UNROLL
-      for (int warp_k = 0; warp_k < ThreadblockShape::kK; warp_k += Mma::Policy::MmaShape::kK) {
+      iter_A.load(frag_A);
+      //iter_A.add_tile_offset({+warp_count_m, 0});
 
-        iter_A.load(frag_A);
-        iter_A.add_tile_offset({+warp_count_m, 0});
+      iter_B.load(frag_B);
+      //iter_B.add_tile_offset({0, +warp_count_n});
 
-        iter_B.load(frag_B);
-        iter_B.add_tile_offset({0, +warp_count_n});
-
-        printf("b=%d,%d t=%d l=%d/%d warp=%d:%d:%d Aoffset=%d,0=%ld Boffset=0,%d=%ld A+shift=%d,0=%ld A-shift=%d,0=%ld B+shift=0,%d=%ld B-shift=0,%d=%ld\n",
-               bx,by,thread_idx,l,k,warp_k,ThreadblockShape::kK,Mma::Policy::MmaShape::kK,warp_idx_m,layout_A({warp_idx_m, 0}),warp_idx_n,layout_B({0,warp_idx_n}),
-	       warp_count_m,layout_A({+warp_count_m, 0}),-warp_count_m,layout_A({-warp_count_m, 0}),
-	       warp_count_n,layout_B({0, +warp_count_n}),-warp_count_n,layout_B({0, -warp_count_n}));
-
-        ++iter_A;
-        ++iter_B;
-
-        mma(accum, frag_A, frag_B, accum);
+      for(int ii=0; ii<2; ii++) {
+        printf("b=%d,%d t=%d ii=%d A=%lu\n",
+               bx,by,thread_idx,ii,(uint64_t)(frag_A[ii]));
       }
-    //}
+      __syncthreads();
 
-    if (l + pK < k) { __syncthreads(); }
+      printf("b=%d,%d t=%d l=%d/%d warp=%d:%d:%d k=%d kK=%d Aoffset=%d,0=%ld Boffset=0,%d=%ld A+shift=%d,0=%ld A-shift=%d,0=%ld B+shift=0,%d=%ld B-shift=0,%d=%ld\n",
+             bx,by,thread_idx,l,k,warp_k,nwarps,Mma::Policy::MmaShape::kK,k,ThreadblockShape::kK,warp_idx_m,layout_A({warp_idx_m, 0}),warp_idx_n,layout_B({0,warp_idx_n}),
+             warp_count_m,layout_A({+warp_count_m, 0}),-warp_count_m,layout_A({-warp_count_m, 0}),
+             warp_count_n,layout_B({0, +warp_count_n}),-warp_count_n,layout_B({0, -warp_count_n}));
+
+      ++iter_A;
+      ++iter_B;
+
+      mma(accum, frag_A, frag_B, accum);
+    }
+
+    //if (l + pK < k) 
+    __syncthreads();
   }
 
-  //if (warp_id < warp_count_n * warp_count_m) {
-    using output_type = int;
-
-    using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
-      typename cutlass::MatrixShape<WarpShape::kM, WarpShape::kN>, output_type, LayoutC, InstructionShape,
-      typename Mma::Policy::OpDelta>;
-
-    IteratorC iter_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
-
-    iter_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
-    iter_C.store(accum);
-    printf("b=%d,%d tid=%d mnk=%d,%d,%d warp_id=%d warp_count_m=%d warp_count_n=%d offset=%d,%d warpshape=%d,%d c=%d\n",
-           bx,by,thread_idx,m,n,k,warp_id,warp_count_m,warp_count_n,
-           (pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n,
-           wM*2,wN*2,c[0]);
-  /*} else {
-    printf("b=%d,%d tid=%d Skip warp_id=%d warp_count_m=%d warp_count_n=%d\n",
-           bx,by,thread_idx,warp_id,warp_count_m,warp_count_n);
-  }*/
+  for(int ii=0; ii<2; ii++) {
+    printf("b=%d,%d t=% mid accum[%d]=%d\n",
+           bx,by,thread_idx,ii,accum[ii]);
+  }
   __syncthreads();
-  printf("b=%d,%d t=%d c[%d]=%d\n",
-         bx,by,thread_idx,thread_idx,c[thread_idx]);
+
+  using output_type = int;
+
+  using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
+    typename cutlass::MatrixShape<WarpShape::kM, WarpShape::kN>, output_type, LayoutC, InstructionShape,
+    typename Mma::Policy::OpDelta>;
+
+  IteratorC iter_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
+
+  iter_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
+  iter_C.store(accum);
+  printf("b=%d,%d tid=%d mnk=%d,%d,%d kMN=%d,%d warp_id=%d warp_count_m=%d warp_count_n=%d offset=%d,%d warpshape=%d,%d\n",
+         bx,by,thread_idx,m,n,k,WarpShape::kM,WarpShape::kN,warp_id,warp_count_m,warp_count_n,
+         (pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n,
+         wM*2,wN*2);
+  __syncthreads();
+
+  int cBegin = n*bx*block_x+by*block_y;
+  int ind = cBegin + 4*thread_idx;
+  printf("b=%d,%d t=%d c[%d,%d,%d,%d]=%d,%d,%d,%d\n",
+         bx,by,thread_idx,ind,ind+1,ind+2,ind+3,c[ind],c[ind+1],c[ind+2],c[ind+3]);
+  __syncthreads();
+
+  for(int ii=0; ii<2; ii++) {
+    printf("b=%d,%d t=%d end accum[%d]=%d\n",
+           bx,by,thread_idx,ii,accum[ii]);
+  }
 
   /*if (warp_id < warp_count_n * warp_count_m) {
     // use "double2" instead of "GMTally2x2" to make sure compiler issue 128-bit store instructions.
@@ -579,32 +605,35 @@ void tc_solve_comet_impl_cutlass_single(int m, int n, int k, const void *matA, c
   constexpr int warp_n = 32;
   constexpr int warp_k = 1024; // 64 * 16
 #endif*/
-  // Smaller test settings
-  constexpr int block_x = 8;
-  constexpr int block_y = 8;
 
-  constexpr int threadblock_m = 8; //16; // 4 blocks per thread block
-  constexpr int threadblock_n = 8; //16;
-  constexpr int threadblock_k = 128; //512; // 64 * 8
+  // Smaller test settings
+  // Cutlass block parameters
+  constexpr int threadblock_m = 8; // 4 blocks per thread block
+  constexpr int threadblock_n = 8;
+  constexpr int threadblock_k = 128; //256; // 64 * 
 
   constexpr int warp_m = 8; // 64 threads per block
   constexpr int warp_n = 8;
-  constexpr int warp_k = 128; //512; // 64 * 8
+  constexpr int warp_k = 128; //256; // 64 * 8
 
-  int grid_x = m / (threadblock_m / 2);
-  int grid_y = n / (threadblock_n / 2);
+  // Kernel launch parameters
+  constexpr int threadblockx = 8;//16;
+  constexpr int threadblocky = 8;
+  
+  int gridblockx = (int)ceil((double)m/threadblockx);
+  int gridblocky = (int)ceil((double)n/threadblocky);
 
   auto gemm_kernel
-    = b1_comet_mult_gemm_gpu_cutlass_single<threadblock_m, threadblock_n, threadblock_k, warp_m, warp_n, warp_k, block_x, block_y>;
+    = b1_comet_mult_gemm_gpu_cutlass_single<threadblock_m, threadblock_n, threadblock_k, warp_m, warp_n, warp_k, threadblockx, threadblocky>;
 
   int shared_bytes = (threadblock_m + threadblock_n) * threadblock_k / 8;
   set_max_shared_bytes_single((const void *)gemm_kernel);
 
-  /*printf("Calling b1_comet_mult_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
-    m, n, k, grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
-    warp_m, warp_n, warp_k, shared_bytes, beta);*/
+  printf("Calling b1_comet_mult_gemm_gpu_cutlass_single kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
+    m, n, k, gridblockx, gridblocky, threadblockx, threadblocky, threadblock_m, threadblock_n, threadblock_k,
+    warp_m, warp_n, warp_k, shared_bytes, beta);
 
-  gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
+  gemm_kernel<<<dim3(gridblockx, gridblocky, 1), dim3(threadblockx, threadblocky, 1), shared_bytes>>>(
     m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, beta, (int*) matC); // (GMTally2x2 *)matC);
 }
 
