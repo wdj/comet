@@ -731,7 +731,7 @@ elif [ $COMET_PLATFORM = MACOS ] ; then
   local COMET_CXX_SERIAL_COMPILER=g++
   local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++17"
 
-  local USE_OPENMP=ON
+  local USE_OPENMP=OFF
 
   #---Libraries.
 

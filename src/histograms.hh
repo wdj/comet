@@ -179,7 +179,7 @@ public:
 
     const int cbpe = env_.counted_bits_per_elt();
 
-    double metric[2][2] = {0};
+    double metric[2][2] = {};
 
     for (int iE=0; iE<2; ++iE) {
       for (int jE=0; jE<2; ++jE) {
@@ -211,7 +211,7 @@ public:
 
     const int cbpe = env_.counted_bits_per_elt();
 
-    double metric[2][2][2] = {0};
+    double metric[2][2][2] = {};
 
     for (int iE=0; iE<2; ++iE) {
       for (int jE=0; jE<2; ++jE) {
