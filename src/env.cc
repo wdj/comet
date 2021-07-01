@@ -113,6 +113,46 @@ int System::compute_capability() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Accelerator pci bus id.
+
+int System::pci_bus_id() {
+#if defined COMET_USE_CUDA
+  cudaDeviceProp deviceProp;
+  // Assume only one GPU per rank.
+  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
+  const int pci_bus_id = error != cudaSuccess ? 0 : deviceProp.pciBusID;
+#elif defined COMET_USE_HIP
+  hipDeviceProp_t deviceProp;
+  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
+  const int pci_bus_id = deviceProp.pciBusID;
+#else
+  const int pci_bus_id = 0;
+#endif
+  COMET_INSIST(System::accel_last_call_succeeded());
+  return pci_bus_id;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator pci domain id.
+
+int System::pci_domain_id() {
+#if defined COMET_USE_CUDA
+  cudaDeviceProp deviceProp;
+  // Assume only one GPU per rank.
+  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
+  const int pci_domain_id = error != cudaSuccess ? 0 : deviceProp.pciDomainID;
+#elif defined COMET_USE_HIP
+  hipDeviceProp_t deviceProp;
+  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
+  const int pci_domain_id = deviceProp.pciDomainID;
+#else
+  const int pci_domain_id = 0;
+#endif
+  COMET_INSIST(System::accel_last_call_succeeded());
+  return pci_domain_id;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Accelerator did most recent call succeed.
 
 bool System::accel_last_call_succeeded() {

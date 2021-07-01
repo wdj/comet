@@ -60,6 +60,8 @@ struct System {
   static int proc_num();
   static bool is_proc_num_0() {return !proc_num();}
   static int compute_capability();
+  static int pci_bus_id();
+  static int pci_domain_id();
   static double time();
   static bool accel_last_call_succeeded();
 

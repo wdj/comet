@@ -832,9 +832,18 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     env.stream_synchronize(env.stream_compute());
     double t2 = System::time();
     const double t = t2 - t1;
-    printf("%i %i %i   time %f TOP/s %f   tbeg %f tend %f\n",
+
+    const size_t hnlen = 256;
+    char hn[hnlen];
+    gethostname(hn, hnlen);
+
+    printf("%i %i %i   time %f TOP/s %f   tbeg %f tend %f %s pci_bus_id %i pci_domain_id %i\n",
            (int)m, (int)n, (int)k, t,
-           (2 * m * (double)n * (double)k) / (t * 1e12), t1, t2);
+           (2 * m * (double)n * (double)k) / (t * 1e12), t1, t2,
+           hn, System::pci_bus_id(), System::pci_domain_id());
+    //printf("%i %i %i   time %f TOP/s %f   tbeg %f tend %f\n",
+    //       (int)m, (int)n, (int)k, t,
+    //       (2 * m * (double)n * (double)k) / (t * 1e12), t1, t2);
   }
 }
 
