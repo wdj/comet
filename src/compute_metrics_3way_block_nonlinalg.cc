@@ -239,7 +239,8 @@ static void compute_nonlinalg_ccc_duo_(
   COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
-  typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
+  enum {MF = MetricFormat::PACKED_DOUBLE};
+  typedef MetricFormatTraits<MF> MFT;
 
   // Initializations.
 
@@ -430,8 +431,25 @@ static void compute_nonlinalg_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
           } // if sparse
-//FIXHIST
 
+          if (metrics->is_computing_histograms() &&
+              CoordsInfo::is_active(metrics->coords_value(
+                Metrics_index_3(*metrics, i, j, k, j_block_eff, k_block_eff, *env)),
+                *metrics, *env)) {
+            COMET_ASSERT(!env->is_threshold_tc());
+            const int cbpe = env->counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env->sparse() ? vs_i->count(i) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 cj = env->sparse() ? vs_j->count(j) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 ck = env->sparse() ? vs_k->count(k) :
+                                                cbpe * cbpe * cbpe * nfa;
+            Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
+              i, j, k, j_block_eff, k_block_eff, *env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, sk1, ci, cj, ck, nfa);
+          } // if is_computing_histograms
+//FIXHIST
         } // for I
         metrics->num_metric_items_local_computed_inc(I_max - I_min);
       } // for K
@@ -747,8 +765,25 @@ static void compute_nonlinalg_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
           } // if sparse
-//FIXHIST
 
+          if (metrics->is_computing_histograms() &&
+              CoordsInfo::is_active(metrics->coords_value(
+                Metrics_index_3(*metrics, i, j, k, j_block_eff, k_block_eff, *env)),
+                *metrics, *env)) {
+            COMET_ASSERT(!env->is_threshold_tc());
+            const int cbpe = env->counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env->sparse() ? vs_i->count(i) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 cj = env->sparse() ? vs_j->count(j) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 ck = env->sparse() ? vs_k->count(k) :
+                                                cbpe * cbpe * cbpe * nfa;
+            Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
+              i, j, k, j_block_eff, k_block_eff, *env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, sk1, ci, cj, ck, nfa);
+          } // if is_computing_histograms
+//FIXHIST
         } //---I
         metrics->num_metric_items_local_computed_inc(I_max - I_min);
       } //---K
@@ -965,8 +1000,25 @@ static void compute_nonlinalg_ccc_duo_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
           } // if sparse
-//FIXHIST
 
+          if (metrics->is_computing_histograms() &&
+              CoordsInfo::is_active(metrics->coords_value(
+                Metrics_index_3(*metrics, i, j, k, j_block_eff, k_block_eff, *env)),
+                *metrics, *env)) {
+            COMET_ASSERT(!env->is_threshold_tc());
+            const int cbpe = env->counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env->sparse() ? vs_i->count(i) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 cj = env->sparse() ? vs_j->count(j) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 ck = env->sparse() ? vs_k->count(k) :
+                                                cbpe * cbpe * cbpe * nfa;
+            Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
+              i, j, k, j_block_eff, k_block_eff, *env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, sk1, ci, cj, ck, nfa);
+          } // if is_computing_histograms
+//FIXHIST
         } //---I
         metrics->num_metric_items_local_computed_inc(I_max - I_min);
       } //---K

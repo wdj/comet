@@ -631,9 +631,10 @@ static void finalize_ccc_duo_(
           } // if sparse
 
           if (metrics->is_computing_histograms() &&
-              (size_t)i < metrics->dm->num_vector_active_local &&
-              (size_t)j < metrics->dm->num_vector_active_local &&
-              (size_t)k < metrics->dm->num_vector_active_local) {
+              CoordsInfo::is_active(metrics->coords_value(
+                Metrics_index_3(*metrics, i, j, k, j_block_eff, k_block_eff, env)),
+                *metrics, env)) {
+
             const int cbpe = env.counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
             const GMTally1 ci = env.sparse() ? vs_i->count(i) :
@@ -647,7 +648,7 @@ static void finalize_ccc_duo_(
               i, j, k, j_block_eff, k_block_eff, env);
             metrics->dm->histograms()->add(ttable, si1, sj1, sk1, ci, cj, ck, nfa);
           } // if is_computing_histograms
-//FIXHIST // disble omp if hist // do only on last step _IF_ appropriate
+//FIXHIST
         } // if ((!env.is_threshold_tc()) && ...
 
       } // I
