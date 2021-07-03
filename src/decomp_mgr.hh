@@ -47,7 +47,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // DecompMgr struct
 
-typedef struct {
+struct GMDecompMgr {
   // Field counts
   size_t num_field;
   size_t num_field_local;
@@ -77,7 +77,7 @@ typedef struct {
   Histograms* histograms_;
   Histograms* histograms_default_;
 
-} GMDecompMgr;
+};
 
 //-----------------------------------------------------------------------------
 

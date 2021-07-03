@@ -376,9 +376,10 @@ __host__ __device__ static double atomic_add(double* address, double value) {
 
     return atomicAdd(address, value);
 
-# elif defined COMET_USE_HIP && defined __HIPCC__
+//# elif defined COMET_USE_HIP && defined __HIPCC__
+# elif defined COMET_USE_HIP && defined __HIP_DEVICE_COMPILE__
 
-    # TODO: fix this to work under HIP.
+    // TODO: fix this to work under HIP.
 
     double old = *address, assumed;
     do {
@@ -386,7 +387,7 @@ __host__ __device__ static double atomic_add(double* address, double value) {
         __longlong_as_double(
           atomicCAS((unsigned long long int*)address,
                     __double_as_longlong(assumed),
-      __double_as_longlong(val + assumed)));
+      __double_as_longlong(value + assumed)));
     } while (assumed != old);
     return old;
 
