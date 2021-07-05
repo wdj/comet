@@ -2070,6 +2070,13 @@ void DriverTest_file_output_() {
       const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
       //const int num_phase = 1;
 
+      char hfile_template[] =
+          "--histograms_file DriverTest_file_output_histogram_%i.csv";
+
+      char hfile[1024];
+
+      sprintf(hfile, hfile_template, num_way);
+
       sprintf(options1, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
         TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
@@ -2077,7 +2084,8 @@ void DriverTest_file_output_() {
       sprintf(options2, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
         tc, CM::str(compute_method), num_phase, num_stage,
-        "--histograms_file DriverTest_file_output_histogram.csv");
+        hfile);
+        //"--histograms_file DriverTest_file_output_histogram.csv");
 
       test_2runs(options1, options2);
     }

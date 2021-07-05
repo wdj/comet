@@ -47,8 +47,8 @@ namespace comet {
 Histograms::Histograms(const char* histograms_file, CEnv& env)
   : env_(env)
   , is_computing_histograms_(histograms_file && env_.is_metric_type_bitwise() &&
-                             //env_.is_threshold_tc() &&
-                             env_.num_way() == 2) // TODO: remove/implement.
+                             !(env_.num_way() == 3 && env_.is_threshold_tc()))
+                             // TODO: remove/implement.
   , histograms_file_str_(histograms_file ? histograms_file : "")
   , range_(is_computing_histograms_ ? env_.ccc_duo_multiplier() : 0)
   , num_buckets_((int)(RECIP_BUCKET_WIDTH * range_))

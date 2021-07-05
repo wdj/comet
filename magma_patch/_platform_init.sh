@@ -158,8 +158,8 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local USE_CUDA=ON
   local CUDA_ROOT="$OLCF_CUDA_ROOT"
   local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
-  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
-  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
+  COMET_CUDA_COMPILE_OPTS+=" -I$CUDA_ROOT/extras/CUPTI/include"
+  COMET_CUDA_COMPILE_OPTS+=" -I$CUDA_ROOT/extras/Debugger/include"
   local COMET_CUDA_LINK_OPTS="-L$CUDA_ROOT/targets/ppc64le-linux/lib"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/targets/ppc64le-linux/lib"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
@@ -186,6 +186,11 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$OLCF_GCC_ROOT/lib64"
 
   local COMET_CAN_USE_MPI=ON
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_MPI_COMPILE_OPTS="-I$OMPI_DIR/include"
+    #local COMET_MPI_LINK_OPTS="-L$MPI_HOME/lib -Wl,-rpath,$MPI_HOME/lib -lmpi"
+  fi
 
   #---Testing.
 
