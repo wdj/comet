@@ -303,7 +303,7 @@ public:
   typedef Histograms::Elt_t Elt_t;
 
   __host__ __device__ void add(double value, int indT_I, int indT_J, int indT_K) {
-    entries[indT_J + 2 * indT_I] = value;
+    entries[indT_K + 2 * indT_J + 4 * indT_I] = value;
   }
 
   __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {
