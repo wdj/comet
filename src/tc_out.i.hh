@@ -295,13 +295,33 @@ public:
 //=============================================================================
 
 class HistogramsHelper3Way {
+  
+  double entries[8];
+
 public:
 
   typedef Histograms::Elt_t Elt_t;
 
-  __host__ __device__ void add(double value, int indT_I, int indT_J, int indT_K) {}
+  __host__ __device__ void add(double value, int indT_I, int indT_J, int indT_K) {
+    entries[indT_J + 2 * indT_I] = value;
+  }
 
-  __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {}
+  __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {
+    enum {LLL=0, LLH=1, LHL=2, HLL=3, LHH=4, HLH=5, HHL=6, HHH=7};
+
+    Histograms::add(histograms_ptr, num_buckets, entries[LLL], HistogramID::LLL);
+    Histograms::add(histograms_ptr, num_buckets, entries[LLH], HistogramID::LLH);
+    Histograms::add(histograms_ptr, num_buckets, entries[LHL], HistogramID::LLH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HLL], HistogramID::LLH);
+
+    Histograms::add(histograms_ptr, num_buckets, entries[LHH], HistogramID::LHH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HLH], HistogramID::LHH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HHL], HistogramID::LHH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HHH], HistogramID::HHH);    
+    Histograms::add(histograms_ptr, num_buckets, entries[LLL] + entries[HHH],
+                                                            HistogramID::LLLHHH);
+
+  }
 
 };
 
