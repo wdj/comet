@@ -307,14 +307,13 @@ public:
   }
 
   __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {
-    enum {LLL=0, LLH=1, LHL=2, HLL=3, LHH=4, HLH=5, HHL=6, HHH=7};
+    enum {LLL=0, LLH=1, LHL=2, LHH=3, HLL=4, HLH=5, HHL=6, HHH=7};
 
     Histograms::add(histograms_ptr, num_buckets, entries[LLL], HistogramID::LLL);
     Histograms::add(histograms_ptr, num_buckets, entries[LLH], HistogramID::LLH);
     Histograms::add(histograms_ptr, num_buckets, entries[LHL], HistogramID::LLH);
-    Histograms::add(histograms_ptr, num_buckets, entries[HLL], HistogramID::LLH);
-
     Histograms::add(histograms_ptr, num_buckets, entries[LHH], HistogramID::LHH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HLL], HistogramID::LLH);
     Histograms::add(histograms_ptr, num_buckets, entries[HLH], HistogramID::LHH);
     Histograms::add(histograms_ptr, num_buckets, entries[HHL], HistogramID::LHH);
     Histograms::add(histograms_ptr, num_buckets, entries[HHH], HistogramID::HHH);    
