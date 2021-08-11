@@ -281,7 +281,9 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
   int gridx = bx*BLOCK_SIZE + tx;
   int gridy = by*BLOCK_SIZE + ty;
 
-  //if(bx==0 && by==0 && tx==0 && ty==0) printf("In b1_comet_gemm_gpu_simple_ mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",m,n,k,m,k,k,n,m,n,gridx,gridy);
+  //if(bx==0 && by==0 && tx==0 && ty==0)
+  printf("b=%d,%d t=%d,%d In b1_comet_gemm_gpu_simple_ mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",
+	 bx,by,tx,ty,m,n,k,m,k,k,n,m,n,gridx,gridy);
 
   if(gridy>=m || gridx>=n) return;
 
@@ -448,7 +450,7 @@ void tc_solve_comet_(size_t m, size_t n, size_t k,
       // Cutlass Split-mma GEMM
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_single\n");
       tc_solve_comet_impl_cutlass_single(m,n,k,(GMBits2x64*)matA,
-        (GMBits2x64*)matB, beta, (int*)matC); //(GMTally2x2*)matC);
+        (GMBits2x64*)matB, beta, (int*)matC, env); //(GMTally2x2*)matC);
     } break;
     default:
       COMET_INSIST(false && "Invalid num_kernel type.");

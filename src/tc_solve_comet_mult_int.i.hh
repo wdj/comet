@@ -908,6 +908,7 @@ static void tc_solve_comet_mult_int_impl(bool is_first, int m, int n, int k, int
            "gridDim=%d,%d threadDim=%d,%d step_2way=%d\n",
            m,n,k,(int)beta,gridblockx,gridblocky,threadblockx,threadblocky,step_2way);
 
+  if(env.num_kernel()>=175 && env.num_kernel()<=176) {
   switch(env.num_kernel()) {
     // Basic GEMM
     case 175: {
@@ -972,6 +973,14 @@ static void tc_solve_comet_mult_int_impl(bool is_first, int m, int n, int k, int
       printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
          env.num_kernel());
       COMET_INSIST(false && "Failure to call GEMM function.");
+    }
+  }
+  }
+  else {
+    switch(env.num_kernel()) {
+      case 177: {
+        tc_solve_comet_impl_cutlass_single(m,n,k,matA1,matB,beta,matC,env);
+      } break;
     }
   }
   System::accel_last_call_succeeded();

@@ -545,12 +545,12 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
   int shared_bytes = (threadblock_m + threadblock_n) * threadblock_k / 8;
   set_max_shared_bytes((const void *)gemm_kernel);
 
-  /*printf("Calling b1_comet_xor_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
+  printf("Calling b1_comet_xor_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
     m, n, k, grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
-    warp_m, warp_n, warp_k, shared_bytes, beta);*/
+    warp_m, warp_n, warp_k, shared_bytes, beta);
 
-  gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
-    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, beta, (GMTally2x2 *)matC);
+  //gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
+  //  m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, beta, (GMTally2x2 *)matC);
 }
 
 //=============================================================================

@@ -72,6 +72,7 @@ typedef int accelblasHandle_t;
 
 // GPU bit count routine
 #define gm_popcount64(x) __popcll(x)
+#define gm_popcount32(x) __popc(x)
 
 //-----------------------------------------------------------------------------
 /// \brief Struct to hold info for tc buffers.
