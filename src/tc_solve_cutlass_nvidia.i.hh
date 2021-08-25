@@ -296,11 +296,9 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
 
   // Block indices
   int bx = blockIdx.x, by = blockIdx.y;
-
-  //if(bx==0 && by==0 && threadIdx.x==0 && threadIdx.y==0)
-  //  printf("In b1_comet_xor_gemm_gpu_cutlass\n");
-
   int thread_idx = threadIdx.y * blockDim.x + threadIdx.x;
+
+  //printf("b=%d,%d t=%d In b1_comet_xor_gemm_gpu_cutlass\n",bx,by,thread_idx);
 
   int warp_id = thread_idx / 32;
   int lane_id = thread_idx % 32;
@@ -319,8 +317,10 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
   using InstructionShape = cutlass::gemm::GemmShape<8, 8, 128>;
 #else
   // mma for sm80
-  constexpr int alignment = 1024;
-  using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
+  //constexpr int alignment = 1024;
+  //using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
+  constexpr int alignment = 128;
+  using InstructionShape = cutlass::gemm::GemmShape<8, 8, 128>;
 #endif
 
   static_assert(wK % alignment == 0, "alignment");
@@ -333,8 +333,13 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
     = cutlass::layout::RowMajorTensorOpMultiplicandCrosswise<cutlass::sizeof_bits<ElementA>::value, alignment>;
   using LayoutB
     = cutlass::layout::ColumnMajorTensorOpMultiplicandCrosswise<cutlass::sizeof_bits<ElementB>::value, alignment>;
+  //using LayoutA = cutlass::layout::RowMajor;
+  //using LayoutB = cutlass::layout::ColumnMajor;
   using LayoutC = cutlass::layout::RowMajor;
 
+  //using Mma =
+  //  typename cutlass::gemm::warp::DefaultMmaTensorOp<WarpShape, InstructionShape, ElementA, LayoutA, ElementB,
+  //                                                   LayoutB, ElementC, LayoutC, cutlass::arch::OpMultiplyAdd>::Type;
   using Mma =
     typename cutlass::gemm::warp::DefaultMmaTensorOp<WarpShape, InstructionShape, ElementA, LayoutA, ElementB,
                                                      LayoutB, ElementC, LayoutC, cutlass::arch::OpXorPopc>::Type;
@@ -379,28 +384,28 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
   static_assert(pN % block_y == 0, "block-global-memory-loader needs to be in shape.");
   static_assert(pK % block_x == 0, "block-global-memory-loader needs to be in shape.");
 
-  constexpr int iter_x = pK / block_x;
+  /*constexpr int iter_x = pK / block_x;
   constexpr int iter_y_a = pM / block_y;
   constexpr int iter_xy_a = iter_x * iter_y_a;
   constexpr int iter_y_b = pN / block_y;
   constexpr int iter_xy_b = iter_x * iter_y_b;
 
   uint64_t frag_a[2 * iter_xy_a];
-  uint64_t frag_b[2 * iter_xy_b];
+  uint64_t frag_b[2 * iter_xy_b];*/
 
   for (int l = 0; l < k; l += pK) {
     // Here gmem -> register == "g2r" and then register -> smem == "r2s".
     // Operand A
-    g2r<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
+    //g2r<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
     // Operand B
-    g2r<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
+    //g2r<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
     // Operand A
-    r2s<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
+    //r2s<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
     // Operand B
-    r2s<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);
+    //r2s<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);
 
-    //g2s<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, k, layout_A);
-    //g2s<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, k, layout_B);
+    g2s<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, k, layout_A);
+    g2s<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, k, layout_B);
 
     __syncthreads();
 
@@ -525,7 +530,7 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
 
 #elif defined COMET_USE_AMPERE
   // Use following for Ampere
-  constexpr int block_x = 16;
+  /*constexpr int block_x = 16;
   constexpr int block_y = 8;
 
   constexpr int threadblock_m = 128;
@@ -534,7 +539,18 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
 
   constexpr int warp_m = 32;
   constexpr int warp_n = 32;
-  constexpr int warp_k = 1024; // 64 * 16
+  constexpr int warp_k = 1024; // 64 * 16 */
+
+  constexpr int block_x = 8;
+  constexpr int block_y = 8;
+
+  constexpr int threadblock_m = 16;
+  constexpr int threadblock_n = 16;
+  constexpr int threadblock_k = 512;
+
+  constexpr int warp_m = 8;
+  constexpr int warp_n = 8;
+  constexpr int warp_k = 256;
 #endif
   int grid_x = m / (threadblock_m / 2);
   int grid_y = n / (threadblock_n / 2);
@@ -549,8 +565,8 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
     m, n, k, grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
     warp_m, warp_n, warp_k, shared_bytes, beta);
 
-  //gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
-  //  m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, beta, (GMTally2x2 *)matC);
+  gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
+    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, beta, (GMTally2x2 *)matC);
 }
 
 //=============================================================================
