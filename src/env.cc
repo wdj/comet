@@ -675,8 +675,8 @@ bool CEnv::can_run(int tc_try) const {
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 750)
                   //|| (BuildHas::HIP && System::compute_capability() >= 1000));
                   //|| (BuildHas::HIP && System::compute_capability() >= 908));
-                    || (BuildHas::HIP && System::compute_capability() >= cc_minone));
-                    //FIX || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
+                    //FIX|| (BuildHas::HIP && System::compute_capability() >= cc_minone));
+                    || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
   }
 
   if (TC::INT4 == tc_try && is_bitwise_gpu) {

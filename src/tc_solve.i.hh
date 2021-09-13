@@ -719,7 +719,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         , CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing for cuda 9.2.88 transpose
 #     else
         , rocblas_gemm_algo_standard
-        , 0, 0  // solution_index, flags, workspace_size, workspace
+        , 0, rocblas_gemm_flags_pack_int8x4 // solution_index, flags, workspace_size, workspace
 #     endif
         );
         // TODO: use CUDA 10 autotuning capability here (later).
