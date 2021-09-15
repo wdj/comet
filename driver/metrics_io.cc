@@ -139,6 +139,7 @@ void MetricIO::write(size_t iG, size_t jG, size_t kG,
 //=============================================================================
 // Helper functions for MetricsIO class.
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Write to file, GMTally2x2 case, implementation.
 /// NOTE: this function is currently unused.
@@ -151,7 +152,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(stdout != file);
 
-//FIXFIX
+//FIXTHRESHOLD - remove this when feature implemented
   COMET_INSIST(env->threshold_method() == ThresholdMethod::SINGLE &&
                "Unimplemented.");
 
@@ -185,6 +186,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Fast check to skip metrics with no passes.
+//FIXTHRESHOLD - revise how this call does its checks
       if (Metrics_ccc_duo_threshold_detector_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
@@ -195,6 +197,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
           const GMFloat value =
             Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
              iE, jE, *env);
+//FIXTHRESHOLD - set this up so threshold check can look at all table entries - SUGGEST a pass_threshold call that takes all table entries. BOT note this function is unused!!
           if (env->pass_threshold(value)) {
             const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
             const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
@@ -262,10 +265,6 @@ static void MetricsIO_write_tally2x2_bin_(
   COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(stdout != file);
 
-//FIXFIX
-  COMET_INSIST(env->threshold_method() == ThresholdMethod::SINGLE &&
-               "Unimplemented.");
-
   if (env->metric_type() == MetricType::CCC)
     MetricsIO_write_tally2x2_bin_impl_<CBPE::CCC>(metrics, file,
       num_written_, env);
@@ -287,7 +286,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   COMET_INSIST(stdout != file);
   COMET_INSIST(env->is_metric_type_bitwise());
 
-//FIXFIX
+//FIXTHRESHOLD - remove this when feature implemented
   COMET_INSIST(env->threshold_method() == ThresholdMethod::SINGLE &&
                "Unimplemented.");
 
@@ -321,6 +320,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Fast check to skip metrics with no passes.
+//FIXTHRESHOLD - revise how this call does its checks
       if (Metrics_ccc_duo_threshold_detector_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
@@ -331,6 +331,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
           const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
           const GMFloat value = Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
               *metrics, index, iE, jE, kE, *env);
+//FIXTHRESHOLD - set this up so threshold check can look at all table entries - SUGGEST a pass_threshold call that takes all table entries. BOT note this function is unused!!
           if (env->pass_threshold(value)) {
             const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
             const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
@@ -401,10 +402,6 @@ static void MetricsIO_write_tally4x2_bin_(
   COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(stdout != file);
 
-//FIXFIX
-  COMET_INSIST(env->threshold_method() == ThresholdMethod::SINGLE &&
-               "Unimplemented.");
-
   if (env->metric_type() == MetricType::CCC)
     MetricsIO_write_tally4x2_bin_impl_<CBPE::CCC>(metrics, file,
       num_written_, env);
@@ -412,6 +409,7 @@ static void MetricsIO_write_tally4x2_bin_(
     MetricsIO_write_tally4x2_bin_impl_<CBPE::DUO>(metrics, file,
       num_written_, env);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Write to file or print the metrics.
@@ -427,7 +425,7 @@ static void MetricsIO_write_(
   //if (env->proc_num_field() != 0)
   //  return;
 
-//FIXFIX
+//FIXTHRESHOLD - remove this when feature implemented
   COMET_INSIST((env->threshold_method() == ThresholdMethod::SINGLE ||
                 env->is_threshold_tc()) && "Unimplemented.");
 
@@ -447,7 +445,8 @@ static void MetricsIO_write_(
 
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-//FIXFIX
+//FIXTHRESHOLD - ensure not multi threshold
+
       if (!env->pass_threshold(value))
         continue;
 
@@ -480,7 +479,8 @@ static void MetricsIO_write_(
 
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-//FIXFIX
+//FIXTHRESHOLD - ensure not multi threshold
+
       if (!env->pass_threshold(value))
         continue;
 
@@ -523,7 +523,43 @@ static void MetricsIO_write_(
         const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
           index, entry_num, *env);
 
-//FIXFIX
+//FIXTHRESHOLD - set this up so threshold check can look at all table entries
+// SUGGEST a pass_threshold call that takes all table entries.
+// NOTE if threshold_tc and compressed then should not (in fact, can't) check here. is this a problem?
+// see sample code below
+// NOTE: may need to also handle MetricFormat::PACKED_DOUBLE
+#if xxx
+
+note MetricFormat::SINGLE if and only if env.is_threshold_tc()
+CASE 1: not threshold_tc. then MetricFormat::PACKED_DOUBLE. then need to access full table here.
+CASE 2: threshold_tc (MetricFormat::SINGLE), not is_shrink: then just need to check for zero (since we will multithreshold on GPU), do not need table.
+CASE 3:  threshold_tc, is_shrink: no threshold check needed (in fact, do not have table). PLUS we have guarantee (elsewhere) that in this case, the metric is never zero.
+
+        if (!env->is_shrink()) {
+          if (env->is_threshold_tc()) {
+            typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+            const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+            if (env->thresholds().is_zero(ttable, iE, jE))
+              continue;
+          } else { // ! env->is_threshold_tc()
+            typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
+            const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+            if (! env->thresholds().is_pass(ttable, iE, jE))
+              continue;
+          } // if (env->is_threshold_tc())
+        } // if (!env->is_shrink())
+
+#endif
+
+//    typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+//    const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+//    for (int iE = 0; iE < 2; ++iE) {
+//      for (int jE = 0; jE < 2; ++jE) {
+//        if (TTable_t::get(ttable, iE, jE) != (TTable_t::TypeIn)0)
+//          return true;
+//      }
+//    }
+
         if (!env->pass_threshold(value))
           continue;
 
@@ -540,7 +576,7 @@ static void MetricsIO_write_(
     num_written_ += writer.num_written();
 
   //--------------------
-  } else {
+  } else { // if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2)
   //--------------------
     COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
     COMET_INSIST(env->num_way() == NumWay::_3);
@@ -569,7 +605,26 @@ static void MetricsIO_write_(
         const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
           index, entry_num, *env);
 
-//FIXFIX
+//FIXTHRESHOLD - see above on 2-way 2x2 case - same considerations here.
+
+#if xxx
+        if (!env->is_shrink()) {
+          if (env->is_threshold_tc()) {
+            typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+            const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+            if (env->thresholds().is_zero(ttable, iE, jE, kE))
+              continue;
+          } else { // ! env->is_threshold_tc()
+            typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
+            const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+            if (! env->thresholds().is_pass(ttable, iE, jE, kE))
+              continue;
+          } // if (env->is_threshold_tc())
+        } // if (!env->is_shrink())
+
+#endif
+
+
         if (!env->pass_threshold(value))
           continue;
 
@@ -728,7 +783,28 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           CoordsInfo::getjG(coords, metrics, env_) == jG;
       }
 
-//FIXFIX
+//FIXTHRESHOLD - how to handle not is_shrink case
+#if xxx
+CASE 1: not threshold_tc. then MetricFormat::PACKED_DOUBLE. then need to access full table here (see earlier in file for how to do this). Note this is sort of inefficient, done 4-8 times when only need once.
+CASE 2: threshold_tc (MetricFormat::SINGLE), not is_shrink: just get table entry, as above, check for nonzero and whether equal
+CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to apply threshold
+
+      bool pass_threshold = true;
+      if (!env->is_shrink()) {
+        if (env->is_threshold_tc()) {
+          typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+          pass_threshold = !env->thresholds().is_zero(ttable, iE, jE);
+            continue;
+        } else { // ! env->is_threshold_tc()
+          typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
+          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+          pass_threshold = env->thresholds().is_pass(ttable, iE, jE);
+        } // if (env->is_threshold_tc())
+      } // if (!env->is_shrink())
+
+#endif
+
       const bool pass_threshold = env_.pass_threshold(metric_value);
       const bool is_correct = (FloatForFile_t)metric_value == metric.value &&
                               pass_threshold && do_coords_match;
@@ -773,7 +849,25 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           CoordsInfo::getkG(coords, metrics, env_) == kG;
       }
 
-//FIXFIX
+//FIXTHRESHOLD - how to handle not is_shrink case - see above for 2-way
+
+#if xxx
+      bool pass_threshold = true;
+      if (!env->is_shrink()) {
+        if (env->is_threshold_tc()) {
+          typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+          pass_threshold = !env->thresholds().is_zero(ttable, iE, jE, kE);
+            continue;
+        } else { // ! env->is_threshold_tc()
+          typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
+          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+          pass_threshold = env->thresholds().is_pass(ttable, iE, jE, kE);
+        } // if (env->is_threshold_tc())
+      } // if (!env->is_shrink())
+
+#endif
+
       const bool pass_threshold = env_.pass_threshold(metric_value);
       const bool is_correct = (FloatForFile_t)metric_value == metric.value &&
                               pass_threshold && do_coords_match;
@@ -813,12 +907,27 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       if (env_.is_shrink()) {
         num_passed += 1;
       } else {
+//FIXTHRESHOLD - get metrics table, use for the individual comparisons
         for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
           for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
             const auto metric_value =
               GMMetrics_get_2(metrics, index, iE, jE, env_);
+
+#if xxx
+            bool pass_threshold = true;
+            if (env->is_threshold_tc()) {
+              typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+              const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+              pass_threshold = !env->thresholds().is_zero(ttable, iE, jE);
+                continue;
+            } else { // ! env->is_threshold_tc()
+              typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
+              const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+              pass_threshold = env->thresholds().is_pass(ttable, iE, jE);
+            } // if (env->is_threshold_tc())
+#endif
+
             num_passed += env_.pass_threshold(metric_value);
-//FIXFIX
           }
         }
       } // if is_shrink
@@ -840,13 +949,28 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       if (env_.is_shrink()) {
         num_passed += 1;
       } else {
+//FIXTHRESHOLD - get metrics table, use for the individual comparisons
         for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
           for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
             for (int kE = 0; kE < env_.ijkE_max(); ++kE) {
               const auto metric_value =
                 GMMetrics_get_3(metrics, index, iE, jE, kE, env_);
+
+#if xxx
+              bool pass_threshold = true;
+              if (env->is_threshold_tc()) {
+                typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+                const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+                pass_threshold = !env->thresholds().is_zero(ttable, iE, jE, kE);
+                  continue;
+              } else { // ! env->is_threshold_tc()
+                typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
+                const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+                pass_threshold = env->thresholds().is_pass(ttable, iE, jE, kE);
+              } // if (env->is_threshold_tc())
+#endif
+
               num_passed += env_.pass_threshold(metric_value);
-//FIXFIX
             }
           }
         }

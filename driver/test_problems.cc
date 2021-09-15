@@ -548,6 +548,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
             entry_num, *env);
 
+
+
+
           GMTally1 rij = 0;
           GMTally1 si = 0;
           GMTally1 sj = 0;
@@ -642,7 +645,18 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                   env_ccc_duo_multiplier<CBPE::DUO>(*env), env->ccc_param());
           } // is_zero_denom
 
-//FIXFIX
+
+
+
+//FIXTHRESHOLD
+# if 0
+PROPOSE:
+- outline the above code into a function
+- separate loop to fill out full table, without threshold applied
+- another loop over entry_num to actually do threshold and test.
+
+#endif
+
           // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
             !env->pass_threshold((double)(float)value_expected_floatcalc);
@@ -699,6 +713,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           //  index, iE, jE, kE, *env);
           const GMFloat value = Metrics_ccc_duo_get_3(*metrics, index,
             entry_num, *env);
+
+
+
 
           GMTally1 rijk = 0;
           GMTally1 si = 0;
@@ -804,7 +821,12 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
           } // is_zero_denom
 
-//FIXFIX
+
+
+
+
+//FIXTHRESHOLD - see above for 2-way
+
           // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
             !env->pass_threshold((double)(float)value_expected_floatcalc);

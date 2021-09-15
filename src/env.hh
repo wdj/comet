@@ -378,13 +378,53 @@ struct CoordsType {
 };
 
 //-----------------------------------------------------------------------------
-/// \brief Helper class to manage threshold method choices.
+// \brief Helper class to manage threshold method choices.
 
-//FIXFIX
 struct ThresholdMethod {
   enum {SINGLE = 1,
         MULTIPLE = 2
   };
+};
+
+
+//-----------------------------------------------------------------------------
+// \brief Class to manage thresholds.
+
+class Thresholds {
+
+  enum {THRESHOLDS_COUNT_MAX = 5};
+
+  //typedef double Threshold_t;
+
+public:
+
+  template<int N>
+  struct Data {
+    double data[N];
+  };
+
+  void set(char* input) {
+
+    // parse string, store into data_
+    // obtain count_
+    // error if too many or string too long
+
+
+  }
+
+
+  int count() const {return count_;}
+
+  double data_[THRESHOLDS_COUNT_MAX];
+
+
+
+  template<typename T> T data() {return *(T*)data_;}
+
+
+
+  int count_;
+
 };
 
 //=============================================================================
@@ -446,7 +486,8 @@ public:
 
   // CoMet Settings: threshold.
 
-//FIXFIX
+//FIXTHRESHOLD
+
   int threshold_method() const {return ThresholdMethod::SINGLE;}
 
   // Is the threshold value nontrivial, triggering the need to threshold.
@@ -928,6 +969,7 @@ private:
   int num_tc_steps_;
   double threshold_;
   double threshold_eff_cache_;
+  Thresholds thrsholds_; //FIXTHRESHOLD
   double metrics_shrink_;
   double ccc_param_;
   double ccc_multiplier_;

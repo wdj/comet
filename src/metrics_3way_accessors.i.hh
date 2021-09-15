@@ -396,14 +396,18 @@ static FloatResult_t Metrics_ccc_duo_get_3(
     metrics, index, iE, jE, kE, env);
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Templatized Check if any table value may exceed threshold.
+/// NOTE: this function is currently unused.
 
 template<int COUNTED_BITS_PER_ELT>
 static bool Metrics_ccc_duo_threshold_detector_3(
   GMMetrics& metrics, const size_t index, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
+
+// FIXTHRESHOLD - here and below
 
   // if no active threshold, then always pass threshold criterion.
   if (!env.is_threshold()) {
@@ -554,6 +558,7 @@ static bool Metrics_ccc_duo_threshold_detector_3(
          env.pass_threshold(v100) || env.pass_threshold(v101) ||
          env.pass_threshold(v110) || env.pass_threshold(v111);
 }
+#endif
 
 //=============================================================================
 // Accessors: value from (local) coord: set: 3-way.

@@ -197,6 +197,8 @@ double Checksum::metrics_elt(
 
   // Apply the thresold if not doing in TC package and if value fails test.
 
+//FIXTHRESHOLD - if not is_threshold_tc, then need to get whole table here.
+
   const bool do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
 
   const double result = do_set_zero ? 0e0 : value;

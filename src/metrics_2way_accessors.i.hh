@@ -413,8 +413,10 @@ static FloatResult_t Metrics_ccc_duo_get_2(
     metrics, index, iE, jE, env);
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Templatized Check if any table value may exceed threshold.
+/// NOTE: this function is currently unused.
 
 template<int COUNTED_BITS_PER_ELT>
 static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
@@ -456,6 +458,8 @@ static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
   typedef double Float_t; // Perform all calcs in double.
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
+
+// FIXTHRESHOLD - here and below
 
   const Float_t threshold_eff = env.threshold_eff();
 
@@ -559,6 +563,7 @@ static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
   return env.pass_threshold(v00) || env.pass_threshold(v01) ||
          env.pass_threshold(v10) || env.pass_threshold(v11);
 }
+#endif
 
 //=============================================================================
 // Accessors: value from (local) coord: set: 2-way.

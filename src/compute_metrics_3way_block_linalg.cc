@@ -347,6 +347,8 @@ static void finalize_ccc_duo_(
   if (env.is_shrink()) {
   //--------------------
 
+    COMET_ASSERT(env.is_threshold_tc());
+
     // NOTE: this may be slight overestimate of amt of mem that will be needed.
 
     COMET_INSIST(metrics->num_metric_items_local_computed +
@@ -365,9 +367,12 @@ static void finalize_ccc_duo_(
       const MFTypeIn metric_item = matB_cbuf->elt_const<MFTypeIn>(ind_entry);
 
       // If this buf did not do_compress, may actually have zeros.
-      // Will make assumption that if is_shrink, all zeros
-      // (i.e., failed-threshold) removed.
+      // Make guarantee that if is_shrink, all zeros
+      // (or to be exact, failed-threshold) values are removed from metrics.
 
+// FIXTHRESHOLD: this needs to be essentially a check for zero.
+// equivalent (CHECK) to pass_threshold here if single thresh case, but may not otherwise.
+// this should be EXACTLY a check for zero
       if (!env.pass_threshold(metric_item))
         continue;
 
@@ -392,8 +397,6 @@ static void finalize_ccc_duo_(
       const size_t index = metrics->num_metric_items_local_computed;
       COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
 
-//if (index < 8) printf("%zu %zu %.20e    %i\n", ind_entry, index, (double)metric_item, is_in_range);
-
       // Get indexing info.
 
       const size_t i = si->unperm0(I, (size_t)J, K);
@@ -412,7 +415,6 @@ static void finalize_ccc_duo_(
       const int iE = si->unperm0(IE, JE, KE);
       const int jE = si->unperm1(IE, JE, KE);
       const int kE = si->unperm2(IE, JE, KE);
-//if (iG==4 && jG==5 && kG==7) printf("    %zu %zu %zu   %i %i %i   %.20e\n", iG, jG, kG, iE, jE, kE, (double)metric_item);
 
       // Store metric item.
 

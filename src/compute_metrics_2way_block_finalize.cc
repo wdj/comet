@@ -231,9 +231,9 @@ static void finalize_ccc_duo_(
 
   if (env->is_shrink()) { // && env->is_using_linalg() -- this always true here
 
-    // NOTE: this may be slight overestimate of amt of mem that will be needed.
+    COMET_ASSERT(env->is_threshold_tc());
 
-//printf("========== computed %i this %i allocated %i\n", (int)metrics->num_metric_items_local_computed, (int)matB_cbuf->num_entries(), (int)metrics->num_metric_items_local_allocated); //FIX
+    // NOTE: this may be slight overestimate of amt of mem that will be needed.
 
     COMET_INSIST(metrics->num_metric_items_local_computed +
       matB_cbuf->num_entries() <=
@@ -249,6 +249,16 @@ static void finalize_ccc_duo_(
 
       // Read current item (i.e., entry).
       const MFTypeIn metric_item = matB_cbuf->elt_const<MFTypeIn>(ind_entry);
+
+      // If this buf did not do_compress, may actually have zeros.
+      // Make guarantee that if is_shrink, all zeros
+      // (or to be exact, failed-threshold) values are removed from metrics.
+
+// FIXTHRESHOLD: this needs to be essentially a check for zero.
+// equivalent (CHECK) to pass_threshold here if single thresh case, but may not otherwise.
+// this should be EXACTLY a check for zero
+      if (!env->pass_threshold(metric_item))
+        continue;
 
       // Location to store it (item number in metrics array).
       const size_t index = metrics->num_metric_items_local_computed;
@@ -285,12 +295,6 @@ static void finalize_ccc_duo_(
         CoordsInfo::set(iG, jG, iE, jE, *metrics, *env);
 
       metrics->num_metric_items_local_computed_inc(1);
-
-//      MFTypeIn metric_item_ = metric_item;
-//      float* f_ = (float*)&metric_item_;
-//      float f = *f_;
-
-//printf("%i %i %f\n", (int)index, (int)metrics->num_metric_items_local_computed, f);
 
     } // for ind_entry
 
