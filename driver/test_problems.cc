@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "string.h"
 //#include "float.h"
 //#include "errno.h"
+#include "tuple"
 
 #include "env.hh"
 #include "vectors.hh"
@@ -185,8 +186,6 @@ static size_t perm_shuffle(size_t key, size_t i, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-enum {NUM_SHUFFLE = 3};
-
 // This is not a totally (pseudo)random permutation.  However it does
 // have the advantage that it can be computed formulaically and quickly.
 
@@ -196,7 +195,7 @@ enum {NUM_SHUFFLE = 3};
 #endif
 
 static size_t perm(size_t key, size_t i, size_t n) {
-  COMET_ASSERT((key & (~(size_t)((1<<NUM_SHUFFLE)-1))) == 0);
+  COMET_ASSERT((key & (~(size_t)((1<<TestProblemInfo::NUM_SHUFFLE)-1))) == 0);
   COMET_ASSERT(i>=0 && i<n);
   COMET_ASSERT(n>=0);
 
@@ -205,7 +204,7 @@ static size_t perm(size_t key, size_t i, size_t n) {
 
   size_t result = i;
   size_t key_resid = key;
-  for (int shuffle_num = 0; shuffle_num < NUM_SHUFFLE; ++shuffle_num) {
+  for (int shuffle_num = 0; shuffle_num < TestProblemInfo::NUM_SHUFFLE; ++shuffle_num) {
     result = perm_shuffle(key_resid&1, result, n);
     key_resid >>= 1;
   }
@@ -222,27 +221,13 @@ static size_t perm(size_t key, size_t i, size_t n) {
 void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
 
-  if (! env->is_proc_active()) {
+  if (! env->is_proc_active())
     return;
-  }
 
   const size_t nfa = vectors->num_field_active;
   const size_t nva = vectors->dm->num_vector_active;
 
-  // Upper bound on integer representable exactly by floating point type.
-  // Account for cast to float in magma Volta version.
-  const size_t max_float = ((size_t)1) <<
-    (env->data_type_vectors() == GM_DATA_TYPE_FLOAT ?
-     mantissa_digits<float>() : mantissa_digits<GMFloat>());
-  // Czek account for number of terms summed in denom or num
-  const size_t overflow_limit =
-    env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
-    env->num_way() == NumWay::_2 ? 2 : 4;
-  // Sum nfa times down the vector, is it still exact.
-  const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
-
-  const size_t value_min = 1;
-  const size_t value_max = utils::min(value_min+nva, value_limit);
+  const auto tpi = TestProblemInfo(nva, nfa, *env);
 
   // The elements of a single permuted vector are partitioned into
   // "groups", with all elements in a group contiguous and having
@@ -251,9 +236,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   // the vector length, the calculation of the exact comparisons
   // is much cheaper -- the comparison of 2 or 3 vectors by element
   // is the same across all elements of the group.
-
-  const size_t num_group = 1 << NUM_SHUFFLE;
-  const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
   switch (env->data_type_vectors()) {
     //--------------------
@@ -275,19 +257,19 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           const size_t v = vector_capped; // vector number
 
           const size_t pf = perm(0, f, nfa); // permuted field number
-          const size_t g = pf / group_size_max; // group number
-          COMET_ASSERT(g>=0 && g<num_group);
+          const size_t g = pf / tpi.group_size_max_; // group number
+          COMET_ASSERT(g>=0 && g<tpi.num_group_);
 
           const size_t pv = perm(g, v, nva); // permuted vector number
 
           // Linearly map pv to small interval.
-          const size_t value = value_min + (pv * value_max) / (value_min+nva);
+          const size_t value = tpi.value_min_ + (pv * tpi.value_max_) / (tpi.value_min_+nva);
 
           const GMFloat float_value = value;
 
           // Store.
           COMET_INSIST(float_value * nfa >= 1);
-          COMET_INSIST(float_value * nfa < max_float);
+          COMET_INSIST(float_value * nfa < tpi.max_float_);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
         } // field_local
@@ -320,14 +302,14 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           const size_t v = vector_capped;
 
           const size_t pf = perm(0, f, nfa);
-          const size_t g = pf / group_size_max;
-          COMET_ASSERT(g>=0 && g<num_group);
+          const size_t g = pf / tpi.group_size_max_;
+          COMET_ASSERT(g>=0 && g<tpi.num_group_);
 
           const size_t pv = perm(g, v, nva);
 
-          const size_t value = value_min + ( pv * value_max ) / (nva+value_min);
+          const size_t value = tpi.value_min_ + ( pv * tpi.value_max_ ) / (nva+tpi.value_min_);
 
-          const GMBits2 bval = ((size_t)3) & (value - value_min);
+          const GMBits2 bval = ((size_t)3) & (value - tpi.value_min_);
 
           // Store.
           GMVectors_bits2_set(vectors, fl, vl, bval, env);
@@ -362,6 +344,341 @@ void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
 }
 
 //=============================================================================
+// Compute metric value, analytic case, czek 2-way.
+
+static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+  size_t vj, const TestProblemInfo& tpi) {
+
+  GMFloat float_n = 0;
+  GMFloat float_d = 0;
+
+  size_t n = 0;
+  size_t d = 0;
+
+  // For each comparison of vectors, the compared/summed
+  // elements are treated as num_group groups.  All element
+  // comparisons in the group have the same value, so we just
+  // compute once and multiply that by the group size.
+
+  for (size_t g=0; g<tpi.num_group_; ++g) {
+
+    const size_t pf_min = g * tpi.group_size_max_;
+    const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
+    const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+
+    const size_t pvi = perm(g, vi, tpi.nva_);
+    const size_t pvj = perm(g, vj, tpi.nva_);
+
+    const size_t value_i = tpi.value_min_ + ( pvi * tpi.value_max_ ) /
+                                       (tpi.value_min_+tpi.nva_);
+    const size_t value_j = tpi.value_min_ + ( pvj * tpi.value_max_ ) /
+                                       (tpi.value_min_+tpi.nva_);
+    float_n += utils::min(value_i, value_j) * gs_this;
+    float_d += (value_i + value_j) * gs_this;
+    n += utils::min(value_i, value_j) * gs_this;
+    d += (value_i + value_j) * gs_this;
+
+  } //---g
+
+  COMET_INSIST(n == (size_t)float_n);
+  COMET_INSIST(d == (size_t)float_d);
+
+  const GMFloat multiplier = (GMFloat)2;
+
+  const GMFloat value = (multiplier * float_n) / float_d;
+  const bool is_zero_denom = d == 0;
+
+  return std::tie(value, is_zero_denom);
+}
+
+//=============================================================================
+// Compute metric value, analytic case, czek 3-way.
+
+static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+  size_t vj, size_t vk, const TestProblemInfo& tpi) {
+
+  GMFloat float_n = 0;
+  GMFloat float_d = 0;
+
+  size_t n = 0;
+  size_t d = 0;
+
+  // For each comparison of vectors, the compared/summed
+  // elements are treated as num_group groups.  All element
+  // comparisons in the group have the same value, so we just
+  // compute once and multiply that by the group size.
+
+  for (size_t g=0; g<tpi.num_group_; ++g) {
+
+    const size_t pf_min = g * tpi.group_size_max_;
+    const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
+    const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+
+    const size_t pvi = perm(g, vi, tpi.nva_);
+    const size_t pvj = perm(g, vj, tpi.nva_);
+    const size_t pvk = perm(g, vk, tpi.nva_);
+
+    const size_t value_i = tpi.value_min_ + ( pvi * tpi.value_max_ ) /
+                                            (tpi.nva_+tpi.value_min_);
+    const size_t value_j = tpi.value_min_ + ( pvj * tpi.value_max_ ) /
+                                            (tpi.nva_+tpi.value_min_);
+    const size_t value_k = tpi.value_min_ + ( pvk * tpi.value_max_ ) /
+                                            (tpi.nva_+tpi.value_min_);
+
+    float_n += utils::min(value_i, value_j) * gs_this;
+    float_n += utils::min(value_i, value_k) * gs_this;
+    float_n += utils::min(value_j, value_k) * gs_this;
+    float_n -= utils::min(value_i, utils::min(value_j, value_k)) * gs_this;
+    float_d += (value_i + value_j + value_k) * gs_this;
+
+    n += utils::min(value_i, value_j) * gs_this;
+    n += utils::min(value_i, value_k) * gs_this;
+    n += utils::min(value_j, value_k) * gs_this;
+    n -= utils::min(value_i, utils::min(value_j, value_k)) * gs_this;
+    d += (value_i + value_j + value_k) * gs_this;
+
+  } //---g
+
+  COMET_INSIST(n == (size_t)float_n);
+  COMET_INSIST(d == (size_t)float_d);
+
+  const GMFloat multiplier = (GMFloat)1.5;
+
+  const GMFloat value = (multiplier * float_n) / float_d;
+  const bool is_zero_denom = d == 0;
+
+  return std::tie(value, is_zero_denom);
+}
+
+//=============================================================================
+// Compute metric value, analytic case, ccc/duo 2-way.
+
+static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+  size_t vj, int iE, int jE, const TestProblemInfo& tpi, CEnv& env) {
+
+  const int cbpe = env.counted_bits_per_elt();
+  const double recip_m = 1. / tpi.nfa_;
+
+  const size_t iG = vi;
+  const size_t jG = vj;
+
+  GMTally1 rij = 0;
+  GMTally1 si = 0;
+  GMTally1 sj = 0;
+  GMTally1 ci = 0;
+  GMTally1 cj = 0;
+  GMTally1 cij = 0;
+
+  for (size_t g=0; g<tpi.num_group_; ++g) {
+
+    const size_t pf_min = g * tpi.group_size_max_;
+    const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
+    const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+
+    const size_t piG = perm(g, iG, tpi.nva_);
+    const size_t pjG = perm(g, jG, tpi.nva_);
+
+    const size_t value_i = tpi.value_min_ + (piG * tpi.value_max_) /
+                                            (tpi.nva_+tpi.value_min_);
+    const size_t value_j = tpi.value_min_ + (pjG * tpi.value_max_ ) /
+                                            (tpi.nva_+tpi.value_min_);
+
+    const GMBits2 bval_i = ((size_t)3) & (value_i - tpi.value_min_);
+    const GMBits2 bval_j = ((size_t)3) & (value_j - tpi.value_min_);
+
+    const int bval_i_0 = !!(bval_i&1);
+    const int bval_i_1 = !!(bval_i&2);
+    const int bval_j_0 = !!(bval_j&1);
+    const int bval_j_1 = !!(bval_j&2);
+
+    const bool unk_i = env.sparse() && bval_i == GM_2BIT_UNKNOWN;
+    const bool unk_j = env.sparse() && bval_j == GM_2BIT_UNKNOWN;
+    const bool unk_ij = unk_i || unk_j;
+
+    if (! unk_i) {
+      ci += gs_this;
+      si += cbpe == 2 ?
+        ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
+        (bval_i_0 == iE) * gs_this;
+    }
+
+    if (! unk_j) {
+      cj += gs_this;
+      sj += cbpe == 2 ?
+        ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
+        (bval_j_0 == jE) * gs_this;
+    }
+
+    if (! unk_ij) {
+      cij += cbpe * cbpe * gs_this;
+      rij += cbpe == 2 ?
+             (((bval_i_0 == iE) && (bval_j_0 == jE)) +
+              ((bval_i_0 == iE) && (bval_j_1 == jE)) +
+              ((bval_i_1 == iE) && (bval_j_0 == jE)) +
+              ((bval_i_1 == iE) && (bval_j_1 == jE))) *
+             gs_this :
+             ((bval_i_0 == iE) && (bval_j_0 == jE)) *
+             gs_this;
+    }
+  } //---g
+
+  double value = 0;
+  const bool is_zero_denom = ci == 0 || cj == 0 || cij == 0;
+  if (!is_zero_denom) {
+    // CHECK typing here
+    const double f_one = 1;
+
+    const double f_ci = (double) ci;
+    const double f_cj = (double) cj;
+
+    const double f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
+    const double f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
+
+    const double f_cij = (double) cij;
+    const double recip_cicjcij = f_one /
+                                  (f_cicj_min * f_cicj_max * f_cij);
+
+    const double recip_ci = env.sparse() ?
+      f_cj * f_cij * recip_cicjcij : recip_m;
+    const double recip_cj = env.sparse() ?
+      f_ci * f_cij * recip_cicjcij : recip_m;
+
+    const double recip_sumcij = env.sparse() ?
+      f_cicj_min * f_cicj_max * recip_cicjcij :
+      (f_one / (cbpe * cbpe)) * recip_m;
+
+    value = cbpe == CBPE::CCC ?
+      ccc_duo_value<CBPE::CCC>(rij, si, sj,
+          recip_ci, recip_cj, recip_sumcij,
+          env_ccc_duo_multiplier<CBPE::CCC>(env), env.ccc_param()) :
+      ccc_duo_value<CBPE::DUO>(rij, si, sj,
+          recip_ci, recip_cj, recip_sumcij,
+          env_ccc_duo_multiplier<CBPE::DUO>(env), env.ccc_param());
+  } // is_zero_denom
+
+  return std::tie(value, is_zero_denom);
+}
+
+//=============================================================================
+// Compute metric value, analytic case, ccc/duo 3-way.
+
+static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+  size_t vj, size_t vk, int iE, int jE, int kE, const TestProblemInfo& tpi,
+  CEnv& env) {
+
+  const int cbpe = env.counted_bits_per_elt();
+  const double recip_m = 1. / tpi.nfa_;
+
+  const size_t iG = vi;
+  const size_t jG = vj;
+  const size_t kG = vk;
+
+    GMTally1 rijk = 0;
+    GMTally1 si = 0;
+    GMTally1 sj = 0;
+    GMTally1 sk = 0;
+    GMTally1 ci = 0;
+    GMTally1 cj = 0;
+    GMTally1 ck = 0;
+    GMTally1 cijk = 0;
+
+    for (size_t g=0; g<tpi.num_group_; ++g) {
+
+      const size_t pf_min = g * tpi.group_size_max_;
+      const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
+      const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+
+      const size_t piG = perm(g, iG, tpi.nva_);
+      const size_t pjG = perm(g, jG, tpi.nva_);
+      const size_t pkG = perm(g, kG, tpi.nva_);
+
+      const size_t value_i = tpi.value_min_ + (piG * tpi.value_max_ ) /
+                                         (tpi.nva_+tpi.value_min_);
+      const size_t value_j = tpi.value_min_ + (pjG * tpi.value_max_ ) /
+                                         (tpi.nva_+tpi.value_min_);
+      const size_t value_k = tpi.value_min_ + (pkG * tpi.value_max_ ) /
+                                         (tpi.nva_+tpi.value_min_);
+
+      const GMBits2 bval_i = ((size_t)3) & (value_i - tpi.value_min_);
+      const GMBits2 bval_j = ((size_t)3) & (value_j - tpi.value_min_);
+      const GMBits2 bval_k = ((size_t)3) & (value_k - tpi.value_min_);
+
+      const int bval_i_0 = !!(bval_i&1);
+      const int bval_i_1 = !!(bval_i&2);
+      const int bval_j_0 = !!(bval_j&1);
+      const int bval_j_1 = !!(bval_j&2);
+      const int bval_k_0 = !!(bval_k&1);
+      const int bval_k_1 = !!(bval_k&2);
+
+
+      const bool unk_i = env.sparse() && bval_i == GM_2BIT_UNKNOWN;
+      const bool unk_j = env.sparse() && bval_j == GM_2BIT_UNKNOWN;
+      const bool unk_k = env.sparse() && bval_k == GM_2BIT_UNKNOWN;
+      const bool unk_ijk = unk_i || unk_j || unk_k;
+
+      if (! unk_i) {
+        ci += gs_this;
+        si += cbpe == 2 ?
+          ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
+          (bval_i_0 == iE) * gs_this;
+      }
+
+      if (! unk_j) {
+        cj += gs_this;
+        sj += cbpe == 2 ?
+          ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
+          (bval_j_0 == jE) * gs_this;
+      }
+
+      if (! unk_k) {
+        ck += gs_this;
+        sk += cbpe == 2 ?
+          ((bval_k_0 == kE) + (bval_k_1 == kE)) * gs_this :
+          (bval_k_0 == kE) * gs_this;
+      }
+
+      if (! unk_ijk) {
+        cijk += cbpe * cbpe * cbpe * gs_this;
+        rijk += cbpe == 2 ?
+                (((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
+                 ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
+                 ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
+                 ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
+                 ((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
+                 ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
+                 ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_1==kE))+
+                 ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_1==kE)))
+               * gs_this :
+               ((bval_i_0 == iE) && (bval_j_0 == jE) &&
+                (bval_k_0 == kE)) * gs_this;
+      }
+    } //---g
+
+    double value = 0;
+    const bool is_zero_denom = ci == 0 || cj == 0 || ck == 0 || cijk == 0;
+
+    if (!is_zero_denom) {
+      // CHECK typing here
+      const double f_one = 1;
+
+      const double recip_ci = env.sparse() ? f_one/ci : recip_m;
+      const double recip_cj = env.sparse() ? f_one/cj : recip_m;
+      const double recip_ck = env.sparse() ? f_one/ck : recip_m;
+
+      const double recip_sumcijk = env.sparse() ? f_one/cijk :
+                                     (f_one / 8) * recip_m;
+
+      value = cbpe == CBPE::CCC ?
+        ccc_duo_value<CBPE::CCC>(rijk, si, sj, sk,
+                 recip_ci, recip_cj, recip_ck, recip_sumcijk, env) :
+        ccc_duo_value<CBPE::DUO>(rijk, si, sj, sk,
+                 recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
+    } // is_zero_denom
+
+  return std::tie(value, is_zero_denom);
+}
+
+//=============================================================================
 // Check correctness of metrics, if possible.
 
 void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
@@ -370,30 +687,13 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   COMET_INSIST(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
   COMET_INSIST(NULL == do_->input_file);
 
-  if (! env->is_proc_active()) {
+  if (! env->is_proc_active())
     return;
-  }
 
   const size_t nfa = metrics->num_field_active;
   const size_t nva = metrics->num_vector_active;
 
-  // Upper bound on integer representable exactly by floating point type.
-  // Account for cast to float in magma Volta version.
-  const size_t max_float = ((size_t)1) <<
-    (env->data_type_vectors() == GM_DATA_TYPE_FLOAT ?
-     mantissa_digits<float>() : mantissa_digits<GMFloat>());
-  // Czek account for number of terms summed in denom or num
-  const size_t overflow_limit =
-    env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
-    env->num_way() == NumWay::_2 ? 2 : 4;
-  // Sum nfa times down the vector, is it still exact.
-  const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
-
-  const size_t value_min = 1;
-  const size_t value_max = utils::min(value_min+nva, value_limit);
-
-  const size_t num_group = 1 << NUM_SHUFFLE;
-  const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
+  const auto tpi = TestProblemInfo(nva, nfa, *env);
 
   size_t num_incorrect = 0;
   const size_t max_to_print = 10;
@@ -404,52 +704,21 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     case GM_DATA_TYPE_FLOAT: {
     //--------------------
       if (env->num_way() == NumWay::_2) {
+
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
           const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
-          if (vi >= nva || vj >= nva) {
+          if (vi >= nva || vj >= nva)
             continue;
-          }
+
           const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-          GMFloat float_n = 0;
-          GMFloat float_d = 0;
+          GMFloat value_expected = 0;
+          bool is_zero_denom = 0;
 
-          size_t n = 0;
-          size_t d = 0;
-
-          // For each comparison of vectors, the compared/summed
-          // elements are treated as num_group groups.  All element
-          // comparisons in the group have the same value, so we just
-          // compute once and multiply that by the group size.
-
-          for (size_t g=0; g<num_group; ++g) {
-
-            const size_t pf_min = g * group_size_max;
-            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
-            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
-
-            const size_t pvi = perm(g, vi, nva);
-            const size_t pvj = perm(g, vj, nva);
-
-            const size_t value_i = value_min + ( pvi * value_max ) /
-                                               (value_min+nva);
-            const size_t value_j = value_min + ( pvj * value_max ) /
-                                               (value_min+nva);
-            float_n += utils::min(value_i, value_j) * gs_this;
-            float_d += (value_i + value_j) * gs_this;
-            n += utils::min(value_i, value_j) * gs_this;
-            d += (value_i + value_j) * gs_this;
-
-          } //---g
-
-          COMET_INSIST(n == (size_t)float_n);
-          COMET_INSIST(d == (size_t)float_d);
-
-          const GMFloat multiplier = (GMFloat)2;
-
-          const GMFloat value_expected = (multiplier * float_n) / float_d;
+          std::tie(value_expected, is_zero_denom)
+            = metric_value_analytic_(vi, vj, tpi);
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -464,51 +733,25 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           num_incorrect += is_incorrect;
         } //---for index
+
       } //---if
       if (env->num_way() == NumWay::_3) {
+
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
           const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
           const size_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
-          if (vi >= nva || vj >= nva || vk >= nva) {
+          if (vi >= nva || vj >= nva || vk >= nva)
             continue;
-          }
+
           const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-          GMFloat float_n = 0;
-          GMFloat float_d = 0;
+          GMFloat value_expected = 0;
+          bool is_zero_denom = 0;
 
-          for (size_t g=0; g<num_group; ++g) {
-
-            const size_t pf_min = g * group_size_max;
-            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
-            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
-
-            const size_t pvi = perm(g, vi, nva);
-            const size_t pvj = perm(g, vj, nva);
-            const size_t pvk = perm(g, vk, nva);
-
-            const size_t value_i = value_min + ( pvi * value_max ) /
-                                               (nva+value_min);
-            const size_t value_j = value_min + ( pvj * value_max ) /
-                                               (nva+value_min);
-            const size_t value_k = value_min + ( pvk * value_max ) /
-                                               (nva+value_min);
-
-            float_n += utils::min(value_i, value_j) * gs_this;
-            float_n += utils::min(value_i, value_k) * gs_this;
-            float_n += utils::min(value_j, value_k) * gs_this;
-
-            float_n -= utils::min(value_i, utils::min(value_j, value_k)) * gs_this;
-
-            float_d += (value_i + value_j + value_k) * gs_this;
-
-          } //---g
-
-          const GMFloat multiplier = (GMFloat)1.5;
-
-          const GMFloat value_expected = (multiplier * float_n) / float_d;
+          std::tie(value_expected, is_zero_denom)
+            = metric_value_analytic_(vi, vj, vk, tpi);
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -524,12 +767,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           num_incorrect += is_incorrect;
         } //---for index
       } //---if
+
     } break;
     //--------------------
     case GM_DATA_TYPE_TALLY2X2: {
     //--------------------
-
-    const int cbpe = env->counted_bits_per_elt();
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metric_items_local_computed;
@@ -548,104 +790,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
             entry_num, *env);
 
+          GMFloat value_expected_nothreshold = 0;
+          bool is_zero_denom = 0;
 
-
-
-          GMTally1 rij = 0;
-          GMTally1 si = 0;
-          GMTally1 sj = 0;
-          GMTally1 ci = 0;
-          GMTally1 cj = 0;
-          GMTally1 cij = 0;
-
-          for (size_t g=0; g<num_group; ++g) {
-
-            const size_t pf_min = g * group_size_max;
-            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
-            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
-
-            const size_t piG = perm(g, iG, nva);
-            const size_t pjG = perm(g, jG, nva);
-
-            const size_t value_i = value_min + ( piG * value_max ) /
-                                               (nva+value_min);
-            const size_t value_j = value_min + ( pjG * value_max ) /
-                                               (nva+value_min);
-
-            const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
-            const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
-
-            const int bval_i_0 = !!(bval_i&1);
-            const int bval_i_1 = !!(bval_i&2);
-            const int bval_j_0 = !!(bval_j&1);
-            const int bval_j_1 = !!(bval_j&2);
-
-            const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
-            const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
-            const bool unk_ij = unk_i || unk_j;
-
-            if (! unk_i) {
-              ci += gs_this;
-              si += cbpe == 2 ?
-                ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
-                (bval_i_0 == iE) * gs_this;
-            }
-
-            if (! unk_j) {
-              cj += gs_this;
-              sj += cbpe == 2 ?
-                ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
-                (bval_j_0 == jE) * gs_this;
-            }
-
-            if (! unk_ij) {
-              cij += cbpe * cbpe * gs_this;
-              rij += cbpe == 2 ?
-                     (((bval_i_0 == iE) && (bval_j_0 == jE)) +
-                      ((bval_i_0 == iE) && (bval_j_1 == jE)) +
-                      ((bval_i_1 == iE) && (bval_j_0 == jE)) +
-                      ((bval_i_1 == iE) && (bval_j_1 == jE))) *
-                     gs_this :
-                     ((bval_i_0 == iE) && (bval_j_0 == jE)) *
-                     gs_this;
-            }
-          } //---g
-
-          double value_expected_floatcalc = 0;
-          const bool is_zero_denom = ci == 0 || cj == 0 || cij == 0;
-          if (!is_zero_denom) {
-            // CHECK typing here
-            const double f_one = 1;
-
-            const double f_ci = (double) ci;
-            const double f_cj = (double) cj;
-
-            const double f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
-            const double f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
-
-            const double f_cij = (double) cij;
-            const double recip_cicjcij = f_one /
-                                          (f_cicj_min * f_cicj_max * f_cij);
-
-            const double recip_ci = env->sparse() ?
-              f_cj * f_cij * recip_cicjcij : metrics->recip_m;
-            const double recip_cj = env->sparse() ?
-              f_ci * f_cij * recip_cicjcij : metrics->recip_m;
-
-            const double recip_sumcij = env->sparse() ?
-              f_cicj_min * f_cicj_max * recip_cicjcij :
-              (f_one / (cbpe * cbpe)) * metrics->recip_m;
-
-            value_expected_floatcalc = cbpe == CBPE::CCC ?
-              ccc_duo_value<CBPE::CCC>(rij, si, sj,
-                  recip_ci, recip_cj, recip_sumcij,
-                  env_ccc_duo_multiplier<CBPE::CCC>(*env), env->ccc_param()) :
-              ccc_duo_value<CBPE::DUO>(rij, si, sj,
-                  recip_ci, recip_cj, recip_sumcij,
-                  env_ccc_duo_multiplier<CBPE::DUO>(*env), env->ccc_param());
-          } // is_zero_denom
-
-
+          std::tie(value_expected_nothreshold, is_zero_denom)
+            = metric_value_analytic_(iG, jG, iE, jE, tpi, *env);
 
 
 //FIXTHRESHOLD
@@ -659,9 +808,9 @@ PROPOSE:
 
           // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
-            !env->pass_threshold((double)(float)value_expected_floatcalc);
+            !env->pass_threshold((double)(float)value_expected_nothreshold);
 
-          GMFloat value_expected = do_set_zero ? 0. : value_expected_floatcalc;
+          GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
 
 #if 0
 //#ifdef COMET_USE_INT128
@@ -688,12 +837,11 @@ PROPOSE:
           num_incorrect += is_incorrect;
         } // for entry_num
       } // for index
+
     } break;
     //--------------------
     case GM_DATA_TYPE_TALLY4X2: {
     //--------------------
-
-      const int cbpe = env->counted_bits_per_elt();
 
 #     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metric_items_local_computed;
@@ -709,129 +857,23 @@ PROPOSE:
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
           const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
-          //const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
-          //  index, iE, jE, kE, *env);
+
           const GMFloat value = Metrics_ccc_duo_get_3(*metrics, index,
             entry_num, *env);
 
+          GMFloat value_expected_nothreshold = 0;
+          bool is_zero_denom = 0;
 
-
-
-          GMTally1 rijk = 0;
-          GMTally1 si = 0;
-          GMTally1 sj = 0;
-          GMTally1 sk = 0;
-          GMTally1 ci = 0;
-          GMTally1 cj = 0;
-          GMTally1 ck = 0;
-          GMTally1 cijk = 0;
-
-          for (size_t g=0; g<num_group; ++g) {
-
-            const size_t pf_min = g * group_size_max;
-            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
-            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
-
-            const size_t piG = perm(g, iG, nva);
-            const size_t pjG = perm(g, jG, nva);
-            const size_t pkG = perm(g, kG, nva);
-
-            const size_t value_i = value_min + ( piG * value_max ) /
-                                               (nva+value_min);
-            const size_t value_j = value_min + ( pjG * value_max ) /
-                                               (nva+value_min);
-            const size_t value_k = value_min + ( pkG * value_max ) /
-                                               (nva+value_min);
-
-            const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
-            const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
-            const GMBits2 bval_k = ((size_t)3) & (value_k - value_min);
-
-            const int bval_i_0 = !!(bval_i&1);
-            const int bval_i_1 = !!(bval_i&2);
-            const int bval_j_0 = !!(bval_j&1);
-            const int bval_j_1 = !!(bval_j&2);
-            const int bval_k_0 = !!(bval_k&1);
-            const int bval_k_1 = !!(bval_k&2);
-
-
-            const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
-            const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
-            const bool unk_k = env->sparse() && bval_k == GM_2BIT_UNKNOWN;
-            const bool unk_ijk = unk_i || unk_j || unk_k;
-
-            if (! unk_i) {
-              ci += gs_this;
-              si += cbpe == 2 ?
-                ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
-                (bval_i_0 == iE) * gs_this;
-            }
-
-            if (! unk_j) {
-              cj += gs_this;
-              sj += cbpe == 2 ?
-                ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
-                (bval_j_0 == jE) * gs_this;
-            }
-
-            if (! unk_k) {
-              ck += gs_this;
-              sk += cbpe == 2 ?
-                ((bval_k_0 == kE) + (bval_k_1 == kE)) * gs_this :
-                (bval_k_0 == kE) * gs_this;
-            }
-
-            if (! unk_ijk) {
-              cijk += cbpe * cbpe * cbpe * gs_this;
-              rijk += cbpe == 2 ?
-                      (((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
-                       ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
-                       ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
-                       ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
-                       ((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
-                       ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
-                       ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_1==kE))+
-                       ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_1==kE)))
-                     * gs_this :
-                     ((bval_i_0 == iE) && (bval_j_0 == jE) &&
-                      (bval_k_0 == kE)) * gs_this;
-            }
-          } //---g
-
-          double value_expected_floatcalc = 0;
-          const bool is_zero_denom = ci == 0 || cj == 0 || ck == 0 || cijk == 0;
-          if (!is_zero_denom) {
-            // CHECK typing here
-            const double f_one = 1;
-  
-            const double recip_ci = env->sparse() ? f_one/ci
-                                                  : metrics->recip_m;
-            const double recip_cj = env->sparse() ? f_one/cj
-                                                  : metrics->recip_m;
-            const double recip_ck = env->sparse() ? f_one/ck
-                                                  : metrics->recip_m;
-  
-            const double recip_sumcijk = env->sparse() ? f_one/cijk :
-                                           (f_one / 8) * metrics->recip_m;
-  
-            value_expected_floatcalc = cbpe == CBPE::CCC ?
-              ccc_duo_value<CBPE::CCC>(rijk, si, sj, sk,
-                       recip_ci, recip_cj, recip_ck, recip_sumcijk, *env) :
-              ccc_duo_value<CBPE::DUO>(rijk, si, sj, sk,
-                       recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
-          } // is_zero_denom
-
-
-
-
+          std::tie(value_expected_nothreshold, is_zero_denom)
+            = metric_value_analytic_(iG, jG,kG, iE, jE, kE, tpi, *env);
 
 //FIXTHRESHOLD - see above for 2-way
 
           // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
-            !env->pass_threshold((double)(float)value_expected_floatcalc);
+            !env->pass_threshold((double)(float)value_expected_nothreshold);
 
-          GMFloat value_expected = do_set_zero ? 0. : value_expected_floatcalc;
+          GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
 
 #if 0
 //#ifdef COMET_USE_INT128
@@ -858,6 +900,7 @@ PROPOSE:
           num_incorrect += is_incorrect;
         } // for entry_num
       } // for index
+
     } break;
     //--------------------
     default:

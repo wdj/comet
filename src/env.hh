@@ -403,27 +403,34 @@ public:
     double data[N];
   };
 
-  void set(char* input) {
+
+  //static threshold_eff(threshold_);
+
+  void set(const char* input) {
 
     // parse string, store into data_
     // obtain count_
     // error if too many or string too long
 
-
+    //thresholds_[0] = strtod(input, NULL);
+    //COMET_INSIST(0 == errno && "Invalid setting for threshold.");
+    count_ = 1;
   }
 
 
-  int count() const {return count_;}
-
-  double data_[THRESHOLDS_COUNT_MAX];
+  //int count() const {return count_;}
 
 
+  template<typename T> T data() {return *(T*)thresholds_eff_;}
 
-  template<typename T> T data() {return *(T*)data_;}
-
-
+  //---------------------------------------------------------------------------
 
   int count_;
+
+  double thresholds_[THRESHOLDS_COUNT_MAX];
+
+  double thresholds_eff_[THRESHOLDS_COUNT_MAX];
+
 
 };
 
@@ -969,7 +976,7 @@ private:
   int num_tc_steps_;
   double threshold_;
   double threshold_eff_cache_;
-  Thresholds thrsholds_; //FIXTHRESHOLD
+  Thresholds thresholds_; //FIXTHRESHOLD
   double metrics_shrink_;
   double ccc_param_;
   double ccc_multiplier_;

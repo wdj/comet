@@ -311,6 +311,7 @@ void CEnv::set_defaults_() {
 //FIXTHRESHOLD
   threshold_ = CEnv::threshold_eff(-1);
   threshold_eff_cache_ = threshold_;
+  thresholds_.set("-1");
   metrics_shrink_ = 1;
   coords_type_cache_ = 0;
 
@@ -514,6 +515,7 @@ void CEnv::parse_args_(int argc, char** argv) {
       const double threshold = strtod(argv[i], NULL);
       COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
       threshold_ = threshold;
+      thresholds_.set(argv[i]);
       //--------------------
     } else if (strcmp(argv[i], "--metrics_shrink") == 0) {
       //--------------------

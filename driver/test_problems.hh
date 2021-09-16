@@ -56,6 +56,44 @@ static int problem_type_default() {return GM_PROBLEM_TYPE_ANALYTIC;}
 
 void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env);
 
+//-----------------------------------------------------------------------------
+/// \brief Help[er class with test problem size info.
+
+struct TestProblemInfo {
+
+  enum {NUM_SHUFFLE = 3};
+
+  TestProblemInfo(size_t nva, size_t nfa, CEnv& env)
+    : nva_(nva)
+    , nfa_(nfa)
+      // Upper bound on integer representable exactly by floating point type.
+      // Account for cast to float in magma Volta version.
+    , max_float_(((size_t)1) <<  
+                 (env.data_type_vectors() == GM_DATA_TYPE_FLOAT ?
+                 mantissa_digits<float>() : mantissa_digits<GMFloat>()))
+      // Czek account for number of terms summed in denom or num
+    , overflow_limit_(env.data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
+                      env.num_way() == NumWay::_2 ? 2 : 4)
+      // Sum nfa times down the vector, is it still exact.
+    , value_limit_((max_float_ - 1) / (overflow_limit_ * nfa_))
+    , value_min_(1)
+    , value_max_(utils::min(value_min_+nva_, value_limit_))
+    , num_group_(1 << NUM_SHUFFLE)
+    , group_size_max_(utils::ceil(nfa_, num_group_))
+  {
+  }
+
+  const size_t nva_;
+  const size_t nfa_;
+  const size_t max_float_;
+  const size_t overflow_limit_;
+  const size_t value_limit_;
+  const size_t value_min_;
+  const size_t value_max_;
+  const size_t num_group_;
+  const size_t group_size_max_;
+};
+
 //=============================================================================
 
 } // namespace comet
