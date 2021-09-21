@@ -410,7 +410,7 @@ static bool Metrics_ccc_duo_threshold_detector_3(
 // FIXTHRESHOLD - here and below
 
   // if no active threshold, then always pass threshold criterion.
-  if (!env.is_threshold()) {
+  if (!env.thresholds_.is_active()) {
     COMET_INSIST(!env.is_using_threshold_detector());
     return true;
   }

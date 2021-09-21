@@ -426,12 +426,14 @@ public:
     COMET_INSIST(1 == count_ || 4 == count_ || 5 == count_);
   }
 
+// TODO: cache this
   bool is_multi() const {return 1 != count_;}
   int num_way_multi() const {
     COMET_INSIST(is_multi());
     return 4 == count_ ? NumWay::_2 : NumWay::_3;
   }
 
+// TODO: cache this
   bool is_active() const {
     if (!is_multi()) {
       return is_active_(thresholds_[0]);
@@ -449,6 +451,12 @@ public:
 
   //template<typename T> T data() {return *(T*)thresholds_;}
 
+  bool is_pass(double v) const {
+    COMET_ASSERT(!is_multi());
+    if (!is_active())
+      return true;
+    return v > thresholds_[0]; // && v > 0;
+  }
 
   template<typename TTable_t>
   bool is_pass(TTable_t ttable, int iE, int jE) const {
@@ -575,12 +583,7 @@ public:
 
 //FIXTHRESHOLD
 
-  int threshold_method() const {return ThresholdMethod::SINGLE;}
-
-  // Is the threshold value nontrivial, triggering the need to threshold.
-  //static bool is_threshold_(double t) {return t >= 0;}
-  //bool is_threshold() const {return CEnv::is_threshold_(threshold_);}
-  bool is_threshold() const {return thresholds_.is_active();}
+  Thresholds& thresholds() {return thresholds_;}
 
   // Does a value pass the threhold.
   template<typename T>
@@ -592,7 +595,7 @@ public:
   // Does a value pass the threhold.
   template<typename T>
   bool pass_threshold(T value) {
-   return is_threshold() ? CEnv::pass_threshold_active(value, threshold_) : true;
+   return thresholds_.is_active() ? CEnv::pass_threshold_active(value, threshold_) : true;
  }
 
   // CoMet Settings: multiplier/param.
@@ -671,7 +674,7 @@ public:
   bool can_threshold_tc_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
     return is_try_tc_(tc_try) && sparse() && num_proc_field() == 1 &&
-           is_threshold()
+           thresholds_.is_active()
       && !is_double_prec();
   }
 
@@ -788,7 +791,7 @@ public:
       // Don't do if not doing thresholding at all.
       // Won't make sense if shrink because not stored as table.
       // Not done if thresholding is done early, in the tc package.
-      return !(!is_threshold() ||
+      return !(!thresholds_.is_active() ||
                can_shrink_(tc_try) ||
                can_threshold_tc_(tc_try));
   }

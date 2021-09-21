@@ -425,7 +425,7 @@ static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
   COMET_ASSERT(env.num_way() == NumWay::_2);
 
   // if no active threshold, then always pass threshold criterion.
-  if (!env.is_threshold()) {
+  if (!env.thresholds_.is_active()) {
     COMET_INSIST(!env.is_using_threshold_detector());
     return true;
   }

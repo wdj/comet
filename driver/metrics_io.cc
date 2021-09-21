@@ -153,8 +153,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   COMET_INSIST(stdout != file);
 
 //FIXTHRESHOLD - remove this when feature implemented
-  COMET_INSIST(env->threshold_method() == ThresholdMethod::SINGLE &&
-               "Unimplemented.");
+  COMET_INSIST(!env->thresholds().is_multi() && "Unimplemented.");
 
   MetricIO writer(file, *metrics, *env);
 
@@ -198,7 +197,8 @@ static void MetricsIO_write_tally2x2_bin_impl_(
             Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
              iE, jE, *env);
 //FIXTHRESHOLD - set this up so threshold check can look at all table entries - SUGGEST a pass_threshold call that takes all table entries. BOT note this function is unused!!
-          if (env->pass_threshold(value)) {
+          if (env->thresholds().is_pass(value)) {
+          //if (env->pass_threshold(value)) {
             const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
             const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
             const char do_out = iG < metrics->num_vector_active &&
@@ -287,8 +287,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   COMET_INSIST(env->is_metric_type_bitwise());
 
 //FIXTHRESHOLD - remove this when feature implemented
-  COMET_INSIST(env->threshold_method() == ThresholdMethod::SINGLE &&
-               "Unimplemented.");
+  COMET_INSIST(!env->thresholds().is_multi() && "Unimplemented.");
 
   MetricIO writer(file, *metrics, *env);
 
@@ -332,7 +331,8 @@ static void MetricsIO_write_tally4x2_bin_impl_(
           const GMFloat value = Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
               *metrics, index, iE, jE, kE, *env);
 //FIXTHRESHOLD - set this up so threshold check can look at all table entries - SUGGEST a pass_threshold call that takes all table entries. BOT note this function is unused!!
-          if (env->pass_threshold(value)) {
+          if (env->thresholds().is_pass(value)) {
+          //if (env->pass_threshold(value)) {
             const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
             const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
             const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
@@ -426,8 +426,7 @@ static void MetricsIO_write_(
   //  return;
 
 //FIXTHRESHOLD - remove this when feature implemented
-  COMET_INSIST((env->threshold_method() == ThresholdMethod::SINGLE ||
-                env->is_threshold_tc()) && "Unimplemented.");
+  COMET_INSIST(!env->thresholds().is_multi() && "Unimplemented.");
 
   //--------------------
   if (env->data_type_metrics() == GM_DATA_TYPE_FLOAT &&
@@ -435,6 +434,8 @@ static void MetricsIO_write_(
   //--------------------
 
     MetricIO writer(file, *metrics, *env);
+
+    COMET_INSIST(!env->thresholds().is_multi());
 
     for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
       const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
@@ -445,9 +446,7 @@ static void MetricsIO_write_(
 
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-//FIXTHRESHOLD - ensure not multi threshold
-
-      if (!env->pass_threshold(value))
+      if (!env->thresholds().is_pass(value))
         continue;
 
       /// Output the value.
@@ -468,6 +467,8 @@ static void MetricsIO_write_(
 
     MetricIO writer(file, *metrics, *env);
 
+    COMET_INSIST(!env->thresholds().is_multi());
+
     for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
       const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
       const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
@@ -479,9 +480,7 @@ static void MetricsIO_write_(
 
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-//FIXTHRESHOLD - ensure not multi threshold
-
-      if (!env->pass_threshold(value))
+      if (!env->thresholds().is_pass(value))
         continue;
 
       // Output the value.
@@ -535,20 +534,6 @@ CASE 1: not threshold_tc. then MetricFormat::PACKED_DOUBLE. then need to access 
 CASE 2: threshold_tc (MetricFormat::SINGLE), not is_shrink: then just need to check for zero (since we will multithreshold on GPU), do not need table.
 CASE 3:  threshold_tc, is_shrink: no threshold check needed (in fact, do not have table). PLUS we have guarantee (elsewhere) that in this case, the metric is never zero.
 
-        if (!env->is_shrink()) {
-          if (env->is_threshold_tc()) {
-            typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-            const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-            if (env->thresholds().is_zero(ttable, iE, jE))
-              continue;
-          } else { // ! env->is_threshold_tc()
-            typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
-            const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-            if (! env->thresholds().is_pass(ttable, iE, jE))
-              continue;
-          } // if (env->is_threshold_tc())
-        } // if (!env->is_shrink())
-
 #endif
 
 //    typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
@@ -560,7 +545,24 @@ CASE 3:  threshold_tc, is_shrink: no threshold check needed (in fact, do not hav
 //      }
 //    }
 
-        if (!env->pass_threshold(value))
+#if xxx
+        if (!env->is_shrink()) {
+          if (env->is_threshold_tc()) {
+            typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+            const auto ttable = Metrics_elt_const<TTable_t>(*metrics, index, *env);
+            // Effectively, check for zero.
+            if (!env->thresholds().is_pass(ttable, iE, jE))
+              continue;
+          } else { // ! env->is_threshold_tc()
+            typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
+            const auto ttable = Metrics_elt_const<TTable_t>(*metrics, index, *env);
+            if (!env->thresholds().is_pass(ttable, iE, jE))
+              continue;
+          } // if (env->is_threshold_tc())
+        } // if (!env->is_shrink())
+#endif
+
+        if (!env->thresholds().is_pass(value))
           continue;
 
         // Output the value.
@@ -624,8 +626,8 @@ CASE 3:  threshold_tc, is_shrink: no threshold check needed (in fact, do not hav
 
 #endif
 
-
-        if (!env->pass_threshold(value))
+        if (!env->thresholds().is_pass(value))
+        //if (!env->pass_threshold(value))
           continue;
 
         // Output the value.
@@ -805,7 +807,8 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
 
 #endif
 
-      const bool pass_threshold = env_.pass_threshold(metric_value);
+      //const bool pass_threshold = env_.pass_threshold(metric_value);
+      const bool pass_threshold = env_.thresholds().is_pass(metric_value);
       const bool is_correct = (FloatForFile_t)metric_value == metric.value &&
                               pass_threshold && do_coords_match;
       num_incorrect += !is_correct;
@@ -868,7 +871,8 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
 
 #endif
 
-      const bool pass_threshold = env_.pass_threshold(metric_value);
+      //const bool pass_threshold = env_.pass_threshold(metric_value);
+      const bool pass_threshold = env_.thresholds().is_pass(metric_value);
       const bool is_correct = (FloatForFile_t)metric_value == metric.value &&
                               pass_threshold && do_coords_match;
       num_incorrect += !is_correct;
@@ -927,7 +931,8 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
             } // if (env->is_threshold_tc())
 #endif
 
-            num_passed += env_.pass_threshold(metric_value);
+            //num_passed += env_.pass_threshold(metric_value);
+            num_passed += env_.thresholds().is_pass(metric_value);
           }
         }
       } // if is_shrink
@@ -970,7 +975,8 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
               } // if (env->is_threshold_tc())
 #endif
 
-              num_passed += env_.pass_threshold(metric_value);
+              //num_passed += env_.pass_threshold(metric_value);
+              num_passed += env_.thresholds().is_pass(metric_value);
             }
           }
         }
