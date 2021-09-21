@@ -199,7 +199,8 @@ double Checksum::metrics_elt(
 
 //FIXTHRESHOLD - if not is_threshold_tc, then need to get whole table here.
 
-  const bool do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
+  //const bool do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
+  const bool do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
 
   const double result = do_set_zero ? 0e0 : value;
   return result;

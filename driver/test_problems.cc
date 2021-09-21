@@ -808,7 +808,8 @@ PROPOSE:
 
           // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
-            !env->pass_threshold((double)(float)value_expected_nothreshold);
+            //!env->pass_threshold((double)(float)value_expected_nothreshold);
+            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
 
           GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
 
@@ -871,7 +872,8 @@ PROPOSE:
 
           // If threshold_tc, threshold this to match computed result.
           const bool do_set_zero = env->is_threshold_tc() &&
-            !env->pass_threshold((double)(float)value_expected_nothreshold);
+            //!env->pass_threshold((double)(float)value_expected_nothreshold);
+            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
 
           GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
 

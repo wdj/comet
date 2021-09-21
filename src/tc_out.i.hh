@@ -470,7 +470,8 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 //printf("%i %i   %i %i    %f\n", I, J, indT_I, indT_J, (double)metric_entry);
 
       // Check against threshold.
-      const bool pass_threshold = CEnv::pass_threshold_active(
+      //const bool pass_threshold = CEnv::pass_threshold_active(
+      const bool pass_threshold = Thresholds::is_pass_active(
         (double)(MFTypeIn)metric_entry, threshold);
 
       // Apply threshold.
@@ -668,7 +669,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
         helper.add(metric_entry, indT_I, indT_J, indT_K);
 
         // Check against threshold.
-        const bool pass_threshold = CEnv::pass_threshold_active(
+        //const bool pass_threshold = CEnv::pass_threshold_active(
+        const bool pass_threshold = Thresholds::is_pass_active(
           (double)(MFTypeIn)metric_entry, threshold);
 
         // Apply threshold.
@@ -768,7 +770,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
   const double param = env.ccc_param();
   const double multiplier = env.ccc_duo_multiplier();
   // NOTE: if is_threshold_tc, necessarily threshold == threshold_eff.
-  const double threshold = env.threshold();
+  const double threshold = env.thresholds().threshold1();
   const bool is_using_xor = env.is_using_xor();
   COMET_INSIST_INTERFACE(&env, param <= 1 &&
                          "CCC/DUO param value not allowed.");

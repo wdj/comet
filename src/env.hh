@@ -422,7 +422,6 @@ public:
     COMET_INSIST(0 == errno && "Invalid setting for threshold.");
     count_ = 1;
 
-
     COMET_INSIST(1 == count_ || 4 == count_ || 5 == count_);
   }
 
@@ -447,15 +446,27 @@ public:
     }
   }
 
+  // FIX
+  double threshold1() const {return thresholds_[0];}
+
   //int count() const {return count_;}
 
   //template<typename T> T data() {return *(T*)thresholds_;}
 
+  // Does a value pass the threshold.
+  template<typename T>
+  static __host__ __device__
+  bool is_pass_active(T value, double threshold) {
+   return value > threshold;
+  }
+
+  // Does a value pass the threshold.
   bool is_pass(double v) const {
     COMET_ASSERT(!is_multi());
     if (!is_active())
       return true;
-    return v > thresholds_[0]; // && v > 0;
+    //return v > thresholds_[0]; // && v > 0;
+    return Thresholds::is_pass_active(v, thresholds_[0]); // && v > 0;
   }
 
   template<typename TTable_t>
@@ -563,7 +574,7 @@ public:
   int tc_eff() const {return tc_eff_;}
   int tc_eff_compute_() const;
   int num_tc_steps() const {return num_tc_steps_;};
-  double threshold() const {return threshold_;}
+  //double threshold() const {return threshold_;}
   double metrics_shrink() const {return metrics_shrink_;}
   double ccc_multiplier() const {return ccc_multiplier_;}
   double duo_multiplier() const {return duo_multiplier_;}
@@ -581,22 +592,20 @@ public:
 
   // CoMet Settings: threshold.
 
-//FIXTHRESHOLD
-
   Thresholds& thresholds() {return thresholds_;}
 
   // Does a value pass the threhold.
-  template<typename T>
-  static __host__ __device__
-  bool pass_threshold_active(T value, double threshold) {
-   return value > threshold;
- }
+  //template<typename T>
+  //static __host__ __device__
+  //bool pass_threshold_active(T value, double threshold) {
+  //  return value > threshold;
+  //}
 
   // Does a value pass the threhold.
-  template<typename T>
-  bool pass_threshold(T value) {
-   return thresholds_.is_active() ? CEnv::pass_threshold_active(value, threshold_) : true;
- }
+  //template<typename T>
+  //bool pass_threshold(T value) {
+  //  return thresholds_.is_active() ? CEnv::pass_threshold_active(value, threshold_) : true;
+  //}
 
   // CoMet Settings: multiplier/param.
 
@@ -1052,9 +1061,8 @@ private:
   int tc_;
   int tc_eff_;
   int num_tc_steps_;
-  double threshold_;
-  //double threshold_eff_cache_;
-  Thresholds thresholds_; //FIXTHRESHOLD
+  //double threshold_;
+  Thresholds thresholds_;
   double metrics_shrink_;
   double ccc_param_;
   double ccc_multiplier_;
