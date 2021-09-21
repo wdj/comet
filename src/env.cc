@@ -309,8 +309,9 @@ void CEnv::set_defaults_() {
   tc_eff_ = tc_eff_compute_();
   num_tc_steps_ = 1;
 //FIXTHRESHOLD
-  threshold_ = CEnv::threshold_eff(-1);
-  threshold_eff_cache_ = threshold_;
+  threshold_ = -1;
+  //threshold_ = CEnv::threshold_eff(-1);
+  //threshold_eff_cache_ = threshold_;
   thresholds_.set("-1");
   metrics_shrink_ = 1;
   coords_type_cache_ = 0;
@@ -534,7 +535,7 @@ void CEnv::parse_args_(int argc, char** argv) {
   // Finalize settings.
 
 //FIXTHRESHOLD
-  threshold_eff_cache_ = CEnv::threshold_eff(threshold_);
+  //threshold_eff_cache_ = CEnv::threshold_eff(threshold_);
   coords_type_cache_ = coords_type_compute_();
 }
 

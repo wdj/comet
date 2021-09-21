@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "algorithm"
 #include "vector"
 #include "limits"
+#include "errno.h"
 //#include "cstdio"  // for printf debugging
 
 #include "mpi.h"
@@ -396,42 +397,121 @@ class Thresholds {
 
   //typedef double Threshold_t;
 
+  static bool is_active_(double t) {return t >= 0;}
+
 public:
 
-  template<int N>
-  struct Data {
-    double data[N];
-  };
-
-
-  //static threshold_eff(threshold_);
+  //template<int N>
+  //struct Flat {
+  //  double data[N];
+  //};
 
   void set(const char* input) {
+    // Initialize (though technically not needed).
+    for (int i=0; i<THRESHOLDS_COUNT_MAX; ++i) {
+      thresholds_[i] = 0;
+    }
 
-    // parse string, store into data_
+    // parse string, store
     // obtain count_
     // error if too many or string too long
 
-    //thresholds_[0] = strtod(input, NULL);
-    //COMET_INSIST(0 == errno && "Invalid setting for threshold.");
+    // TODO: implement for multi
+    errno = 0;
+    thresholds_[0] = strtod(input, NULL);
+    COMET_INSIST(0 == errno && "Invalid setting for threshold.");
     count_ = 1;
+
+
+    COMET_INSIST(1 == count_ || 4 == count_ || 5 == count_);
   }
 
+  bool is_multi() const {return 1 != count_;}
+  int num_way_multi() const {
+    COMET_INSIST(is_multi());
+    return 4 == count_ ? NumWay::_2 : NumWay::_3;
+  }
+
+  bool is_active() const {
+    if (!is_multi()) {
+      return is_active_(thresholds_[0]);
+    } else if (num_way_multi() == NumWay::_2) {
+      return is_active_(thresholds_[0]) && is_active_(thresholds_[1]) &&
+             is_active_(thresholds_[2]) && is_active_(thresholds_[3]);
+    } else { // if (num_way_multi() == NumWay::_3)
+      return is_active_(thresholds_[0]) && is_active_(thresholds_[1]) &&
+             is_active_(thresholds_[2]) && is_active_(thresholds_[3]) &&
+             is_active_(thresholds_[4]);
+    }
+  }
 
   //int count() const {return count_;}
 
+  //template<typename T> T data() {return *(T*)thresholds_;}
 
-  template<typename T> T data() {return *(T*)thresholds_eff_;}
+
+  template<typename TTable_t>
+  bool is_pass(TTable_t ttable, int iE, int jE) const {
+    COMET_ASSERT(0 == iE || 1 == iE);
+    COMET_ASSERT(0 == jE || 1 == jE);
+    if (!is_active())
+      return true;
+    typedef TTable_t T;
+    const auto v = T::get(ttable, iE, jE);
+    bool pass = false;
+    if (!is_multi()) {
+      pass = v > thresholds_[0]; // && v > 0;
+    } else {
+      COMET_ASSERT(num_way_multi() == NumWay::_2);
+      if (0 == iE) {
+        if (0 == jE) {
+          pass = v > thresholds_[0] // && v > 0
+              || (T::get(ttable, 0, 0) + T::get(ttable, 1, 1) > thresholds_[3]
+                  && T::get(ttable, 0, 0) > 0 && T::get(ttable, 1, 1) > 0);
+        } else {
+          pass = v > thresholds_[1]; // && v > 0;
+        }
+      } else {
+        if (0 == jE) {
+          pass = v > thresholds_[1]; // && v > 0;
+        } else {
+          pass = v > thresholds_[2] // && v > 0
+              || (T::get(ttable, 0, 0) + T::get(ttable, 1, 1) > thresholds_[3]
+                  && T::get(ttable, 0, 0) > 0 && T::get(ttable, 1, 1) > 0);
+        }
+      }
+    }
+    COMET_ASSERT(!(is_active() && pass && v <= 0));
+    return pass;
+  }
+
+  template<typename TTable_t>
+  bool is_pass(TTable_t ttable, int iE, int jE, int kE) const {
+    COMET_ASSERT(0 == iE || 1 == iE);
+    COMET_ASSERT(0 == jE || 1 == jE);
+    COMET_ASSERT(0 == kE || 1 == kE);
+    if (!is_active())
+      return true;
+    typedef TTable_t T;
+    const auto v = T::get(ttable, iE, jE);
+    bool pass = false;
+    if (!is_multi()) {
+      pass = v > thresholds_[0]; // && v > 0;
+    } else {
+      COMET_ASSERT(num_way_multi() == NumWay::_3);
+
+      //TODO
+      //FIX
+
+    }
+    COMET_ASSERT(!(is_active() && pass && v <= 0));
+    return pass;
+  }
 
   //---------------------------------------------------------------------------
 
   int count_;
-
   double thresholds_[THRESHOLDS_COUNT_MAX];
-
-  double thresholds_eff_[THRESHOLDS_COUNT_MAX];
-
-
 };
 
 //=============================================================================
@@ -498,26 +578,21 @@ public:
   int threshold_method() const {return ThresholdMethod::SINGLE;}
 
   // Is the threshold value nontrivial, triggering the need to threshold.
-  static bool is_threshold(double t) {return t >= 0;}
-  bool is_threshold() const {return CEnv::is_threshold(threshold_);}
-
-  // Either the actual threshold, or - infinity if no thresholding.
-  static double threshold_eff(double t) {
-    return is_threshold(t) ? t : std::numeric_limits<double>::lowest();}
-  double threshold_eff() const {return CEnv::threshold_eff(threshold_);}
+  //static bool is_threshold_(double t) {return t >= 0;}
+  //bool is_threshold() const {return CEnv::is_threshold_(threshold_);}
+  bool is_threshold() const {return thresholds_.is_active();}
 
   // Does a value pass the threhold.
   template<typename T>
   static __host__ __device__
-  bool pass_threshold(T value, double threshold_eff) {
-   return value > threshold_eff;
+  bool pass_threshold_active(T value, double threshold) {
+   return value > threshold;
  }
 
   // Does a value pass the threhold.
   template<typename T>
   bool pass_threshold(T value) {
-   //return CEnv::pass_threshold(value, threshold_eff());
-   return CEnv::pass_threshold(value, threshold_eff_cache_);
+   return is_threshold() ? CEnv::pass_threshold_active(value, threshold_) : true;
  }
 
   // CoMet Settings: multiplier/param.
@@ -975,7 +1050,7 @@ private:
   int tc_eff_;
   int num_tc_steps_;
   double threshold_;
-  double threshold_eff_cache_;
+  //double threshold_eff_cache_;
   Thresholds thresholds_; //FIXTHRESHOLD
   double metrics_shrink_;
   double ccc_param_;
