@@ -170,6 +170,7 @@ double Checksum::metrics_elt(
 
   // Pick up value of this metrics elt
   double value = 0;
+  bool do_set_zero = false;
   switch (metrics.data_type_id) {
     // --------------
     case GM_DATA_TYPE_FLOAT: {
@@ -181,7 +182,18 @@ double Checksum::metrics_elt(
       // ensure result independent of is_threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
-//if (!!value) printf("%f\n", value); //FIX
+
+      //do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
+      //do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
+
+      // Threshold out value if not doing in TC package and if value fails test.
+      if (!env.is_threshold_tc()) {
+        const MetricItemCoords_t coords = metrics.coords_value(index);
+        const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
+        const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
+        do_set_zero = ! Metrics_is_pass_threshold(metrics, index, iE, jE, env);
+      } // if (env->is_threshold_tc())
+
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
@@ -189,20 +201,20 @@ double Checksum::metrics_elt(
       // ensure result independent of is_threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
+
+      //do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
+      do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
+
+
+
+
     } break;
     // --------------
     default:
       COMET_INSIST(false && "Invalid data type. metrics.data_type_id.");
   } // switch
 
-  // Apply the thresold if not doing in TC package and if value fails test.
-
-//FIXTHRESHOLD - if not is_threshold_tc, then need to get whole table here.
-
-  //const bool do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
-  const bool do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
-
-  const double result = do_set_zero ? 0e0 : value;
+  const double result = do_set_zero ? (double)0 : value;
   return result;
 }
 

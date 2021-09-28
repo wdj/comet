@@ -395,16 +395,26 @@ class Thresholds {
 
   enum {THRESHOLDS_COUNT_MAX = 5};
 
-  //typedef double Threshold_t;
-
-  static bool is_active_(double t) {return t >= 0;}
-
 public:
 
+  typedef double Elt_t;
+
+  // Is a particular threshold value active.
+  static bool is_active_(Elt_t t) {return t >= (Elt_t)0;}
+
   //template<int N>
-  //struct Flat {
-  //  double data[N];
+  //struct Array {
+  //  Elt_t data[N];
   //};
+
+  //std::array<Elt_t, 4> array4() {
+  //  return {thresholds_[0], thresholds_[1], thresholds_[2], thresholds_[3]};
+  //}
+
+  //Elt_t [4]  array4() {
+  //  Elt_t x[4];
+  //  return x;
+  //}
 
   void set(const char* input) {
     // Initialize (though technically not needed).
@@ -433,6 +443,8 @@ public:
   }
 
 // TODO: cache this
+  // Is thresholding active.
+  // NOTE: all indiv. thresholds must be active for thresholding to be active.
   bool is_active() const {
     if (!is_multi()) {
       return is_active_(thresholds_[0]);
@@ -446,22 +458,37 @@ public:
     }
   }
 
+  template<int NT> void copy_data(Elt_t* data) {
+    COMET_INSIST(NT == count_);
+    for (int i=0; i<NT; ++i) {
+      data[i] = thresholds_[i];
+    }
+  }
+
   // FIX
-  double threshold1() const {return thresholds_[0];}
+  Elt_t threshold1() const {return thresholds_[0];}
 
   //int count() const {return count_;}
 
   //template<typename T> T data() {return *(T*)thresholds_;}
 
-  // Does a value pass the threshold.
+  // Is a value zero - for example from being thresholded out.
   template<typename T>
   static __host__ __device__
-  bool is_pass_active(T value, double threshold) {
-   return value > threshold;
+  bool is_zero(T value) {
+   return value == (T)0;
   }
 
   // Does a value pass the threshold.
-  bool is_pass(double v) const {
+  template<typename T>
+  static __host__ __device__
+  bool is_pass_active(T value, Elt_t threshold) {
+   return value > threshold;
+  }
+
+  // Does a value pass the threshold, non-is_multi case.
+  template<typename T>
+  bool is_pass(T v) const {
     COMET_ASSERT(!is_multi());
     if (!is_active())
       return true;
@@ -469,13 +496,13 @@ public:
     return Thresholds::is_pass_active(v, thresholds_[0]); // && v > 0;
   }
 
-  template<typename TTable_t>
-  bool is_pass(TTable_t ttable, int iE, int jE) const {
+  // Does a value pass the threshold, is_multi 2-way case.
+  bool is_pass(Tally2x2<MetricFormat::SINGLE> ttable, int iE, int jE) const {
     COMET_ASSERT(0 == iE || 1 == iE);
     COMET_ASSERT(0 == jE || 1 == jE);
     if (!is_active())
       return true;
-    typedef TTable_t T;
+    typedef Tally2x2<MetricFormat::SINGLE> T;
     const auto v = T::get(ttable, iE, jE);
     bool pass = false;
     if (!is_multi()) {
@@ -484,19 +511,27 @@ public:
       COMET_ASSERT(num_way_multi() == NumWay::_2);
       if (0 == iE) {
         if (0 == jE) {
-          pass = v > thresholds_[0] // && v > 0
-              || (T::get(ttable, 0, 0) + T::get(ttable, 1, 1) > thresholds_[3]
-                  && T::get(ttable, 0, 0) > 0 && T::get(ttable, 1, 1) > 0);
+          const bool is_pass_LL = v > thresholds_[0]; // && v > 0
+          const bool is_pass_LLHH = T::get(ttable, 0, 0) +
+                                    T::get(ttable, 1, 1) > thresholds_[3];
+          const bool is_pos_LL = T::get(ttable, 0, 0) > 0;
+          const bool is_pos_HH = T::get(ttable, 1, 1) > 0;
+          pass = is_pass_LL || (is_pass_LLHH && is_pos_LL && is_pos_HH);
         } else {
-          pass = v > thresholds_[1]; // && v > 0;
+          const bool is_pass_LH = v > thresholds_[1]; // && v > 0
+          pass = is_pass_LH;
         }
       } else {
         if (0 == jE) {
-          pass = v > thresholds_[1]; // && v > 0;
+          const bool is_pass_HL = v > thresholds_[1]; // && v > 0
+          pass = is_pass_HL;
         } else {
-          pass = v > thresholds_[2] // && v > 0
-              || (T::get(ttable, 0, 0) + T::get(ttable, 1, 1) > thresholds_[3]
-                  && T::get(ttable, 0, 0) > 0 && T::get(ttable, 1, 1) > 0);
+          const bool is_pass_HH = v > thresholds_[2]; // && v > 0
+          const bool is_pass_LLHH = T::get(ttable, 0, 0) +
+                                    T::get(ttable, 1, 1) > thresholds_[3];
+          const bool is_pos_LL = T::get(ttable, 0, 0) > 0;
+          const bool is_pos_HH = T::get(ttable, 1, 1) > 0;
+          pass = is_pass_HH || (is_pass_LLHH && is_pos_LL && is_pos_HH);
         }
       }
     }
@@ -504,6 +539,7 @@ public:
     return pass;
   }
 
+  // Does a value pass the threshold, is_multi 3-way case.
   template<typename TTable_t>
   bool is_pass(TTable_t ttable, int iE, int jE, int kE) const {
     COMET_ASSERT(0 == iE || 1 == iE);
@@ -530,7 +566,7 @@ public:
   //---------------------------------------------------------------------------
 
   int count_;
-  double thresholds_[THRESHOLDS_COUNT_MAX];
+  Elt_t thresholds_[THRESHOLDS_COUNT_MAX];
 };
 
 //=============================================================================

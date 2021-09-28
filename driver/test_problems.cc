@@ -346,7 +346,7 @@ void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
 //=============================================================================
 // Compute metric value, analytic case, czek 2-way.
 
-static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+static GMFloat metric_value_analytic_(size_t vi,
   size_t vj, const TestProblemInfo& tpi) {
 
   GMFloat float_n = 0;
@@ -386,15 +386,15 @@ static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
   const GMFloat multiplier = (GMFloat)2;
 
   const GMFloat value = (multiplier * float_n) / float_d;
-  const bool is_zero_denom = d == 0;
+  //const bool is_zero_denom = d == 0;
 
-  return std::tie(value, is_zero_denom);
+  return value;
 }
 
 //=============================================================================
 // Compute metric value, analytic case, czek 3-way.
 
-static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+static GMFloat metric_value_analytic_(size_t vi,
   size_t vj, size_t vk, const TestProblemInfo& tpi) {
 
   GMFloat float_n = 0;
@@ -445,15 +445,15 @@ static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
   const GMFloat multiplier = (GMFloat)1.5;
 
   const GMFloat value = (multiplier * float_n) / float_d;
-  const bool is_zero_denom = d == 0;
+  //const bool is_zero_denom = d == 0;
 
-  return std::tie(value, is_zero_denom);
+  return value;
 }
 
 //=============================================================================
 // Compute metric value, analytic case, ccc/duo 2-way.
 
-static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+static GMFloat metric_value_analytic_(size_t vi,
   size_t vj, int iE, int jE, const TestProblemInfo& tpi, CEnv& env) {
 
   const int cbpe = env.counted_bits_per_elt();
@@ -556,13 +556,13 @@ static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
           env_ccc_duo_multiplier<CBPE::DUO>(env), env.ccc_param());
   } // is_zero_denom
 
-  return std::tie(value, is_zero_denom);
+  return value;
 }
 
 //=============================================================================
 // Compute metric value, analytic case, ccc/duo 3-way.
 
-static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
+static GMFloat metric_value_analytic_(size_t vi,
   size_t vj, size_t vk, int iE, int jE, int kE, const TestProblemInfo& tpi,
   CEnv& env) {
 
@@ -675,7 +675,7 @@ static std::tuple<GMFloat, bool> metric_value_analytic_(size_t vi,
                  recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
     } // is_zero_denom
 
-  return std::tie(value, is_zero_denom);
+  return value;
 }
 
 //=============================================================================
@@ -705,7 +705,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     //--------------------
       if (env->num_way() == NumWay::_2) {
 
-#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
+#       pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
           const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
@@ -714,11 +714,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-          GMFloat value_expected = 0;
-          bool is_zero_denom = 0;
-
-          std::tie(value_expected, is_zero_denom)
-            = metric_value_analytic_(vi, vj, tpi);
+          GMFloat value_expected = metric_value_analytic_(vi, vj, tpi);
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -737,7 +733,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
       } //---if
       if (env->num_way() == NumWay::_3) {
 
-#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
+#       pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
           const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
@@ -747,11 +743,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
-          GMFloat value_expected = 0;
-          bool is_zero_denom = 0;
-
-          std::tie(value_expected, is_zero_denom)
-            = metric_value_analytic_(vi, vj, vk, tpi);
+          GMFloat value_expected = metric_value_analytic_(vi, vj, vk, tpi);
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -773,7 +765,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     case GM_DATA_TYPE_TALLY2X2: {
     //--------------------
 
-#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
+#     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metric_items_local_computed;
            ++index) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
@@ -787,31 +779,48 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
           //const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
           //  iE, jE, *env);
+
+          // Get actual.
           const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
             entry_num, *env);
+          //const bool is_pass_threshold
+          //  = Metrics_is_pass_threshold(*metrics, index, iE, jE, *env);
 
-          GMFloat value_expected_nothreshold = 0;
-          bool is_zero_denom = 0;
+          // Get expected.
 
-          std::tie(value_expected_nothreshold, is_zero_denom)
+          const GMFloat value_expected_nothreshold
             = metric_value_analytic_(iG, jG, iE, jE, tpi, *env);
 
+          // if metric may be thresholded to zero before now, then check.
+          // NOTE: will never be here if is_shrink and entry failed threshold.
+          // NOTE: if not is_thresold_tc, disregard thresholding issue.
 
-//FIXTHRESHOLD
-# if 0
-PROPOSE:
-- outline the above code into a function
-- separate loop to fill out full table, without threshold applied
-- another loop over entry_num to actually do threshold and test.
+          bool do_set_zero = false;
+          if (env->is_threshold_tc()) {
 
-#endif
+            // NOTE: using MF::SINGLE if and only if is_threshold_tc()
+            typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+            TTable_t ttable = TTable_t::null();
 
-          // If threshold_tc, threshold this to match computed result.
-          const bool do_set_zero = env->is_threshold_tc() &&
-            //!env->pass_threshold((double)(float)value_expected_nothreshold);
-            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
+            for (int iE_ = 0; iE_ < 2; ++iE_) {
+              for (int jE_ = 0; jE_ < 2; ++jE_) {
+                const GMFloat mva
+                  = metric_value_analytic_(iG, jG, iE_, jE_, tpi, *env);
+                // NOTE: GMFloat == float if we are here.
+                TTable_t::set(ttable, iE_, jE_, mva);
+              }
+            }
+            do_set_zero = ! env->thresholds().is_pass(ttable, iE, jE);
 
-          GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
+          } // if (env->is_threshold_tc())
+
+//          // If threshold_tc, threshold this to match computed result.
+//          const bool do_set_zero = env->is_threshold_tc() &&
+//            //!env->pass_threshold((double)(float)value_expected_nothreshold);
+//            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
+
+          const GMFloat value_expected = do_set_zero ?
+            (GMFloat)0 : value_expected_nothreshold;
 
 #if 0
 //#ifdef COMET_USE_INT128
@@ -862,10 +871,7 @@ PROPOSE:
           const GMFloat value = Metrics_ccc_duo_get_3(*metrics, index,
             entry_num, *env);
 
-          GMFloat value_expected_nothreshold = 0;
-          bool is_zero_denom = 0;
-
-          std::tie(value_expected_nothreshold, is_zero_denom)
+          GMFloat value_expected_nothreshold
             = metric_value_analytic_(iG, jG,kG, iE, jE, kE, tpi, *env);
 
 //FIXTHRESHOLD - see above for 2-way

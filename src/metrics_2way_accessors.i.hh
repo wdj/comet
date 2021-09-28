@@ -651,6 +651,59 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 }
 
 //=============================================================================
+// Accessors: determine whether pass threshold: 2-way.
+
+static bool Metrics_is_pass_threshold( GMMetrics& metrics,
+  size_t index, int iE, int jE, CEnv& env) {
+  COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.is_metric_type_bitwise());
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
+
+  bool result = true;
+
+  // If is_shrink, then already thresholded out in TC package.
+  if (!env.is_shrink()) {
+    if (env.is_threshold_tc()) {
+
+      // NOTE: using MF::SINGLE if and only if is_threshold_tc()
+      typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+      const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+
+      //if (!env.thresholds().is_pass(ttable, iE, jE))
+      //  result = false;
+
+      // Check for zero since non-pass entries have already
+      // been thresholded to zero in TC package.
+      if (Thresholds::is_zero(TTable_t::get(ttable, iE, jE)))
+        result = false;
+
+    } else { // ! env.is_threshold_tc()
+
+      // Convert to MetricFormat::SINGLE.
+
+      typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
+      TTable_t ttable = TTable_t::null();
+
+      for (int iE_ = 0; iE_ < 2; ++iE_) {
+        for (int jE_ = 0; jE_ < 2; ++jE_) {
+          const GMFloat metric
+            = (GMFloat)GMMetrics_get_2(metrics, index, iE, jE, env);
+          TTable_t::set(ttable, iE_, jE_, metric);
+        }
+      }
+
+      if (!env.thresholds().is_pass(ttable, iE, jE))
+        result = false;
+
+    } // if (env.is_threshold_tc())
+  } // if (!envs_shrink())
+
+  return result;
+}
+
+//=============================================================================
 
 } // namespace comet
 

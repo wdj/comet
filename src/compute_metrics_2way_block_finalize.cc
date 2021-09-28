@@ -258,7 +258,8 @@ static void finalize_ccc_duo_(
 // equivalent (CHECK) to pass_threshold here if single thresh case, but may not otherwise.
 // this should be EXACTLY a check for zero
       //if (!env->pass_threshold(metric_item))
-      if (!env->thresholds().is_pass(metric_item))
+      //if (!env->thresholds().is_pass(metric_item))
+      if (Thresholds::is_zero(metric_item))
         continue;
 
       // Location to store it (item number in metrics array).

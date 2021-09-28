@@ -522,35 +522,15 @@ static void MetricsIO_write_(
         const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
           index, entry_num, *env);
 
-//FIXTHRESHOLD - set this up so threshold check can look at all table entries
-// SUGGEST a pass_threshold call that takes all table entries.
-// NOTE if threshold_tc and compressed then should not (in fact, can't) check here. is this a problem?
-// see sample code below
-// NOTE: may need to also handle MetricFormat::PACKED_DOUBLE
-#if xxx
+#ifdef xxx
 
-note MetricFormat::SINGLE if and only if env.is_threshold_tc()
-CASE 1: not threshold_tc. then MetricFormat::PACKED_DOUBLE. then need to access full table here.
-CASE 2: threshold_tc (MetricFormat::SINGLE), not is_shrink: then just need to check for zero (since we will multithreshold on GPU), do not need table.
-CASE 3:  threshold_tc, is_shrink: no threshold check needed (in fact, do not have table). PLUS we have guarantee (elsewhere) that in this case, the metric is never zero.
-
-#endif
-
-//    typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-//    const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-//    for (int iE = 0; iE < 2; ++iE) {
-//      for (int jE = 0; jE < 2; ++jE) {
-//        if (TTable_t::get(ttable, iE, jE) != (TTable_t::TypeIn)0)
-//          return true;
-//      }
-//    }
-
-#if xxx
+        // If is_shrink, then thresholding already done.
         if (!env->is_shrink()) {
           if (env->is_threshold_tc()) {
+            // NOTE: using MF::SINGLE if and only if is_threshold_tc()
             typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
             const auto ttable = Metrics_elt_const<TTable_t>(*metrics, index, *env);
-            // Effectively, check for zero.
+            // Effectively, check for zero, since already thresholded on GPU.
             if (!env->thresholds().is_pass(ttable, iE, jE))
               continue;
           } else { // ! env->is_threshold_tc()
@@ -560,9 +540,12 @@ CASE 3:  threshold_tc, is_shrink: no threshold check needed (in fact, do not hav
               continue;
           } // if (env->is_threshold_tc())
         } // if (!env->is_shrink())
+
+        //if (!env->thresholds().is_pass(value))
+        //  continue;
 #endif
 
-        if (!env->thresholds().is_pass(value))
+        if (!Metrics_is_pass_threshold(*metrics, index, iE, jE, *env))
           continue;
 
         // Output the value.
