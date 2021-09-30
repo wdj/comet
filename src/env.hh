@@ -402,10 +402,10 @@ public:
   // Is a particular threshold value active.
   static bool is_active_(Elt_t t) {return t >= (Elt_t)0;}
 
-  //template<int N>
-  //struct Array {
-  //  Elt_t data[N];
-  //};
+  template<int NT>
+  struct Data {
+    Elt_t data[NT];
+  };
 
   //std::array<Elt_t, 4> array4() {
   //  return {thresholds_[0], thresholds_[1], thresholds_[2], thresholds_[3]};
@@ -458,10 +458,17 @@ public:
     }
   }
 
-  template<int NT> void copy_data(Elt_t* data) {
+  template<int NT> void copy(Elt_t* data) {
     COMET_INSIST(NT == count_);
     for (int i=0; i<NT; ++i) {
       data[i] = thresholds_[i];
+    }
+  }
+
+  template<int NT> void copy(Data<NT>& data) {
+    COMET_INSIST(NT == count_);
+    for (int i=0; i<NT; ++i) {
+      data.data[i] = thresholds_[i];
     }
   }
 
@@ -478,6 +485,11 @@ public:
   bool is_zero(T value) {
    return value == (T)0;
   }
+
+
+
+
+
 
   // Does a value pass the threshold.
   template<typename T>
