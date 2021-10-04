@@ -458,12 +458,12 @@ public:
     }
   }
 
-  template<int NT> void copy(Elt_t* data) {
-    COMET_INSIST(NT == count_);
-    for (int i=0; i<NT; ++i) {
-      data[i] = thresholds_[i];
-    }
-  }
+//  template<int NT> void copy(Elt_t* data) {
+//    COMET_INSIST(NT == count_);
+//    for (int i=0; i<NT; ++i) {
+//      data[i] = thresholds_[i];
+//    }
+//  }
 
   template<int NT> void copy(Data<NT>& data) {
     COMET_INSIST(NT == count_);
@@ -486,11 +486,6 @@ public:
    return value == (T)0;
   }
 
-
-
-
-
-
   // Does a value pass the threshold.
   template<typename T>
   static __host__ __device__
@@ -508,6 +503,42 @@ public:
     return Thresholds::is_pass_active(v, thresholds_[0]); // && v > 0;
   }
 
+  typedef MetricFormatTraits<MetricFormat::SINGLE>::TypeIn MFTypeIn;
+
+  __host__ __device__
+  static bool is_pass(Elt_t t0, Elt_t t1, Elt_t t2, Elt_t t3, int iE,
+    int jE, MFTypeIn v00, MFTypeIn v01, MFTypeIn v10, MFTypeIn v11) {
+    bool result = false;
+
+    if (0 == iE) {
+      if (0 == jE) {
+        const bool is_pass_LL = v00 > t0; // && v00 > 0
+        const bool is_pass_LLHH = v00 + v11 > t3;
+        const bool is_pos_LL = v00 > 0;
+        const bool is_pos_HH = v11 > 0;
+        result = is_pass_LL || (is_pass_LLHH && is_pos_LL && is_pos_HH);
+      } else {
+        const bool is_pass_LH = v01 > t1; // && v01 > 0
+        result = is_pass_LH;
+      }
+    } else {
+      if (0 == jE) {
+        const bool is_pass_HL = v10 > t1; // && v10 > 0
+        result = is_pass_HL;
+      } else {
+        const bool is_pass_HH = v11 > t2; // && v11 > 0
+        const bool is_pass_LLHH = v00 + v11 > t3;
+        const bool is_pos_LL = v00 > 0;
+        const bool is_pos_HH = v11 > 0;
+        result = is_pass_HH || (is_pass_LLHH && is_pos_LL && is_pos_HH);
+      }
+    }
+    return result;
+  }
+
+
+
+
   // Does a value pass the threshold, is_multi 2-way case.
   bool is_pass(Tally2x2<MetricFormat::SINGLE> ttable, int iE, int jE) const {
     COMET_ASSERT(0 == iE || 1 == iE);
@@ -521,6 +552,13 @@ public:
       pass = v > thresholds_[0]; // && v > 0;
     } else {
       COMET_ASSERT(num_way_multi() == NumWay::_2);
+
+      pass = is_pass(
+        thresholds_[0], thresholds_[1], thresholds_[2], thresholds_[3], iE, jE,
+        T::get(ttable, 0, 0), T::get(ttable, 0, 1),
+        T::get(ttable, 1, 0), T::get(ttable, 1, 1));
+
+#if 0
       if (0 == iE) {
         if (0 == jE) {
           const bool is_pass_LL = v > thresholds_[0]; // && v > 0
@@ -546,10 +584,20 @@ public:
           pass = is_pass_HH || (is_pass_LLHH && is_pos_LL && is_pos_HH);
         }
       }
+#endif
+
+
     }
     COMET_ASSERT(!(is_active() && pass && v <= 0));
     return pass;
   }
+
+
+
+
+
+
+
 
   // Does a value pass the threshold, is_multi 3-way case.
   template<typename TTable_t>
