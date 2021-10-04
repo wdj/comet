@@ -146,7 +146,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local COMET_C_COMPILER=$(which mpicc)
   local COMET_CXX_COMPILER=$(which mpiCC)
   local COMET_CXX_SERIAL_COMPILER=g++
-  local COMET_EXTRA_COMPILE_OPTS="-mcpu=power9 -mtune=power9"
+  local COMET_EXTRA_COMPILE_OPTS="-mcpu=power9 -mtune=power9 -Wno-maybe-uninitialized"
   COMET_EXTRA_COMPILE_OPTS+=" -mcmodel=large -m64"
 
   local USE_OPENMP=ON

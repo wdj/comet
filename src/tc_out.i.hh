@@ -811,7 +811,9 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   const double recip_sumcijk = 1e0 / cijk;
 
   HistogramsHelper hhelper;
+#if 0
   ThresholdsHelper thelper;
+#endif
 
   //----------
   // Loop to compute and threshold for all table entries.
@@ -863,7 +865,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
         // Save entry to store into histogram.
         hhelper.add(metric_entry, indT_I, indT_J, indT_K);
 
-#if 0
+#if 1
         // Check against threshold.
         //const bool pass_threshold = CEnv::pass_threshold_active(
         const bool pass_threshold = Thresholds::is_pass_active(
@@ -874,7 +876,9 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
                                           (MFTypeIn)0;
 #endif
 
+#if 0
         values[indT_J] = (MFTypeIn)metric_entry;
+#endif
       } // indT_K
 
 #if 0
@@ -892,17 +896,21 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
       } // indT_J
 #endif
 
+#if 0
       // Apply threshold part 1.
       thelper.add(thresholds_data, &dvo_this, indT_I, indT_J,
         values[indT_K_0], values[indT_K_1]);
+#endif
 
       // Store result back into metrics array.
       MFT::encode(dvo_this, values[indT_K_0], values[indT_K_1]);
     } // indT_J
   } // indT_I
 
+#if 0
   // Apply threshold part 2.
   thelper.finalize(thresholds_data);
+#endif
 
   if (gemm_shape.is_inside(I, J, K))
     hhelper.finalize(histograms_ptr, num_buckets);
