@@ -379,72 +379,77 @@ struct CoordsType {
 };
 
 //-----------------------------------------------------------------------------
-// \brief Helper class to manage threshold method choices.
-
-struct ThresholdMethod {
-  enum {SINGLE = 1,
-        MULTIPLE = 2
-  };
-};
-
-
-//-----------------------------------------------------------------------------
 // \brief Class to manage thresholds.
 
 class Thresholds {
 
-  enum {THRESHOLDS_COUNT_MAX = 5};
+  enum {THRESHOLDS_COUNT_MAX = NumWay::MAX + 2}; // = 5
+
+  typedef MetricFormatTraits<MetricFormat::SINGLE>::TypeIn MFTypeIn;
 
 public:
 
   typedef double Elt_t;
 
-  // Is a particular threshold value active.
-  static bool is_active_(Elt_t t) {return t >= (Elt_t)0;}
-
+  // Lightweight struct to pass thresholds to kernels.
   template<int NT>
   struct Data {
     Elt_t data[NT];
   };
 
-  //std::array<Elt_t, 4> array4() {
-  //  return {thresholds_[0], thresholds_[1], thresholds_[2], thresholds_[3]};
-  //}
+  // Copy threshold values into lightweight struct.
+  template<int NT> void copy(Data<NT>& data) {
+    COMET_INSIST(NT == count_);
+    for (int i=0; i<NT; ++i) {
+      data.data[i] = thresholds_[i];
+    }
+  }
 
-  //Elt_t [4]  array4() {
-  //  Elt_t x[4];
-  //  return x;
-  //}
-
+  // Set threshold values from string.
   void set(const char* input) {
+    // TODO: implement for multi
+
     // Initialize (though technically not needed).
     for (int i=0; i<THRESHOLDS_COUNT_MAX; ++i) {
       thresholds_[i] = 0;
     }
 
     // parse string, store
-    // obtain count_
-    // error if too many or string too long
-
-    // TODO: implement for multi
     errno = 0;
-    thresholds_[0] = strtod(input, NULL);
+    thresholds_[0] = (Elt_t)strtod(input, NULL);
     COMET_INSIST(0 == errno && "Invalid setting for threshold.");
+
+    // obtain count_
     count_ = 1;
 
+
+
+    // Check inputs.
     COMET_INSIST(1 == count_ || 4 == count_ || 5 == count_);
+    if (count_ >= 4) {
+      COMET_INSIST(is_active_(thresholds_[0]) == is_active_(thresholds_[1]) &&
+                   is_active_(thresholds_[0]) == is_active_(thresholds_[2]) &&
+                   is_active_(thresholds_[0]) == is_active_(thresholds_[3]));
+    }
+    if (count_ >= 5) {
+      COMET_INSIST(is_active_(thresholds_[0]) == is_active_(thresholds_[4]));
+    }
   }
 
-// TODO: cache this
+  // TODO: cache this
+  // Is this multi-threshlld case.
   bool is_multi() const {return 1 != count_;}
+
+  // TODO: cache this
+  // If multi threshold, is 2-way or 3-way implied.
   int num_way_multi() const {
     COMET_INSIST(is_multi());
     return 4 == count_ ? NumWay::_2 : NumWay::_3;
   }
 
-// TODO: cache this
+  // TODO: cache this
   // Is thresholding active.
-  // NOTE: all indiv. thresholds must be active for thresholding to be active.
+  // NOTE: all indiv. thresholds must be active for thresholding to be active. - CHECK
   bool is_active() const {
     if (!is_multi()) {
       return is_active_(thresholds_[0]);
@@ -458,27 +463,6 @@ public:
     }
   }
 
-//  template<int NT> void copy(Elt_t* data) {
-//    COMET_INSIST(NT == count_);
-//    for (int i=0; i<NT; ++i) {
-//      data[i] = thresholds_[i];
-//    }
-//  }
-
-  template<int NT> void copy(Data<NT>& data) {
-    COMET_INSIST(NT == count_);
-    for (int i=0; i<NT; ++i) {
-      data.data[i] = thresholds_[i];
-    }
-  }
-
-  // FIX
-  Elt_t threshold1() const {return thresholds_[0];}
-
-  //int count() const {return count_;}
-
-  //template<typename T> T data() {return *(T*)thresholds_;}
-
   // Is a value zero - for example from being thresholded out.
   template<typename T>
   static __host__ __device__
@@ -486,7 +470,7 @@ public:
    return value == (T)0;
   }
 
-  // Does a value pass the threshold.
+  // Does a single value pass a single threshold, active threshlds case.
   template<typename T>
   static __host__ __device__
   bool is_pass_active(T value, Elt_t threshold) {
@@ -500,16 +484,16 @@ public:
     if (!is_active())
       return true;
     //return v > thresholds_[0]; // && v > 0;
-    return Thresholds::is_pass_active(v, thresholds_[0]); // && v > 0;
+    return is_pass_active(v, thresholds_[0]); // && v > 0;
   }
 
-  typedef MetricFormatTraits<MetricFormat::SINGLE>::TypeIn MFTypeIn;
-
+  // Does a value pass the threshold, for is_multi 2-way case.
   __host__ __device__
-  static bool is_pass(Elt_t t0, Elt_t t1, Elt_t t2, Elt_t t3, int iE,
-    int jE, MFTypeIn v00, MFTypeIn v01, MFTypeIn v10, MFTypeIn v11) {
+  static bool is_pass(Elt_t t0, Elt_t t1, Elt_t t2, Elt_t t3,
+    // NOTE: t0=tLL, t1=tLH, t2=tHH, t3=TLLHH.
+    int iE, int jE,
+    MFTypeIn v00, MFTypeIn v01, MFTypeIn v10, MFTypeIn v11) {
     bool result = false;
-
     if (0 == iE) {
       if (0 == jE) {
         const bool is_pass_LL = v00 > t0; // && v00 > 0
@@ -536,10 +520,7 @@ public:
     return result;
   }
 
-
-
-
-  // Does a value pass the threshold, is_multi 2-way case.
+  // Does a value pass the threshold, for is_multi 2-way case.
   bool is_pass(Tally2x2<MetricFormat::SINGLE> ttable, int iE, int jE) const {
     COMET_ASSERT(0 == iE || 1 == iE);
     COMET_ASSERT(0 == jE || 1 == jE);
@@ -547,59 +528,75 @@ public:
       return true;
     typedef Tally2x2<MetricFormat::SINGLE> T;
     const auto v = T::get(ttable, iE, jE);
-    bool pass = false;
+    bool result = false;
     if (!is_multi()) {
-      pass = v > thresholds_[0]; // && v > 0;
+      result = is_pass_active(v, thresholds_[0]); // && v > 0;
     } else {
       COMET_ASSERT(num_way_multi() == NumWay::_2);
-
-      pass = is_pass(
+      result = is_pass(
         thresholds_[0], thresholds_[1], thresholds_[2], thresholds_[3], iE, jE,
         T::get(ttable, 0, 0), T::get(ttable, 0, 1),
         T::get(ttable, 1, 0), T::get(ttable, 1, 1));
-
-#if 0
-      if (0 == iE) {
-        if (0 == jE) {
-          const bool is_pass_LL = v > thresholds_[0]; // && v > 0
-          const bool is_pass_LLHH = T::get(ttable, 0, 0) +
-                                    T::get(ttable, 1, 1) > thresholds_[3];
-          const bool is_pos_LL = T::get(ttable, 0, 0) > 0;
-          const bool is_pos_HH = T::get(ttable, 1, 1) > 0;
-          pass = is_pass_LL || (is_pass_LLHH && is_pos_LL && is_pos_HH);
-        } else {
-          const bool is_pass_LH = v > thresholds_[1]; // && v > 0
-          pass = is_pass_LH;
-        }
-      } else {
-        if (0 == jE) {
-          const bool is_pass_HL = v > thresholds_[1]; // && v > 0
-          pass = is_pass_HL;
-        } else {
-          const bool is_pass_HH = v > thresholds_[2]; // && v > 0
-          const bool is_pass_LLHH = T::get(ttable, 0, 0) +
-                                    T::get(ttable, 1, 1) > thresholds_[3];
-          const bool is_pos_LL = T::get(ttable, 0, 0) > 0;
-          const bool is_pos_HH = T::get(ttable, 1, 1) > 0;
-          pass = is_pass_HH || (is_pass_LLHH && is_pos_LL && is_pos_HH);
-        }
-      }
-#endif
-
-
     }
-    COMET_ASSERT(!(is_active() && pass && v <= 0));
-    return pass;
+    COMET_ASSERT(!(is_active() && result && v <= 0));
+    return result;
   }
 
+  // Does a value pass the threshold, for is_multi 3-way case.
+  __host__ __device__
+  static bool is_pass(Elt_t t0, Elt_t t1, Elt_t t2, Elt_t t3, Elt_t t4,
+    // NOTE: t0=tLLL, t1=tLLH, t2=tLHH, t3=tHHH t4=TLLLHHH.
+    int iE, int jE, int kE,
+    MFTypeIn v000, MFTypeIn v001, MFTypeIn v010, MFTypeIn v011,
+    MFTypeIn v100, MFTypeIn v101, MFTypeIn v110, MFTypeIn v111) {
+    bool result = false;
+    if (0 == iE) {
+      if (0 == jE) {
+        if (0 == kE) {
+          const bool is_pass_LLL = v000 > t0; // && v000 > 0
+          const bool is_pass_LLLHHH = v000 + v111 > t4;
+          const bool is_pos_LLL = v000 > 0;
+          const bool is_pos_HHH = v111 > 0;
+          result = is_pass_LLL || (is_pass_LLLHHH && is_pos_LLL && is_pos_HHH);
+        } else {
+          const bool is_pass_LLH = v001 > t1; // && v001 > 0
+          result = is_pass_LLH;
+        }
+      } else {
+        if (0 == kE) {
+          const bool is_pass_LHL = v010 > t1; // && v010 > 0
+          result = is_pass_LHL;
+        } else {
+          const bool is_pass_LHH = v011 > t2; // && v011 > 0
+          result = is_pass_LHH;
+        }
+      }
+    } else {
+      if (0 == jE) {
+        if (0 == kE) {
+          const bool is_pass_HLL = v100 > t1; // && v100 > 0
+          result = is_pass_HLL;
+        } else {
+          const bool is_pass_HLH = v101 > t2; // && v101 > 0
+          result = is_pass_HLH;
+        }
+      } else {
+        if (0 == kE) {
+          const bool is_pass_HHL = v110 > t2; // && v110 > 0
+          result = is_pass_HHL;
+        } else {
+          const bool is_pass_HHH = v111 > t3; // && v111 > 0
+          const bool is_pass_LLLHHH = v000 + v111 > t4;
+          const bool is_pos_LLL = v000 > 0;
+          const bool is_pos_HHH = v111 > 0;
+          result = is_pass_HHH || (is_pass_LLLHHH && is_pos_LLL && is_pos_HHH);
+        }
+      }
+    }
+    return result;
+  }
 
-
-
-
-
-
-
-  // Does a value pass the threshold, is_multi 3-way case.
+  // Does a value pass the threshold, for is_multi 3-way case.
   template<typename TTable_t>
   bool is_pass(TTable_t ttable, int iE, int jE, int kE) const {
     COMET_ASSERT(0 == iE || 1 == iE);
@@ -609,21 +606,29 @@ public:
       return true;
     typedef TTable_t T;
     const auto v = T::get(ttable, iE, jE);
-    bool pass = false;
+    bool result = false;
     if (!is_multi()) {
-      pass = v > thresholds_[0]; // && v > 0;
+      result = is_pass_active(v, thresholds_[0]); // && v > 0;
     } else {
       COMET_ASSERT(num_way_multi() == NumWay::_3);
-
-      //TODO
-      //FIX
-
+      result = is_pass(
+        thresholds_[0], thresholds_[1], thresholds_[2], thresholds_[3],
+        thresholds_[4], iE, jE, kE,
+        T::get(ttable, 0, 0, 0), T::get(ttable, 0, 0, 1),
+        T::get(ttable, 0, 1, 0), T::get(ttable, 0, 1, 1),
+        T::get(ttable, 1, 0, 0), T::get(ttable, 1, 0, 1),
+        T::get(ttable, 1, 1, 0), T::get(ttable, 1, 1, 1));
     }
-    COMET_ASSERT(!(is_active() && pass && v <= 0));
-    return pass;
+    COMET_ASSERT(!(is_active() && result && v <= 0));
+    return result;
   }
 
   //---------------------------------------------------------------------------
+
+private:
+
+  // Is a particular threshold value active.
+  static bool is_active_(Elt_t t) {return t >= (Elt_t)0;}
 
   int count_;
   Elt_t thresholds_[THRESHOLDS_COUNT_MAX];

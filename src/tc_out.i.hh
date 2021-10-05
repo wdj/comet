@@ -427,10 +427,13 @@ public:
 
   __host__ __device__
   void finalize(const Thresholds::Data<NT> thresholds_data) {
-    MFTypeIn values[2][2];
+
+    // Get table values.
+    MFTypeIn values[2][2]; // [iE][jE]
     MFT::decode(values[0][0], values[0][1], *dvo_this_[0]);
     MFT::decode(values[1][0], values[1][1], *dvo_this_[1]);
 
+    // Set non-pass table values to zero.
     for (int iE = 0; iE < 2; ++iE) {
       for (int jE = 0; jE < 2; ++jE) {
         if (!Thresholds::is_pass(
@@ -444,13 +447,14 @@ public:
       }
     }
 
+    // Store updated table values.
     MFT::encode(*dvo_this_[0], values[0][0], values[0][1]);
     MFT::encode(*dvo_this_[1], values[1][0], values[1][1]);
   }
 
 private:
 
-  MFType* dvo_this_[2];
+  MFType* dvo_this_[2]; // [iE]
 };
 
 //=============================================================================
@@ -479,12 +483,43 @@ public:
 
   __host__ __device__
   void finalize(const Thresholds::Data<NT> thresholds_data) {
-    // TODO
+
+    // Get table values.
+    MFTypeIn values[2][2][2]; // [iE][jE][kE]
+    MFT::decode(values[0][0][0], values[0][0][1], *dvo_this_[0][0]);
+    MFT::decode(values[0][1][0], values[0][1][1], *dvo_this_[0][1]);
+    MFT::decode(values[1][0][0], values[1][0][1], *dvo_this_[1][0]);
+    MFT::decode(values[1][1][0], values[1][1][1], *dvo_this_[1][1]);
+
+    // Set non-pass table values to zero.
+    for (int iE = 0; iE < 2; ++iE) {
+      for (int jE = 0; jE < 2; ++jE) {
+        for (int kE = 0; kE < 2; ++kE) {
+          if (!Thresholds::is_pass(
+                 thresholds_data.data[0], thresholds_data.data[1],
+                 thresholds_data.data[2], thresholds_data.data[3],
+                 thresholds_data.data[4],
+                 iE, jE, kE,
+                 values[0][0][0], values[0][0][1],
+                 values[0][1][0], values[0][1][1],
+                 values[1][0][0], values[1][0][1],
+                 values[1][1][0], values[1][1][1])) {
+            values[iE][jE][kE] = (MFTypeIn)0;
+          }
+        }
+      }
+    }
+
+    // Store updated table values.
+    MFT::encode(*dvo_this_[0][0], values[0][0][0], values[0][0][1]);
+    MFT::encode(*dvo_this_[0][1], values[0][1][0], values[0][1][1]);
+    MFT::encode(*dvo_this_[1][0], values[1][0][0], values[1][0][1]);
+    MFT::encode(*dvo_this_[1][1], values[1][1][0], values[1][1][1]);
   }
 
 private:
 
-  MFType* dvo_this_[2][2];
+  MFType* dvo_this_[2][2]; // [iE][jE]
 };
 
 //=============================================================================
@@ -498,7 +533,9 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   int thread_r, int thread_c,
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
-  double param, double multiplier, Thresholds::Elt_t threshold, bool is_using_xor,
+  double param, double multiplier,
+//  Thresholds::Elt_t threshold,
+  bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
   GemmShape gemm_shape = {}) {
@@ -691,7 +728,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
-  Thresholds::Elt_t threshold, bool is_using_xor,
+//  Thresholds::Elt_t threshold,
+  bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
   GemmShape gemm_shape = {}) {
@@ -811,9 +849,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   const double recip_sumcijk = 1e0 / cijk;
 
   HistogramsHelper hhelper;
-#if 0
   ThresholdsHelper thelper;
-#endif
 
   //----------
   // Loop to compute and threshold for all table entries.
@@ -865,7 +901,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
         // Save entry to store into histogram.
         hhelper.add(metric_entry, indT_I, indT_J, indT_K);
 
-#if 1
+#if 0
         // Check against threshold.
         //const bool pass_threshold = CEnv::pass_threshold_active(
         const bool pass_threshold = Thresholds::is_pass_active(
@@ -876,9 +912,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
                                           (MFTypeIn)0;
 #endif
 
-#if 0
-        values[indT_J] = (MFTypeIn)metric_entry;
-#endif
+        values[indT_K] = (MFTypeIn)metric_entry;
       } // indT_K
 
 #if 0
@@ -896,21 +930,17 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
       } // indT_J
 #endif
 
-#if 0
       // Apply threshold part 1.
       thelper.add(thresholds_data, &dvo_this, indT_I, indT_J,
         values[indT_K_0], values[indT_K_1]);
-#endif
 
       // Store result back into metrics array.
       MFT::encode(dvo_this, values[indT_K_0], values[indT_K_1]);
     } // indT_J
   } // indT_I
 
-#if 0
   // Apply threshold part 2.
   thelper.finalize(thresholds_data);
-#endif
 
   if (gemm_shape.is_inside(I, J, K))
     hhelper.finalize(histograms_ptr, num_buckets);
@@ -927,7 +957,7 @@ __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier,
-  Thresholds::Elt_t threshold,
+//  Thresholds::Elt_t threshold,
   bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
@@ -947,7 +977,7 @@ __global__ void tc_threshold_2way_kernel_(
     thread_r, thread_c,
     nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
     param, multiplier,
-    threshold,
+//    threshold,
     is_using_xor,
     thresholds_data,
     histograms_ptr, num_buckets, gemm_shape);
@@ -965,7 +995,7 @@ __global__ void tc_threshold_3way_kernel_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
-  Thresholds::Elt_t threshold,
+//  Thresholds::Elt_t threshold,
   bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
@@ -987,7 +1017,7 @@ __global__ void tc_threshold_3way_kernel_(
     nvll, nvllX2, nvllD2, nvl, vo,
     sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
     J, step_2way, param, multiplier,
-    threshold,
+//    threshold,
     is_using_xor,
     thresholds_data,
     histograms_ptr, num_buckets, gemm_shape);
@@ -1013,8 +1043,8 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
   const double param = env.ccc_param();
   const double multiplier = env.ccc_duo_multiplier();
 
-  // NOTE: if is_threshold_tc, necessarily threshold == threshold_eff.
-  const Thresholds::Elt_t threshold = env.thresholds().threshold1();
+//  // NOTE: if is_threshold_tc, necessarily threshold == threshold_eff.
+//  const Thresholds::Elt_t threshold = env.thresholds().threshold1();
 
   const bool is_using_xor = env.is_using_xor();
   COMET_INSIST_INTERFACE(&env, param <= 1 &&
@@ -1052,7 +1082,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
           param, multiplier,
-          threshold,
+//          threshold,
           is_using_xor,
           thresholds_data,
           histograms.get_ptr(), histograms.num_buckets(),
@@ -1066,7 +1096,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
           param, multiplier,
-          threshold,
+//          threshold,
           is_using_xor,
           thresholds_data);
 
@@ -1084,7 +1114,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           nvll, nvllX2, nvllD2, nvl, vo,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
           J, step_2way, param, multiplier,
-          threshold,
+//          threshold,
           is_using_xor,
           thresholds_data,
           histograms.get_ptr(), histograms.num_buckets(),
@@ -1099,7 +1129,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           nvll, nvllX2, nvllD2, nvl, vo,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
           J, step_2way, param, multiplier,
-          threshold,
+//          threshold,
           is_using_xor,
           thresholds_data);
 
@@ -1122,7 +1152,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
               thread_r, thread_c,
               nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
               param, multiplier,
-              threshold,
+ //             threshold,
               is_using_xor,
               thresholds_data,
               histograms.get_ptr(), histograms.num_buckets(),
@@ -1138,7 +1168,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
               thread_r, thread_c,
               nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
               param, multiplier,
-              threshold,
+//              threshold,
               is_using_xor,
               thresholds_data);
           } // for
@@ -1156,7 +1186,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
               nvll, nvllX2, nvllD2, nvl, vo,
               sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
               J, step_2way, param, multiplier,
-              threshold,
+//              threshold,
               is_using_xor,
               thresholds_data,
               histograms.get_ptr(), histograms.num_buckets(),
@@ -1173,7 +1203,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
               nvll, nvllX2, nvllD2, nvl, vo,
               sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
               J, step_2way, param, multiplier,
-              threshold,
+//              threshold,
               is_using_xor,
               thresholds_data);
           } // for
@@ -1274,8 +1304,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-
         histograms, gemm_shapes, env);
+
     } else {
 
       typedef ThresholdsHelperMulti3Way<MF> ThresholdsHelper;
