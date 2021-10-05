@@ -726,6 +726,47 @@ static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
   return index_cache.index(metrics, I, J, K, j_block, k_block, env);;
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Convert elt global coords to index, 3-way case.
+
+static size_t Metrics_index_3( GMMetrics& metrics, size_t iG, size_t jG,
+  size_t kG, CEnv& env) {
+  COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
+  COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
+  COMET_ASSERT(kG+1 >= 1 && kG < metrics.num_vector);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
+  COMET_ASSERT(!env.is_shrink());
+
+  const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, iG, &env);
+  const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, jG, &env);
+  const size_t k = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, kG, &env);
+  COMET_ASSERT(i >= 0 && i < metrics.dm->num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics.dm->num_vector_local);
+  COMET_ASSERT(k >= 0 && k < metrics.dm->num_vector_local);
+
+  const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, iG, &env);
+  const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, jG, &env);
+  const int k_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, kG, &env);
+  no_unused_variable_warning(i_proc);
+  COMET_ASSERT(env.proc_num_vector() == i_proc);
+  COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
+  COMET_ASSERT(k_proc >= 0 && k_proc < env.num_proc_vector());
+
+  const int j_block = env.all2all() ? j_proc : env.proc_num_vector();
+  const int k_block = env.all2all() ? k_proc : env.proc_num_vector();
+
+  const size_t index = Metrics_index_3(metrics, i, j, k, j_block,
+    k_block, env);
+
+  return index;
+}
+
 //=============================================================================
 
 } // namespace comet

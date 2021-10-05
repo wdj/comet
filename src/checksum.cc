@@ -175,6 +175,7 @@ double Checksum::metrics_elt(
     // --------------
     case GM_DATA_TYPE_FLOAT: {
       value = Metrics_elt_const<GMFloat>(metrics, index, env);
+      // TODO: consider thresholding out here.
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
@@ -203,10 +204,17 @@ double Checksum::metrics_elt(
         value = (double)(float)value;
 
       //do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
-      do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
+      //do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
 
-
-
+      // Threshold out value if not doing in TC package and if value fails test.
+      if (!env.is_threshold_tc()) {
+        const MetricItemCoords_t coords = metrics.coords_value(index);
+        const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
+        const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
+        const int kE = CoordsInfo::getkE(coords, entry_num, metrics, env);
+        do_set_zero = ! Metrics_is_pass_threshold(metrics, index, iE, jE, kE,
+          env);
+      } // if (env->is_threshold_tc())
 
     } break;
     // --------------

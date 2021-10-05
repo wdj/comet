@@ -777,8 +777,6 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
-          //const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
-          //  iE, jE, *env);
 
           // Get actual.
           const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
@@ -787,13 +785,13 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           //  = Metrics_is_pass_threshold(*metrics, index, iE, jE, *env);
 
           // Get expected.
-
           const GMFloat value_expected_nothreshold
             = metric_value_analytic_(iG, jG, iE, jE, tpi, *env);
 
           // if metric may be thresholded to zero before now, then check.
           // NOTE: will never be here if is_shrink and entry failed threshold.
-          // NOTE: if not is_thresold_tc, disregard thresholding issue.
+          // NOTE: if not is_thresold_tc, disregard thresholding issue
+          // since actual is not thresholded yet.
 
           bool do_set_zero = false;
           if (env->is_threshold_tc()) {
@@ -813,11 +811,6 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             do_set_zero = ! env->thresholds().is_pass(ttable, iE, jE);
 
           } // if (env->is_threshold_tc())
-
-//          // If threshold_tc, threshold this to match computed result.
-//          const bool do_set_zero = env->is_threshold_tc() &&
-//            //!env->pass_threshold((double)(float)value_expected_nothreshold);
-//            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
 
           const GMFloat value_expected = do_set_zero ?
             (GMFloat)0 : value_expected_nothreshold;
@@ -868,20 +861,49 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
           const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
 
+          // Get actual.
           const GMFloat value = Metrics_ccc_duo_get_3(*metrics, index,
             entry_num, *env);
 
+          // Get expected.
           GMFloat value_expected_nothreshold
             = metric_value_analytic_(iG, jG,kG, iE, jE, kE, tpi, *env);
 
-//FIXTHRESHOLD - see above for 2-way
+          // if metric may be thresholded to zero before now, then check.
+          // NOTE: will never be here if is_shrink and entry failed threshold.
+          // NOTE: if not is_thresold_tc, disregard thresholding issue
+          // since actual is not thresholded yet.
 
-          // If threshold_tc, threshold this to match computed result.
-          const bool do_set_zero = env->is_threshold_tc() &&
-            //!env->pass_threshold((double)(float)value_expected_nothreshold);
-            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
+          bool do_set_zero = false;
+          if (env->is_threshold_tc()) {
 
-          GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
+            // NOTE: using MF::SINGLE if and only if is_threshold_tc()
+            typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
+            TTable_t ttable = TTable_t::null();
+
+            for (int iE_ = 0; iE_ < 2; ++iE_) {
+              for (int jE_ = 0; jE_ < 2; ++jE_) {
+                for (int kE_ = 0; kE_ < 2; ++kE_) {
+                  const GMFloat mva
+                    = metric_value_analytic_(iG, jG, kG, iE_, jE_, kE_, tpi, *env);
+                  // NOTE: GMFloat == float if we are here.
+                  TTable_t::set(ttable, iE_, jE_, kE_, mva);
+                }
+              }
+            }
+            do_set_zero = ! env->thresholds().is_pass(ttable, iE, jE, kE);
+
+          } // if (env->is_threshold_tc())
+
+          const GMFloat value_expected = do_set_zero ?
+            (GMFloat)0 : value_expected_nothreshold;
+
+//          // If threshold_tc, threshold this to match computed result.
+//          const bool do_set_zero = env->is_threshold_tc() &&
+//            //!env->pass_threshold((double)(float)value_expected_nothreshold);
+//            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
+//
+//          GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
 
 #if 0
 //#ifdef COMET_USE_INT128

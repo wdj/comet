@@ -284,6 +284,34 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
   return (size_t)index;
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Convert element global coords to index, 2-way case.
+
+static size_t Metrics_index_2(GMMetrics& metrics, size_t iG, size_t jG,
+  CEnv& env) {
+  COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
+  COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+
+  const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, iG, &env);
+  const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, jG, &env);
+  const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, iG, &env);
+  const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, jG, &env);
+  no_unused_variable_warning(i_proc);
+  COMET_ASSERT(env.proc_num_vector() == i_proc);
+  COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
+
+  const int j_block = env.all2all() ? j_proc : env.proc_num_vector();
+
+  const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
+
+  return index;
+}
+
 //=============================================================================
 
 } // namespace comet

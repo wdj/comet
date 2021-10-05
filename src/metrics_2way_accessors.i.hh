@@ -626,6 +626,7 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 
   // WARNING: these conditions are not exhaustive.
 
+#if 0
   const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
     metrics.dm, iG, &env);
   const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
@@ -644,6 +645,9 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
   const int j_block = env.all2all() ? j_proc : env.proc_num_vector();
 
   const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
+#endif
+
+  const size_t index = Metrics_index_2(metrics, iG, jG, env);
 
   const GMFloat result = GMMetrics_get_2(metrics, index, iE, jE, env);
 
@@ -653,15 +657,20 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 //=============================================================================
 // Accessors: determine whether pass threshold: 2-way.
 
-static bool Metrics_is_pass_threshold( GMMetrics& metrics,
+static bool Metrics_is_pass_threshold(GMMetrics& metrics,
   size_t index, int iE, int jE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_2);
-  COMET_ASSERT(env.is_metric_type_bitwise());
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
 
   bool result = true;
+
+  if (!env.is_metric_type_bitwise()) {
+    const auto metric_value = Metrics_elt_const<GMFloat>(metrics, index, env);
+    result = env.thresholds().is_pass(metric_value);
+    return result;
+  }
 
   // If is_shrink, then already thresholded out in TC package.
   if (!env.is_shrink()) {
@@ -670,9 +679,6 @@ static bool Metrics_is_pass_threshold( GMMetrics& metrics,
       // NOTE: using MF::SINGLE if and only if is_threshold_tc()
       typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
       const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-
-      //if (!env.thresholds().is_pass(ttable, iE, jE))
-      //  result = false;
 
       // Check for zero since non-pass entries have already
       // been thresholded to zero in TC package.

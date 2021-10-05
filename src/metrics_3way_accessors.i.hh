@@ -646,9 +646,10 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
   COMET_ASSERT(kE >= 0 && kE < env.ijkE_max());
+  COMET_ASSERT(!env.is_shrink());
   // WARNING: these conditions are not exhaustive.
 
-  COMET_ASSERT(!env.is_shrink()); //FIX
+#if 0
   const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
     metrics.dm, iG, &env);
   const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
@@ -675,8 +676,68 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 
   const size_t index = Metrics_index_3(metrics, i, j, k, j_block,
     k_block, env);
+#endif
+
+  const size_t index = Metrics_index_3(metrics, iG, jG, kG, env);
 
   const GMFloat result = GMMetrics_get_3(metrics, index, iE, jE, kE, env);
+
+  return result;
+}
+
+//=============================================================================
+// Accessors: determine whether pass threshold: 3-way.
+
+static bool Metrics_is_pass_threshold( GMMetrics& metrics,
+  size_t index, int iE, int jE, int kE, CEnv& env) {
+  COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
+  COMET_ASSERT(env.num_way() == NumWay::_3);
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
+  COMET_ASSERT(kE >= 0 && kE < 2);
+
+  if (!env.is_metric_type_bitwise()) {
+    const auto metric_value = Metrics_elt_const<GMFloat>(metrics, index, env);
+    return env.thresholds().is_pass(metric_value);
+  }
+
+  bool result = true;
+
+  // If is_shrink, then already thresholded out in TC package.
+  if (!env.is_shrink()) {
+    if (env.is_threshold_tc()) {
+
+      // NOTE: using MF::SINGLE if and only if is_threshold_tc()
+      typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
+      const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
+
+      // Check for zero since non-pass entries have already
+      // been thresholded to zero in TC package.
+      if (Thresholds::is_zero(TTable_t::get(ttable, iE, jE, kE)))
+        result = false;
+
+    } else { // ! env.is_threshold_tc()
+
+      // Convert to MetricFormat::SINGLE.
+
+      typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
+      TTable_t ttable = TTable_t::null();
+
+      for (int iE_ = 0; iE_ < 2; ++iE_) {
+        for (int jE_ = 0; jE_ < 2; ++jE_) {
+          for (int kE_ = 0; kE_ < 2; ++kE_) {
+            const GMFloat metric
+              = (GMFloat)GMMetrics_get_3(metrics, index, iE, jE, kE, env);
+            TTable_t::set(ttable, iE_, jE_, kE, metric);
+          }
+        }
+      }
+
+      if (!env.thresholds().is_pass(ttable, iE, jE, kE))
+        result = false;
+
+    } // if (env.is_threshold_tc())
+  } // if (!envs_shrink())
 
   return result;
 }

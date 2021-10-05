@@ -605,7 +605,7 @@ public:
     if (!is_active())
       return true;
     typedef TTable_t T;
-    const auto v = T::get(ttable, iE, jE);
+    const auto v = T::get(ttable, iE, jE, kE);
     bool result = false;
     if (!is_multi()) {
       result = is_pass_active(v, thresholds_[0]); // && v > 0;

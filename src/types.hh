@@ -353,6 +353,15 @@ template<int METRIC_FORMAT> struct Tally4x2 {
   TypeIn get(int iE, int jE, int kE) const {
     return This_t::get(*this, iE, jE, kE);
   }
+
+  __host__ __device__ 
+  static void set(This_t& value, int iE, int jE, int kE, TypeIn v) {
+    Type& data = value.data[jE + 2*iE];
+    TypeIn results[2];
+    MFT::decode(results[0], results[1], data);
+    results[kE] = v;
+    MFT::encode(data, results[0], results[1]);
+  }
 };
 
 //=============================================================================
