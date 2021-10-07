@@ -200,8 +200,6 @@ void CompressedBuf::compress() {
 
   do_compress_ = estimated_storage_compressed <
     compression_factor_required_() * storage_uncompressed;
-//printf("///////////////////// %i   %i %i   %i\n", (int)num_nonzeros_approx_, (int)estimated_storage_compressed, (int)storage_uncompressed, do_compress_);
-//  do_compress_ = true; //FIX
 
   if (!do_compress_)
     return;
@@ -326,11 +324,6 @@ void CompressedBuf::from_accel_wait() {
     keys_alias_buf_.from_accel_wait();
     lengths_alias_buf_.from_accel_wait();
 
-//    for (size_t i=0; i<num_runs_; ++i)
-//      printf("cbuf %i %i %f\n", (int)i,
-//        (int)lengths_alias_buf_.elt_const<size_t>(i, 0),
-//        (double)keys_alias_buf_.elt_const<MFTTypeIn>(i, 0) ); 
-
     // Count total number of nonzero values present after uncompression.
 
     num_entries_ = 0;
@@ -338,13 +331,6 @@ void CompressedBuf::from_accel_wait() {
       if (keys_alias_buf_.elt_const<MFTTypeIn>(i, 0))
         num_entries_ += lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
     } // i
-// printf("%i\n", (int)num_entries_);
-
-//  double mysum = 0;
-//  for (size_t i = 0; i < num_runs_; ++i)
-//    mysum += keys_alias_buf_.elt_const<MFTTypeIn>(i, 0)
-//      * lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
-//  printf("%.20e\n", mysum);
 
     // Prepare for calls to read rle data.
 
@@ -355,12 +341,6 @@ void CompressedBuf::from_accel_wait() {
 #   ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
       buf_->from_accel_wait();
 #   endif
-
-//    for (size_t i=0; i<64; ++i) {
-//      if ((double)(((MFTTypeIn*)(buf_->h))[i]))
-//        printf("buf %i %f\n", (int)i,
-//          (double)(((MFTTypeIn*)(buf_->h))[i]));
-//    }
 
   } else { // ! do_compress_
 

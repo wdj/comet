@@ -695,7 +695,7 @@ static bool Metrics_is_pass_threshold(GMMetrics& metrics,
       for (int iE_ = 0; iE_ < 2; ++iE_) {
         for (int jE_ = 0; jE_ < 2; ++jE_) {
           const GMFloat metric
-            = (GMFloat)GMMetrics_get_2(metrics, index, iE, jE, env);
+            = (GMFloat)GMMetrics_get_2(metrics, index, iE_, jE_, env);
           TTable_t::set(ttable, iE_, jE_, metric);
         }
       }

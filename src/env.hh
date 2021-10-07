@@ -391,11 +391,15 @@ public:
 
   typedef double Elt_t;
 
+  //--------------------
+
   // Lightweight struct to pass thresholds to kernels.
   template<int NT>
   struct Data {
     Elt_t data[NT];
   };
+
+  //--------------------
 
   // Copy threshold values into lightweight struct.
   template<int NT> void copy(Data<NT>& data) {
@@ -405,15 +409,40 @@ public:
     }
   }
 
+  //--------------------
+
   // Set threshold values from string.
   void set(const char* input) {
-    // TODO: implement for multi
 
-    // Initialize (though technically not needed).
+    // Initialize.
     for (int i=0; i<THRESHOLDS_COUNT_MAX; ++i) {
       thresholds_[i] = 0;
     }
 
+    // Prepare to parse thresholds string.
+    const int len = strlen(input) + 1;
+    char* const tokens = (char*)malloc(len * sizeof(char));
+    COMET_INSIST(tokens);
+    memcpy(tokens, input, len);
+
+    // Parse thresholds string.
+    const char* const delim = ",";
+    char* token = strtok(tokens, delim);
+    COMET_INSIST(token != NULL && "Invalid setting for threshold: no threshold found.");
+    count_ = 0;
+    while (token != NULL && count_ < THRESHOLDS_COUNT_MAX) {
+      errno = 0;
+      thresholds_[count_++] = (Elt_t)strtod(token, NULL);
+      COMET_INSIST(0 == errno && "Invalid setting for threshold: invalid number");
+      token = strtok(NULL, delim);
+    }
+
+    // Finish parsing of thresholds string.
+    COMET_INSIST(!(THRESHOLDS_COUNT_MAX == count_ && token != NULL) &&
+      "Invalid setting for threshold: too any thresholds.");
+    free(tokens);
+
+#if 0
     // parse string, store
     errno = 0;
     thresholds_[0] = (Elt_t)strtod(input, NULL);
@@ -421,24 +450,30 @@ public:
 
     // obtain count_
     count_ = 1;
-
-
+#endif
 
     // Check inputs.
-    COMET_INSIST(1 == count_ || 4 == count_ || 5 == count_);
+    COMET_INSIST((1 == count_ || 4 == count_ || 5 == count_) &&
+      "Invalid setting for threshold: invalid number of thesholds");
     if (count_ >= 4) {
       COMET_INSIST(is_active_(thresholds_[0]) == is_active_(thresholds_[1]) &&
                    is_active_(thresholds_[0]) == is_active_(thresholds_[2]) &&
-                   is_active_(thresholds_[0]) == is_active_(thresholds_[3]));
+                   is_active_(thresholds_[0]) == is_active_(thresholds_[3]) &&
+        "Invalid setting for threshold: must be all active or all inactive.");
     }
     if (count_ >= 5) {
-      COMET_INSIST(is_active_(thresholds_[0]) == is_active_(thresholds_[4]));
+      COMET_INSIST(is_active_(thresholds_[0]) == is_active_(thresholds_[4]) &&
+        "Invalid setting for threshold: must be all active or all inactive.");
     }
   }
+
+  //--------------------
 
   // TODO: cache this
   // Is this multi-threshlld case.
   bool is_multi() const {return 1 != count_;}
+
+  //--------------------
 
   // TODO: cache this
   // If multi threshold, is 2-way or 3-way implied.
@@ -446,6 +481,8 @@ public:
     COMET_INSIST(is_multi());
     return 4 == count_ ? NumWay::_2 : NumWay::_3;
   }
+
+  //--------------------
 
   // TODO: cache this
   // Is thresholding active.
@@ -463,6 +500,8 @@ public:
     }
   }
 
+  //--------------------
+
   // Is a value zero - for example from being thresholded out.
   template<typename T>
   static __host__ __device__
@@ -470,12 +509,16 @@ public:
    return value == (T)0;
   }
 
+  //--------------------
+
   // Does a single value pass a single threshold, active threshlds case.
   template<typename T>
   static __host__ __device__
   bool is_pass_active(T value, Elt_t threshold) {
    return value > threshold;
   }
+
+  //--------------------
 
   // Does a value pass the threshold, non-is_multi case.
   template<typename T>
@@ -486,6 +529,8 @@ public:
     //return v > thresholds_[0]; // && v > 0;
     return is_pass_active(v, thresholds_[0]); // && v > 0;
   }
+
+  //--------------------
 
   // Does a value pass the threshold, for is_multi 2-way case.
   __host__ __device__
@@ -517,8 +562,12 @@ public:
         result = is_pass_HH || (is_pass_LLHH && is_pos_LL && is_pos_HH);
       }
     }
+//printf("%f %f %f %f %i %i %f %f %f %f  %i\n",
+//t0, t1, t2, t3, iE, jE, v00, v01, v10, v11, result);
     return result;
   }
+
+  //--------------------
 
   // Does a value pass the threshold, for is_multi 2-way case.
   bool is_pass(Tally2x2<MetricFormat::SINGLE> ttable, int iE, int jE) const {
@@ -541,6 +590,8 @@ public:
     COMET_ASSERT(!(is_active() && result && v <= 0));
     return result;
   }
+
+  //--------------------
 
   // Does a value pass the threshold, for is_multi 3-way case.
   __host__ __device__
@@ -595,6 +646,8 @@ public:
     }
     return result;
   }
+
+  //--------------------
 
   // Does a value pass the threshold, for is_multi 3-way case.
   template<typename TTable_t>

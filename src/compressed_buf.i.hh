@@ -115,6 +115,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   //  auto i = buf_->elt_const<T>(ind0, ind1);
   //  printf("%f\n", (double)*(float*)&i); //FIX
   //}
+//printf("//////////////   %i %i %i\n", (int)ind0, (int)ind1, (int)buf_->dim0);
   if (!cbuf->do_compress_)
     return buf_->elt_const<T>(ind0, ind1);
 

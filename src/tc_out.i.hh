@@ -433,6 +433,7 @@ public:
     MFT::decode(values[0][0], values[0][1], *dvo_this_[0]);
     MFT::decode(values[1][0], values[1][1], *dvo_this_[1]);
 
+//printf("YO2a %f %f %f %f\n", (double)values[0][0], (double)values[0][1], (double)values[1][0], (double)values[1][1]);
     // Set non-pass table values to zero.
     for (int iE = 0; iE < 2; ++iE) {
       for (int jE = 0; jE < 2; ++jE) {
@@ -446,6 +447,7 @@ public:
         }
       }
     }
+//printf("YO2b %f %f %f %f\n", (double)values[0][0], (double)values[0][1], (double)values[1][0], (double)values[1][1]);
 
     // Store updated table values.
     MFT::encode(*dvo_this_[0], values[0][0], values[0][1]);
@@ -683,6 +685,7 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 #endif
 
       values[indT_J] = (MFTypeIn)metric_entry;
+//if (I < 2 && J < 2) printf("%i %i %i %i %f\n", I, J, indT_I, indT_J, (double)metric_entry);
     } // indT_J
 
 #if 0

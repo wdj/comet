@@ -180,6 +180,7 @@ double Checksum::metrics_elt(
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
       value = Metrics_ccc_duo_get_2(metrics, index, entry_num, env);
+//printf("cksum    %i %i %f\n", (int)index, (int)entry_num, (double)value);
       // ensure result independent of is_threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
@@ -193,6 +194,7 @@ double Checksum::metrics_elt(
         const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
         const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
         do_set_zero = ! Metrics_is_pass_threshold(metrics, index, iE, jE, env);
+//printf("cksum    %i %i %i %i %f %i\n", (int)index, (int)entry_num, iE, jE, (double)value, do_set_zero);
       } // if (env->is_threshold_tc())
 
     } break;

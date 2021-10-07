@@ -204,6 +204,7 @@ static void compute_nums_nonlinalg_ccc_start_(
             MFT::add(sum.data[0], r00, r01);
             MFT::add(sum.data[1], r10, r11);
 
+//printf("%i %i %f %f %f %f\n", i, j, (double)r00, (double)r01, (double)r10, (double)r11);
           } // if ! unknown
         } // for f
 

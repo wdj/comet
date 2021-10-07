@@ -1957,7 +1957,7 @@ void DriverTest_threshold_() {
         "--all2all yes --sparse yes "
         //"--problem_type random "
         "--problem_type analytic "
-        "--threshold %f "
+        "--threshold %s "
         "--tc %i "
         "--compute_method %s "
         "--metrics_shrink %f "
@@ -1970,35 +1970,61 @@ void DriverTest_threshold_() {
     // To help avoid problems with comparing floating point values.
     const double fuzz = .001;
 
+    for (int thresholds_case : {0, 1})
+    //for (int thresholds_case : {0})
     for (double metrics_shrink : {1., 2.4+fuzz})
     for (int num_way : {2, 3}) {
     //for (int num_way : {3}) {
-      const double threshold_max = 2 == num_way ? .99 : .65;
+      const double tmax = 2 == num_way ? .99 : .65;
     for (int metric_type : {MT::CCC, MT::DUO})
-    //for (int metric_type : {MT::DUO})
-    for (double threshold : {threshold_max, threshold_max*.8,
-      threshold_max*.5, .01, 0.})
-    //for (double threshold : {0.})
-    //for (double threshold : {.65, .50, .25, .01, 0.})
+    //for (int metric_type : {MT::CCC})
+    for (double threshold : {tmax, tmax*.8, tmax*.5, .01, 0.})
+    //for (double threshold : {tmax})
     for (int compute_method : {CM::CPU, CM::GPU})
-    //for (int compute_method : {CM::GPU})
+    //for (int compute_method : {CM::CPU})
     for (int tc=1; tc<TC::NUM; ++tc) {
-    //for (int tc=0; tc<=0; ++tc) {
+    //for (int tc=3; tc<=3; ++tc) {
       // Some cases have too many thresholded values to be able to shrink.
       const bool is_trying_shrink = metrics_shrink > 1.+fuzz;
       if (is_trying_shrink && 2 == num_way &&
-          threshold < threshold_max-fuzz && threshold > 0+fuzz)
+          threshold < tmax-fuzz && threshold > 0+fuzz)
         continue;
       if (is_trying_shrink && (CM::GPU != compute_method ||
-           threshold < .6 * threshold_max || comet::BuildHas::DOUBLE_PREC))
+           threshold < .6 * tmax || comet::BuildHas::DOUBLE_PREC))
         continue;
       // Unimplemented.
       if (MT::CCC == metric_type && TC::B1 == tc) continue;
 
+      char thresholds1[1024];
+      char thresholds2[1024];
+
+      const double t = threshold;
+
+      if (0 == thresholds_case) {
+        sprintf(thresholds1, "%f", threshold);
+        if (2 == num_way) {
+          sprintf(thresholds2, "%f,%f,%f,1e6", t, t, t);
+        } else {
+          sprintf(thresholds2, "%f,%f,%f,%f,1e6", t, t, t, t);
+        }
+      } else {
+        if (2 == num_way) {
+          //sprintf(thresholds1, "%f,%f,%f,%f", t, t, t, t);
+          //sprintf(thresholds2, "%f,%f,%f,%f", t, t, t, t);
+          sprintf(thresholds1, "%f,%f,%f,%f", t, 1.05*t, 1.1*t, 2.1*t);
+          sprintf(thresholds2, "%f,%f,%f,%f", t, 1.05*t, 1.1*t, 2.1*t);
+        } else {
+          //sprintf(thresholds1, "%f,%f,%f,%f,%f", t, t, t, t, t);
+          //sprintf(thresholds2, "%f,%f,%f,%f,%f", t, t, t, t, t);
+          sprintf(thresholds1, "%f,%f,%f,%f,%f", t, 1.05*t, 1.1*t, 1.15*t, 2.1*t);
+          sprintf(thresholds2, "%f,%f,%f,%f,%f", t, 1.05*t, 1.1*t, 1.15*t, 2.1*t);
+        }
+      }
+
       sprintf(options1, options_template, MT::str(metric_type),
-        num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF), 1.);
+        num_proc_vector, num_way, thresholds1, TC::NO, CM::str(CM::REF), 1.);
       sprintf(options2, options_template, MT::str(metric_type),
-        num_proc_vector, num_way, threshold, tc, CM::str(compute_method),
+        num_proc_vector, num_way, thresholds2, tc, CM::str(compute_method),
         metrics_shrink);
       test_2runs(options1, options2);
     } 
@@ -2633,21 +2659,20 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-TEST(DriverTest, file_output) {
-  DriverTest_file_output_();
-}
-
-#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
+}
+
+//FIX
+#if 0
+TEST(DriverTest, file_output) {
+  DriverTest_file_output_();
 }
 
 TEST(DriverTest, subbyte_gemm) {
   DriverTest_subbyte_gemm_();
 }
-#endif
 
-#if 1
 TEST(DriverTest, tc) {
   DriverTest_tc_();
 }

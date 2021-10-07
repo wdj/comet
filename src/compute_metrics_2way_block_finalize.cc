@@ -312,6 +312,8 @@ static void finalize_ccc_duo_(
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const auto value = matB_cbuf->elt_const<Tally2x2<MF>>(i, j);
+//printf("finalize   %i %i %f %f %f %f\n", i, j,
+//(double)value.get(0,0), (double)value.get(0,1), (double)value.get(1,0), (double)value.get(1,1));
           Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
 #         ifdef COMET_ASSERTIONS_ON
             // ISSUE: this check may increase runtime nontrivially
