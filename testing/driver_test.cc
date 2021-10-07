@@ -965,7 +965,8 @@ void DriverTest_ccc2_simple_sparse_() {
 
 //=============================================================================
 
-void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
+void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
+                                    double tHH, double tLLHH) {
 
   using namespace comet;
 
@@ -980,6 +981,8 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   options += " --num_proc_vector " + std::to_string(1);
   options += " --tc 4";
   options += " --verbosity 1";
+  options += " --threshold " + std::to_string(tLL) + "," + std::to_string(tLH) + ","
+                             + std::to_string(tHH) + "," + std::to_string(tLLHH);
   if (!can_run(options.c_str()))
     return;
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
@@ -1043,10 +1046,10 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
     const double result10 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env);
     const double result11 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env);
 
-    printf("COMPUTED: MIN MIN  %.5f\n", result00);
-    printf("COMPUTED: MIN MAX  %.5f\n", result01);
-    printf("COMPUTED: MAX MIN  %.5f\n", result10);
-    printf("COMPUTED: MAX MAX  %.5f\n", result11);
+    printf("COMPUTED: MIN MIN  %.17f\n", result00);
+    printf("COMPUTED: MIN MAX  %.17f\n", result01);
+    printf("COMPUTED: MAX MIN  %.17f\n", result10);
+    printf("COMPUTED: MAX MAX  %.17f\n", result11);
     printf("\n");
 
     // calculate by hand the expected DUO value.
@@ -1096,31 +1099,68 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
     const double ref10 = fm * d_10 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_0 );
     const double ref11 = fm * d_11 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_1 );
 
-    printf("EXPECTED: MIN MIN  %.5f\n", ref00);
-    printf("EXPECTED: MIN MAX  %.5f\n", ref01);
-    printf("EXPECTED: MAX MIN  %.5f\n", ref10);
-    printf("EXPECTED: MAX MAX  %.5f\n", ref11);
+    const double ref00t = ref00 > tLL || (ref00 + ref11 > tLLHH &&
+      ref00 > 0 && ref11 > 0) ? ref00 : (double)0;
+    const double ref01t = ref01 > tLH                  ? ref01 : (double)0;
+    const double ref10t = ref01 > tLH                  ? ref10 : (double)0;
+    const double ref11t = ref11 > tHH || (ref00 + ref11 > tLLHH &&
+      ref00 > 0 && ref11 > 0) ? ref11 : (double)0;
+
+    printf("EXPECTED: MIN MIN  %.17f\n", ref00t);
+    printf("EXPECTED: MIN MAX  %.17f\n", ref01t);
+    printf("EXPECTED: MAX MIN  %.17f\n", ref10t);
+    printf("EXPECTED: MAX MAX  %.17f\n", ref11t);
     printf("\n");
 
     const double eps = 1.e-5;
 
-    EXPECT_EQ(true, fabs(result00 - ref00) < eps);
-    EXPECT_EQ(true, fabs(result01 - ref01) < eps);
-    EXPECT_EQ(true, fabs(result10 - ref10) < eps);
-    EXPECT_EQ(true, fabs(result11 - ref11) < eps);
+    EXPECT_EQ(true, fabs(result00 - ref00t) < eps);
+    EXPECT_EQ(true, fabs(result01 - ref01t) < eps);
+    EXPECT_EQ(true, fabs(result10 - ref10t) < eps);
+    EXPECT_EQ(true, fabs(result11 - ref11t) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-} // DriverTest_duo2_simple_sparse_compute_method
+} // DriverTest_duo2_simple_sparse_
+
+//=============================================================================
+
+void DriverTest_duo2_simple_sparse_(int compute_method) {
+
+  if (comet::ComputeMethod::REF == compute_method ||
+      comet::BuildHas::DOUBLE_PREC) {
+
+    // REF method and DP build do not remove threshold-failed values,
+    // so don't test that.
+    const double tLL = .01;
+    const double tLH = .01;
+    const double tHH = .01;
+    const double tLLHH = .01;
+
+    DriverTest_duo2_simple_sparse_(compute_method, tLL, tLH, tHH, tLLHH);
+
+  } else {
+
+    const double tLL = .01;
+    for (double tLH : {.37, .38}) {
+    for (double tHH : {.51, .52}) {
+    for (double tLLHH : {.51, .52}) {
+      DriverTest_duo2_simple_sparse_(compute_method, tLL, tLH, tHH, tLLHH);
+    }
+    }
+    }
+
+ }
+}
 
 //=============================================================================
 
 void DriverTest_duo2_simple_sparse_() {
-  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::REF);
-  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::CPU);
-  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::GPU);
+  DriverTest_duo2_simple_sparse_(comet::ComputeMethod::REF);
+  DriverTest_duo2_simple_sparse_(comet::ComputeMethod::CPU);
+  DriverTest_duo2_simple_sparse_(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -1567,7 +1607,8 @@ void DriverTest_ccc3_simple_sparse_() {
 
 //=============================================================================
 
-void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
+void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
+  double tLLH, double tLHH, double tHHH, double tLLLHHH) {
 
   using namespace comet;
 
@@ -1582,6 +1623,8 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   options += " --num_proc_vector " + std::to_string(1);
   options += " --tc 4";
   options += " --verbosity 1";
+  options += " --threshold " + std::to_string(tLLL) + "," + std::to_string(tLLH) + ","
+    + std::to_string(tLHH) + "," + std::to_string(tHHH) + "," + std::to_string(tLLLHHH);
   if (!can_run(options.c_str()))
     return;
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
@@ -1679,14 +1722,14 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     const double result110 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env);
     const double result111 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env);
 
-    printf("COMPUTED: A A A  %.8f\n", result000);
-    printf("COMPUTED: A A T  %.5f\n", result001);
-    printf("COMPUTED: A T A  %.8f\n", result010);
-    printf("COMPUTED: A T T  %.8f\n", result011);
-    printf("COMPUTED: T A A  %.8f\n", result100);
-    printf("COMPUTED: T A T  %.8f\n", result101);
-    printf("COMPUTED: T T A  %.8f\n", result110);
-    printf("COMPUTED: T T T  %.8f\n", result111);
+    printf("COMPUTED: A A A  %.17f\n", result000);
+    printf("COMPUTED: A A T  %.17f\n", result001);
+    printf("COMPUTED: A T A  %.17f\n", result010);
+    printf("COMPUTED: A T T  %.17f\n", result011);
+    printf("COMPUTED: T A A  %.17f\n", result100);
+    printf("COMPUTED: T A T  %.17f\n", result101);
+    printf("COMPUTED: T T A  %.17f\n", result110);
+    printf("COMPUTED: T T T  %.17f\n", result111);
     printf("\n");
 
     const double s0_0 = 3;
@@ -1792,26 +1835,37 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     const double ref110 = fm * f_110 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_0);
     const double ref111 = fm * f_111 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_1);
 
-    printf("EXPECTED: A A A  %.8f\n", ref000);
-    printf("EXPECTED: A A T  %.5f\n", ref001);
-    printf("EXPECTED: A T A  %.8f\n", ref010);
-    printf("EXPECTED: A T T  %.8f\n", ref011);
-    printf("EXPECTED: T A A  %.8f\n", ref100);
-    printf("EXPECTED: T A T  %.8f\n", ref101);
-    printf("EXPECTED: T T A  %.8f\n", ref110);
-    printf("EXPECTED: T T T  %.8f\n", ref111);
+    const double ref000t = ref000 > tLLL || (ref000 + ref111 > tLLLHHH &&
+      ref000 > 0 && ref111 > 0) ? ref000 : (double)0;
+    const double ref001t = ref001 > tLLH ? ref001 : (double)0;
+    const double ref010t = ref010 > tLLH ? ref010 : (double)0;
+    const double ref011t = ref011 > tLHH ? ref011 : (double)0;
+    const double ref100t = ref100 > tLLH ? ref100 : (double)0;
+    const double ref101t = ref101 > tLHH ? ref101 : (double)0;
+    const double ref110t = ref110 > tLHH ? ref110 : (double)0;
+    const double ref111t = ref111 > tHHH || (ref000 + ref111 > tLLLHHH &&
+      ref000 > 0 && ref111 > 0) ? ref111 : (double)0;
+
+    printf("EXPECTED: A A A  %.17f\n", ref000t);
+    printf("EXPECTED: A A T  %.17f\n", ref001t);
+    printf("EXPECTED: A T A  %.17f\n", ref010t);
+    printf("EXPECTED: A T T  %.17f\n", ref011t);
+    printf("EXPECTED: T A A  %.17f\n", ref100t);
+    printf("EXPECTED: T A T  %.17f\n", ref101t);
+    printf("EXPECTED: T T A  %.17f\n", ref110t);
+    printf("EXPECTED: T T T  %.17f\n", ref111t);
     printf("\n");
 
     const double eps = 1.e-3;
 
-    EXPECT_EQ(true, fabs(result000 - ref000) < eps);
-    EXPECT_EQ(true, fabs(result001 - ref001) < eps);
-    EXPECT_EQ(true, fabs(result010 - ref010) < eps);
-    EXPECT_EQ(true, fabs(result011 - ref011) < eps);
-    EXPECT_EQ(true, fabs(result100 - ref100) < eps);
-    EXPECT_EQ(true, fabs(result101 - ref101) < eps);
-    EXPECT_EQ(true, fabs(result110 - ref110) < eps);
-    EXPECT_EQ(true, fabs(result111 - ref111) < eps);
+    EXPECT_EQ(true, fabs(result000 - ref000t) < eps);
+    EXPECT_EQ(true, fabs(result001 - ref001t) < eps);
+    EXPECT_EQ(true, fabs(result010 - ref010t) < eps);
+    EXPECT_EQ(true, fabs(result011 - ref011t) < eps);
+    EXPECT_EQ(true, fabs(result100 - ref100t) < eps);
+    EXPECT_EQ(true, fabs(result101 - ref101t) < eps);
+    EXPECT_EQ(true, fabs(result110 - ref110t) < eps);
+    EXPECT_EQ(true, fabs(result111 - ref111t) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
@@ -1821,10 +1875,44 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
 
 //=============================================================================
 
+void DriverTest_duo3_simple_sparse_(int compute_method) {
+
+  if (comet::ComputeMethod::REF == compute_method ||
+      comet::BuildHas::DOUBLE_PREC) {
+
+    // REF method and DP build do not remove threshold-failed values,
+    // so don't test that.
+    const double tLLL = .01;
+    const double tLLH = .01;
+    const double tLHH = .01;
+    const double tHHH = .01;
+    const double tLLLHHH = .01;
+
+    DriverTest_duo3_simple_sparse_(compute_method, tLLL, tLLH, tLHH, tHHH,
+      tLLLHHH);
+
+  } else {
+
+    const double tLLL = .01;
+    const double tLHH = .01;
+    for (double tLLH : {.19, .20, .49, .50}) {
+    for (double tHHH : {.27, .28}) {
+    for (double tLLLHHH : {.27, .28}) {
+      DriverTest_duo3_simple_sparse_(compute_method, tLLL, tLLH, tLHH, tHHH,
+        tLLLHHH);
+    }
+    }
+    }
+
+ }
+}
+
+//=============================================================================
+
 void DriverTest_duo3_simple_sparse_() {
-  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::REF);
-  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::CPU);
-  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::GPU);
+  DriverTest_duo3_simple_sparse_(comet::ComputeMethod::REF);
+  DriverTest_duo3_simple_sparse_(comet::ComputeMethod::CPU);
+  DriverTest_duo3_simple_sparse_(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -2659,12 +2747,11 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
+#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
 
-//FIX
-#if 0
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2684,11 +2771,13 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, duo3_simple_sparse) {
   DriverTest_duo3_simple_sparse_();
 }
 
+#if 1
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }
@@ -2696,11 +2785,13 @@ TEST(DriverTest, ccc2_simple) {
 TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
 
+#if 1
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
