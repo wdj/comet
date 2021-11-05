@@ -1036,7 +1036,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
       //env.ops_local_inc(2 * m * (double)n * (double)k);
 
       // Print matrix contents
-      cudaStreamSynchronize(env.stream_compute());
+      /*cudaStreamSynchronize(env.stream_compute());
       printf("Printing matrix info\n");
       int m2=m/2, n2=n/2;
       const int threadblockx2 = BLOCK_SIZE, threadblocky2 = BLOCK_SIZE;
@@ -1047,7 +1047,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         dim3(gridblockx2, gridblocky2, 1),
         dim3(threadblockx2, threadblocky2, 1), 0, env.stream_compute(),
         n2, m2, (int32_t*)matC);
-      System::accel_last_call_succeeded();
+      System::accel_last_call_succeeded();*/
   }
   else {
     printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",

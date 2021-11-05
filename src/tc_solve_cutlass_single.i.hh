@@ -304,7 +304,7 @@ __device__ inline void g2s_single(uint64_t *smem, GMBits2x64 *gmem, int begin, i
           smem[ind1] = nvi;
           smem[ind2] = pvi;
           //if(kval<k && nrow<m) {
-	  uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
+	  /*uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
 	  uint32_t* pvi2 = reinterpret_cast<uint32_t*>(&pvi);
 	  printf("b=%d,%d tidx=%d k=%d isA=%d xy=%d,%d xyblock=%d,%d pMK=%d,%d nrow=%d kval=%d patch=%d ind=%d "
 		 "vi=%lu,%lu nvi=%lu=%u,%u pvi=%lu=%u,%u nbrown/rowp/col=%d,%d,%d "
@@ -315,7 +315,7 @@ __device__ inline void g2s_single(uint64_t *smem, GMBits2x64 *gmem, int begin, i
                  nbrowp,nbcol*patch,ind2*patch,ind2);
 	  printf("b=%d,%d tidx=%d k=%d isA=%d smemn[%lu]=%lu smemp[%lu]=%lu\n",
 	         bx,by,thread_idx,k,is_a,
-		 ind1,smem[ind1],ind2,smem[ind2]);
+		 ind1,smem[ind1],ind2,smem[ind2]);*/
           //}
         } else {
           // operand B
@@ -324,7 +324,7 @@ __device__ inline void g2s_single(uint64_t *smem, GMBits2x64 *gmem, int begin, i
           smem[ind1] = nvi;
           smem[ind2] = pvi;
           //if(kval<k && nrow<m) {
-          uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
+          /*uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
           uint32_t* pvi2 = reinterpret_cast<uint32_t*>(&pvi);
 	  printf("b=%d,%d tidx=%d k=%d isA=%d xy=%d,%d xyblock=%d,%d nrow=%d kval=%d patch=%d ind=%d vi=%lu,%lu nvi=%lu=%u,%u pvi=%lu=%u,%u "
                "nbrown/rowp/col=%d,%d,%d smemn=%d,%d=%lu=%lu smemp=%d,%d=%lu=%lu\n",
@@ -334,7 +334,7 @@ __device__ inline void g2s_single(uint64_t *smem, GMBits2x64 *gmem, int begin, i
           printf("b=%d,%d tidx=%d k=%d isA=%d smemn[%lu]=%lu smemp[%lu]=%lu\n",
                  bx,by,thread_idx,k,is_a,
                  ind1,smem[ind1],
-	         ind2,smem[ind2]);
+	         ind2,smem[ind2]);*/
         //}
         }
 	}
@@ -430,11 +430,11 @@ b1_comet_mult_gemm_gpu_cutlass_single(int m, int n, int k, GMBits2x64 *a, GMBits
   int smem_B_start = ThreadblockShape::kM * ThreadblockShape::kK * 1 / 8;
   char *smem_ptr_B = &smem_ptr_A[smem_B_start];
 
-  printf("b=%d,%d t=%d warp=%d lane=%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d block=%d,%d "
+  /*printf("b=%d,%d t=%d warp=%d lane=%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d block=%d,%d "
 	 "aBegin=%d bBegin=%d warp_count=%d,%d warp_idx=%d,%d=%d smemA=0 smemB=%d TBmnk=%d,%d,%d\n",
          bx,by,thread_idx,warp_id,lane_id,bM,bN,bK,pM,pN,pK,wM,wN,wK,block_x,block_y,
 	 aBegin,bBegin,warp_count_m,warp_count_n,warp_idx_m,warp_idx_n,warp_idx_mn,
-	 smem_B_start,ThreadblockShape::kM,ThreadblockShape::kN,ThreadblockShape::kK);
+	 smem_B_start,ThreadblockShape::kM,ThreadblockShape::kN,ThreadblockShape::kK);*/
 
   uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
   uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
@@ -668,7 +668,7 @@ __device__ inline void g2s_single2(uint64_t *smem, GMBits2x64 *gmem, int begin, 
       int ind2 = thread_idx+32; //layout({nbrowp, nbcol * patch}) / patch;
       smem[ind1] = nvi;
       smem[ind2] = pvi;
-      uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
+      /*uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
       uint32_t* pvi2 = reinterpret_cast<uint32_t*>(&pvi);
       printf("b=%d,%d tidx=%d k=%d isA=%d pMK=%d,%d nrow=%d kval=%d ind=%d patch=%d "
              "nvi=%lu=%u,%u pvi=%lu=%u,%u n r/c=%d,%d p r/c=%d,%d "
@@ -678,7 +678,7 @@ __device__ inline void g2s_single2(uint64_t *smem, GMBits2x64 *gmem, int begin, 
              nvi,nvi2[0],nvi2[1],pvi,pvi2[0],pvi2[1],nbrown,nbcol,nbrowp,nbcol,
              nbrown,nbcol*patch,ind1*patch,ind1,
              nbrowp,nbcol*patch,ind2*patch,ind2,
-             ind1,smem[ind1],ind2,smem[ind2]);
+             ind1,smem[ind1],ind2,smem[ind2]);*/
     }
     else {
       // operand B
@@ -686,7 +686,7 @@ __device__ inline void g2s_single2(uint64_t *smem, GMBits2x64 *gmem, int begin, 
       int ind2 = thread_idx+32; //layout({nbcol * patch, nbrowp}) / patch;
       smem[ind1] = nvi;
       smem[ind2] = pvi;
-      uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
+      /*uint32_t* nvi2 = reinterpret_cast<uint32_t*>(&nvi);
       uint32_t* pvi2 = reinterpret_cast<uint32_t*>(&pvi);
       printf("b=%d,%d tidx=%d k=%d isA=%d pMK=%d,%d nrow=%d kval=%d ind=%d patch=%d "
              "nvi=%lu=%u,%u pvi=%lu=%u,%u n r/c==%d,%d p r/c=%d,%d "
@@ -696,7 +696,7 @@ __device__ inline void g2s_single2(uint64_t *smem, GMBits2x64 *gmem, int begin, 
 	     nvi,nvi2[0],nvi2[1],pvi,pvi2[0],pvi2[1],nbrown,nbcol,nbrowp,nbcol,
              nbcol*patch,nbrown,ind1*patch,ind1,
              nbcol*patch,nbrowp,ind2*patch,ind2,
-             ind1,smem[ind1],ind2,smem[ind2]);
+             ind1,smem[ind1],ind2,smem[ind2]);*/
     }
   }
 }
@@ -769,12 +769,12 @@ b1_comet_mult_gemm_gpu_cutlass_single2(int m, int n, int k, GMBits2x64 *a, GMBit
   smem_buffer_A[lane_id+32] = lane_id+32;
   smem_buffer_B[lane_id+32] = lane_id+32;
 
-  printf("b=%d,%d t=%d warp=%d lane=%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d "
+  /*printf("b=%d,%d t=%d warp=%d lane=%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d "
          "aBegin=%d bBegin=%d smemA=0 smemB=%d TBmnk=%d,%d,%d ind=%d,%d smemA=%lu,%lu smemB=%lu,%lu\n",
          bx,by,thread_idx,warp_id,lane_id,bM,bN,bK,pM,pN,pK,wM,wN,wK,
          aBegin,bBegin,smem_B_start,ThreadblockShape::kM,ThreadblockShape::kN,ThreadblockShape::kK,
 	 lane_id,lane_id+32,smem_buffer_A[lane_id],smem_buffer_A[lane_id+32],smem_buffer_B[lane_id],smem_buffer_B[lane_id+32]);
-  __syncthreads();
+  __syncthreads();*/
 
   //uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
   //uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
@@ -792,9 +792,9 @@ b1_comet_mult_gemm_gpu_cutlass_single2(int m, int n, int k, GMBits2x64 *a, GMBit
   FragmentC accum;
   accum.clear();
 
-  printf("b=%d,%d t=%d layoutA=%d,%d layoutB=%d,%d layoutC=%d,%d\n",
+  /*printf("b=%d,%d t=%d layoutA=%d,%d layoutB=%d,%d layoutC=%d,%d\n",
          bx,by,thread_idx,lM,lK,lK,lN,m*2,n*2);
-  __syncthreads();
+  __syncthreads();*/
 
   // Setup arrays
     int l=0;
@@ -807,12 +807,12 @@ b1_comet_mult_gemm_gpu_cutlass_single2(int m, int n, int k, GMBits2x64 *a, GMBit
     g2s_single2<pN, pK, 0>(smem_buffer_B, b, bBegin+l, m, n, k, layout_B);
     __syncthreads();
 
-    printf("b=%d,%d t=%d Done computing g2s\n",bx,by,thread_idx);
+    /*printf("b=%d,%d t=%d Done computing g2s\n",bx,by,thread_idx);
     __syncthreads();
 
     printf("b=%d,%d t=%d ind=%d,%d smemA=%lu,%lu smemB=%lu,%lu\n",
            bx,by,thread_idx,lane_id,lane_id+32,smem_buffer_A[lane_id],smem_buffer_A[lane_id+32],smem_buffer_B[lane_id],smem_buffer_B[lane_id+32]);
-    __syncthreads();
+    __syncthreads();*/
 
     // Construct warp-level matrix product
     typename Mma::IteratorA iter_A({reinterpret_cast<typename cutlass::uint1b_t *>(smem_buffer_A), layout_A}, lane_id);
@@ -826,21 +826,21 @@ b1_comet_mult_gemm_gpu_cutlass_single2(int m, int n, int k, GMBits2x64 *a, GMBit
     __syncthreads();
 
     // Multiply two blocks
-    printf("b=%d,%d t=%d Loading A\n",bx,by,thread_idx);
+    //printf("b=%d,%d t=%d Loading A\n",bx,by,thread_idx);
     iter_A.load(frag_A);
     iter_A.add_tile_offset({0, 0});
     __syncthreads();
 
-    printf("b=%d,%d t=%d Loading B\n",bx,by,thread_idx);
+    //printf("b=%d,%d t=%d Loading B\n",bx,by,thread_idx);
     iter_B.load(frag_B);
     iter_B.add_tile_offset({0, 0});
     __syncthreads();
 
-    uint32_t* av32 = reinterpret_cast<uint32_t*>(frag_A.data());
+    /*uint32_t* av32 = reinterpret_cast<uint32_t*>(frag_A.data());
     uint32_t* bv32 = reinterpret_cast<uint32_t*>(frag_B.data());
     printf("b=%d,%d t=%d size=%d A=%u,%u B=%u,%u\n",
            bx,by,thread_idx,(int)frag_A.size(),av32[0],av32[1],bv32[0],bv32[1]);
-    __syncthreads();
+    __syncthreads();*/
 
   //printf("b=%d,%d t=%d l=%d/%d warp=%d:%d:%d k=%d kK=%d Aoffset=%d,0=%ld Boffset=0,%d=%ld A+shift=%d,0=%ld A-shift=%d,0=%ld B+shift=0,%d=%ld B-shift=0,%d=%ld\n",
       //       bx,by,thread_idx,l,k,warp_k,nwarps,Mma::Policy::MmaShape::kK,k,ThreadblockShape::kK,warp_idx_m,layout_A({warp_idx_m, 0}),warp_idx_n,layout_B({0,warp_idx_n}),
@@ -854,20 +854,20 @@ b1_comet_mult_gemm_gpu_cutlass_single2(int m, int n, int k, GMBits2x64 *a, GMBit
       __syncthreads();
 
       // Check
-      uint64_t check = gm_popcount64(smem_buffer_A[0] & smem_buffer_B[0]);
+      /*uint64_t check = gm_popcount64(smem_buffer_A[0] & smem_buffer_B[0]);
 
       int* cv = accum.data();
       printf("b=%d,%d t=%d size=%d accum=%d,%d check=%lu\n",bx,by,thread_idx,(int)accum.size(),cv[0],cv[1],check);
-      __syncthreads();
+      __syncthreads();*/
     
     //if (l + pK < k) 
     __syncthreads();
   
 
-  int* cv2 = accum.data();
+  /*int* cv2 = accum.data();
   printf("b=%d,%d t=%d mid accum=%u,%u\n",
          bx,by,thread_idx,cv2[0],cv2[1]);
-  __syncthreads();
+  __syncthreads();*/
 
   using output_type = int;
 
@@ -880,14 +880,14 @@ b1_comet_mult_gemm_gpu_cutlass_single2(int m, int n, int k, GMBits2x64 *a, GMBit
   iter_C.add_tile_offset({0,0});
   //iter_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
   iter_C.store(accum);
-  printf("b=%d,%d tid=%d mnk=%d,%d,%d kMN=%d,%d warp_id=%d warpshape=%d,%d\n",
+  /*printf("b=%d,%d tid=%d mnk=%d,%d,%d kMN=%d,%d warp_id=%d warpshape=%d,%d\n",
          bx,by,thread_idx,m,n,k,WarpShape::kM,WarpShape::kN,warp_id,wM*2,wN*2);
-  __syncthreads();
+  __syncthreads();*/
 
-  int* cv3 = accum.data();
+  /*int* cv3 = accum.data();
   printf("b=%d,%d t=%d C[%d]=%d accum=%u,%u\n",
          bx,by,thread_idx,thread_idx,c[thread_idx],cv3[0],cv3[1]);
-  __syncthreads();
+  __syncthreads();*/
 }
 
 template <int pM, int pK, bool is_a, class Layout>
@@ -940,7 +940,7 @@ __device__ inline void g2s_single3(uint64_t *smem, GMBits2x64 *gmem, int begin, 
       int ind2 = layout({nbrowp, nbcol * patch}) / patch;
       smem[ind1] = nvi;
       smem[ind2] = pvi;
-      printf("b=%d,%d tidx=%d A k=%d isA=%d pMK=%d,%d nrow=%d kval=%d ind=%d patch=%d "
+      /*printf("b=%d,%d tidx=%d A k=%d isA=%d pMK=%d,%d nrow=%d kval=%d ind=%d patch=%d "
              "nvi=%lu=%u,%u pvi=%lu=%u,%u vi=%lu,%lu "
 	     "n r/c=%d,%d p r/c=%d,%d\n",
 	     bx,by,thread_idx,k,is_a,pM,pK,nrow,kval,ind,patch,
@@ -953,7 +953,7 @@ __device__ inline void g2s_single3(uint64_t *smem, GMBits2x64 *gmem, int begin, 
              bx,by,thread_idx,
              nbrown,nbcol*patch,ind1*patch,ind1,
              nbrowp,nbcol*patch,ind2*patch,ind2,
-             ind1,(uint64_t)smem[ind1],ind2,(uint64_t)smem[ind2]);
+             ind1,(uint64_t)smem[ind1],ind2,(uint64_t)smem[ind2]);*/
     }
     else {
       // operand B
@@ -961,7 +961,7 @@ __device__ inline void g2s_single3(uint64_t *smem, GMBits2x64 *gmem, int begin, 
       int ind2 = layout({nbcol * patch, nbrowp}) / patch;
       smem[ind1] = nvi;
       smem[ind2] = pvi;
-      printf("b=%d,%d tidx=%d B k=%d isA=%d pMK=%d,%d nrow=%d kval=%d ind=%d patch=%d "
+      /*printf("b=%d,%d tidx=%d B k=%d isA=%d pMK=%d,%d nrow=%d kval=%d ind=%d patch=%d "
              "nvi=%lu=%u,%u pvi=%lu=%u,%u vi=%lu,%lu "
 	     "n r/c==%d,%d p r/c=%d,%d\n",
 	     bx,by,thread_idx,k,is_a,pM,pK,nrow,kval,ind,patch,
@@ -974,7 +974,7 @@ __device__ inline void g2s_single3(uint64_t *smem, GMBits2x64 *gmem, int begin, 
              bx,by,thread_idx,
              nbcol*patch,nbrown,ind1*patch,ind1,
              nbcol*patch,nbrowp,ind2*patch,ind2,
-             ind1,(uint64_t)smem[ind1],ind2,(uint64_t)smem[ind2]);
+             ind1,(uint64_t)smem[ind1],ind2,(uint64_t)smem[ind2]);*/
     }
   }
 }
@@ -1050,19 +1050,19 @@ b1_comet_mult_gemm_gpu_cutlass_single3(int m, int n, int k, GMBits2x64 *a, GMBit
   uint64_t *smem_buffer_A = (uint64_t *)smem_ptr_A;
   uint64_t *smem_buffer_B = (uint64_t *)smem_ptr_B;
 
-  printf("b=%d,%d t=%d warp=%d lane=%d mnk=%d,%d,%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d "
+  /*printf("b=%d,%d t=%d warp=%d lane=%d mnk=%d,%d,%d TB=%d,%d,%d TB-P=%d,%d,%d W=%d,%d,%d "
          "aBegin=%d bBegin=%d smemA=0 smemB=%d TBmnk=%d,%d,%d ind=%d,%d smemA=%lu,%lu smemB=%lu,%lu\n",
          bx,by,thread_idx,warp_id,lane_id,m,n,k,bM,bN,bK,pM,pN,pK,wM,wN,wK,
          aBegin,bBegin,smem_B_start,ThreadblockShape::kM,ThreadblockShape::kN,ThreadblockShape::kK,
          lane_id,lane_id+32,smem_buffer_A[lane_id],smem_buffer_A[lane_id+32],smem_buffer_B[lane_id],smem_buffer_B[lane_id+32]);
-  __syncthreads();
+  __syncthreads();*/
 
   FragmentC accum;
   accum.clear();
 
-  printf("b=%d,%d t=%d layoutA=%d,%d layoutB=%d,%d layoutC=%d,%d\n",
+  /*printf("b=%d,%d t=%d layoutA=%d,%d layoutB=%d,%d layoutC=%d,%d\n",
          bx,by,thread_idx,lM,lK,lK,lN,m*2,n*2);
-  __syncthreads();
+  __syncthreads();*/
 
   // Setup arrays
     int l=0;
@@ -1075,17 +1075,17 @@ b1_comet_mult_gemm_gpu_cutlass_single3(int m, int n, int k, GMBits2x64 *a, GMBit
   g2s_single3<pN, pK, 0>(smem_buffer_B, b, bBegin+l, m, n, k, layout_B);
   __syncthreads();
 
-  if(thread_idx<16) {
+  /*if(thread_idx<16) {
     printf("b=%d,%d t=%d ind=%d smemA=%lu smemB=%lu\n",
            bx,by,thread_idx,lane_id,smem_buffer_A[lane_id],smem_buffer_B[lane_id]);
   }
-  __syncthreads();
+  __syncthreads();*/
 
-  cutlass::debug::dump_shmem(smem_buffer_A, 32, 1);
-  __syncthreads();
+  //cutlass::debug::dump_shmem(smem_buffer_A, 32, 1);
+  //__syncthreads();
 
-  cutlass::debug::dump_shmem(smem_buffer_B, 32, 1);
-  __syncthreads();
+  //cutlass::debug::dump_shmem(smem_buffer_B, 32, 1);
+  //__syncthreads();
 
     // Construct warp-level matrix product
     typename Mma::IteratorA iter_A({reinterpret_cast<typename cutlass::uint1b_t *>(smem_buffer_A), layout_A}, lane_id);
@@ -1095,26 +1095,26 @@ b1_comet_mult_gemm_gpu_cutlass_single3(int m, int n, int k, GMBits2x64 *a, GMBit
     __syncthreads();
 
     // Multiply two blocks
-    printf("b=%d,%d t=%d Loading A\n",bx,by,thread_idx);
+    //printf("b=%d,%d t=%d Loading A\n",bx,by,thread_idx);
     iter_A.load(frag_A);
     __syncthreads();
 
-    cutlass::debug::dump_fragment(frag_A, 32);
-    __syncthreads();
+    //cutlass::debug::dump_fragment(frag_A, 32);
+    //__syncthreads();
 
-    printf("b=%d,%d t=%d Loading B\n",bx,by,thread_idx);
+    //printf("b=%d,%d t=%d Loading B\n",bx,by,thread_idx);
     iter_B.load(frag_B);
     __syncthreads();
 
-    cutlass::debug::dump_fragment(frag_B, 32);
-    __syncthreads();
+    //cutlass::debug::dump_fragment(frag_B, 32);
+    //__syncthreads();
 
     uint32_t* av32 = (uint32_t*)(smem_buffer_A); //(frag_A.data());
     uint32_t* bv32 = (uint32_t*)(smem_buffer_B); //(frag_B.data());
-    printf("b=%d,%d t=%d size=%d A=%u,%u B=%u,%u\n",
+    /*printf("b=%d,%d t=%d size=%d A=%u,%u B=%u,%u\n",
            bx,by,thread_idx,(int)frag_A.size(),av32[thread_idx*2],av32[thread_idx*2+1],
 	   bv32[thread_idx*2],bv32[thread_idx*2+1]);
-    __syncthreads();
+    __syncthreads();*/
 
   //printf("b=%d,%d t=%d l=%d/%d warp=%d:%d:%d k=%d kK=%d Aoffset=%d,0=%ld Boffset=0,%d=%ld A+shift=%d,0=%ld A-shift=%d,0=%ld B+shift=0,%d=%ld B-shift=0,%d=%ld\n",
       //       bx,by,thread_idx,l,k,warp_k,nwarps,Mma::Policy::MmaShape::kK,k,ThreadblockShape::kK,warp_idx_m,layout_A({warp_idx_m, 0}),warp_idx_n,layout_B({0,warp_idx_n}),
@@ -1138,14 +1138,14 @@ b1_comet_mult_gemm_gpu_cutlass_single3(int m, int n, int k, GMBits2x64 *a, GMBit
 	smemB = smem_buffer_B[thread_idx];
       }
 
-      int* cv = accum.data();
+      /*int* cv = accum.data();
       printf("b=%d,%d t=%d size=%d accum=%d,%d,%d,%d smem_A=%lu smem_B=%lu check=%d check2=%d,%d\n",
 	     bx,by,thread_idx,(int)(accum.size()),
 	     cv[0],cv[1],cv[2],cv[3],smemA,smemB,check00,check0,check1);
       __syncthreads();
 
       cutlass::debug::dump_fragment(accum, 32);
-    __syncthreads();
+    __syncthreads();*/
 }
 
 //-----------------------------------------------------------------------------

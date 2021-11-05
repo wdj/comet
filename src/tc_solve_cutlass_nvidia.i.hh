@@ -384,28 +384,28 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
   static_assert(pN % block_y == 0, "block-global-memory-loader needs to be in shape.");
   static_assert(pK % block_x == 0, "block-global-memory-loader needs to be in shape.");
 
-  /*constexpr int iter_x = pK / block_x;
+  constexpr int iter_x = pK / block_x;
   constexpr int iter_y_a = pM / block_y;
   constexpr int iter_xy_a = iter_x * iter_y_a;
   constexpr int iter_y_b = pN / block_y;
   constexpr int iter_xy_b = iter_x * iter_y_b;
 
   uint64_t frag_a[2 * iter_xy_a];
-  uint64_t frag_b[2 * iter_xy_b];*/
+  uint64_t frag_b[2 * iter_xy_b];
 
   for (int l = 0; l < k; l += pK) {
     // Here gmem -> register == "g2r" and then register -> smem == "r2s".
     // Operand A
-    //g2r<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
+    g2r<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
     // Operand B
-    //g2r<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
+    g2r<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
     // Operand A
-    //r2s<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
+    r2s<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
     // Operand B
-    //r2s<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);
+    r2s<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);
 
-    g2s<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, k, layout_A);
-    g2s<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, k, layout_B);
+    //g2s<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, k, layout_A);
+    //g2s<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, k, layout_B);
 
     __syncthreads();
 
@@ -469,13 +469,13 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
         combine_bits(accum_nn[idx], accum_np[idx], accum_pn[idx], accum_pp[idx], accum_tally[idx].x, accum_tally[idx].y);
       }
 
-      iter_tally_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
+      //iter_tally_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
       //iter_tally_C.add_tile_offset({(pN / wN) * by + warp_idx_n, (pM / wM) * bx + warp_idx_m});
       // The following code does not translates into the most efficient instructions, even with 128-bit stores.
       // With current version of CUTLASS this is as far as we can go.
-      iter_tally_C.store(accum_tally);
+      //iter_tally_C.store(accum_tally);
     }
-    else {
+    /*else {
       // Add Accum to C then store
       using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
         typename cutlass::MatrixShape<WarpShape::kM, WarpShape::kN>, output_type, LayoutC, InstructionShape,
@@ -494,7 +494,7 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
       }
 
       iter_C.store(frag_C);
-    }
+    }*/
   }
 }
 
@@ -561,7 +561,7 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
   int shared_bytes = (threadblock_m + threadblock_n) * threadblock_k / 8;
   set_max_shared_bytes((const void *)gemm_kernel);
 
-  printf("Calling b1_comet_xor_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
+  printf("Calling nvidia b1_comet_xor_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
     m, n, k, grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
     warp_m, warp_n, warp_k, shared_bytes, beta);
 

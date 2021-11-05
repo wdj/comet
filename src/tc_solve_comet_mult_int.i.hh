@@ -739,9 +739,9 @@ void b1_comet_mult_gemm_gpu_int_simple_3way_alt(int m, int n, int k, int pfl_min
     const uint64_t vv0 = vv.data[0];
     const uint64_t vv1 = vv.data[1];
 
-    if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1 && l<pf)
-      printf("b=%d,%d t=%d,%d g=%d,%d gridxy=%d,%d a=%d=%d b=%d=%d vind=%d mnk=%d,%d,%d l=%d vi01=%lu,%lu vj01=%lu,%lu vv01=%lu,%lu ~vv01=%lu,%lu\n",
-             bx,by,tx,ty,gridDim.x,gridDim.y,gridx,gridy,aBegin,aInd,bBegin,bInd,vInd,m,n,k,l,vi0,vi1,vj0,vj1,vv0,vv1,~vv0,~vv1);
+    //if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1 && l<pf)
+    //  printf("b=%d,%d t=%d,%d g=%d,%d gridxy=%d,%d a=%d=%d b=%d=%d vind=%d mnk=%d,%d,%d l=%d vi01=%lu,%lu vj01=%lu,%lu vv01=%lu,%lu ~vv01=%lu,%lu\n",
+    //         bx,by,tx,ty,gridDim.x,gridDim.y,gridx,gridy,aBegin,aInd,bBegin,bInd,vInd,m,n,k,l,vi0,vi1,vj0,vj1,vv0,vv1,~vv0,~vv1);
 
     // Compute masks to sample the single needed bit from each seminibble,
     // and to ignore undefined vector entries.
@@ -785,7 +785,7 @@ void b1_comet_mult_gemm_gpu_int_simple_3way_alt(int m, int n, int k, int pfl_min
     const uint64_t nvi = nvi0 | (nvi1 << 1);
     const uint64_t nvj = nvj0 | (nvj1 << 1);
 
-    if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1 && l<pf)
+    /*if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1 && l<pf)
       printf("b=%d,%d t=%d,%d fmask=%lu pv01m=%lu,%lu nv01m=%lu,%lu vi=%lu,%lu ~vi=%lu,%lu vj=%lu,%lu ~vj=%lu,%lu vimask=%lu,%lu vjmask=%lu,%lu vvmask=%lu,%lu\n",
         bx,by,tx,ty,field_active_mask,(kEi ? vi0 : ~vi0),(kEi ? vi1 : ~vi1),(kEi ? vi0 : ~vi0),(kEi ? vi1 : ~vi1),vi0,vi1,~vi0,~vi1,vj0,vj1,~vj0,~vj1,vi0mask,vi1mask,vj0mask,vj1mask,vv0mask,vv1mask);
 
@@ -798,7 +798,7 @@ void b1_comet_mult_gemm_gpu_int_simple_3way_alt(int m, int n, int k, int pfl_min
         bx,by,tx,ty,l,pvi,nvi,pvj,nvj,((int32_t*)&pvi0)[0],((int32_t*)&pvi0)[1],((int32_t*)&pvi1)[0],((int32_t*)&pvi1)[1],
         ((int32_t*)&nvi0)[0],((int32_t*)&nvi0)[1],((int32_t*)&nvi1)[0],((int32_t*)&nvi1)[1],
         ((int32_t*)&pvj0)[0],((int32_t*)&pvj0)[1],((int32_t*)&pvj1)[0],((int32_t*)&pvj1)[1],
-        ((int32_t*)&nvj0)[0],((int32_t*)&nvj0)[1],((int32_t*)&nvj1)[0],((int32_t*)&nvj1)[1]);
+        ((int32_t*)&nvj0)[0],((int32_t*)&nvj0)[1],((int32_t*)&nvj1)[0],((int32_t*)&nvj1)[1]);*/
 
     const uint64_t r00 = gm_popcount64(nvi & nvj);
     const uint64_t r01 = gm_popcount64(nvi & pvj);
@@ -809,9 +809,9 @@ void b1_comet_mult_gemm_gpu_int_simple_3way_alt(int m, int n, int k, int pfl_min
     c0 += r00; c1 += r01;
     c2 += r10; c3 += r11;
 
-    if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1 && l<pf)
-      printf("b=%d,%d t=%d,%d a=%d b=%d r00=%lu r01=%lu r10=%lu r11=%lu c0123=%d,%d,%d,%d\n",
-             bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,c2,c3);
+    //if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1 && l<pf)
+    //  printf("b=%d,%d t=%d,%d a=%d b=%d r00=%lu r01=%lu r10=%lu r11=%lu c0123=%d,%d,%d,%d\n",
+    //         bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,c2,c3);
   }
 
   // Different ordering from original 1-bit routines
@@ -835,9 +835,9 @@ void b1_comet_mult_gemm_gpu_int_simple_3way_alt(int m, int n, int k, int pfl_min
   c[cInd1] = c0; c[cInd1+1] = c2;
   c[cInd2] = c1; c[cInd2+1] = c3;
 
-  if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1)
-    printf("b=%d,%d t=%d,%d mn=%d,%d cb=%d ci1=%d=%d,%d ci2=%d=%d,%d c0123=%d,%d,%d,%d\n",
-           bx,by,tx,ty,m,n,cBegin,cInd1,rind1,cind,cInd2,rind2,cind,c0,c1,c2,c3);
+  //if(bx>=px0 && bx<px1 && by>=py0 && by<py1 && tx>=ptx0 && tx<ptx1 && ty>=pty0 && ty<pty1)
+  //  printf("b=%d,%d t=%d,%d mn=%d,%d cb=%d ci1=%d=%d,%d ci2=%d=%d,%d c0123=%d,%d,%d,%d\n",
+  //         bx,by,tx,ty,m,n,cBegin,cInd1,rind1,cind,cInd2,rind2,cind,c0,c1,c2,c3);
 
   // 2nd attempt
   // Row 0: 1st GEMM - 00, 01, 10, 11 ...
@@ -947,34 +947,35 @@ static void tc_solve_comet_mult_int_impl(bool is_first, int m, int n, int k, int
   env.ops_local_inc(2 * m * (double)n * (double)k);
 
   cudaStreamSynchronize(env.stream_compute());
-  printf("Printing matrix info mn=%d,%d\n",m,n);
+
+  /*printf("Printing matrix info mn=%d,%d\n",m,n);
   switch(env.num_kernel()) {
     case 175: {
       COMET_LAUNCH_KERNEL(b1_print_matrix_int_2way,
         dim3(gridblockx, gridblocky, 1),
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
         n, m, (int32_t*)matC);
-      /*COMET_LAUNCH_KERNEL(b1_print_matrix_int_3way,
-        dim3(gridblockx, gridblocky, 1),
-        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
-        n, m, (int32_t*)matC);*/
+      //COMET_LAUNCH_KERNEL(b1_print_matrix_int_3way,
+      //  dim3(gridblockx, gridblocky, 1),
+      //  dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+      //  n, m, (int32_t*)matC);
     } break;
     case 176: {
       COMET_LAUNCH_KERNEL(b1_print_matrix_int_2way,
         dim3(gridblockx, gridblocky, 1),
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
         n, m, (int32_t*)matC);
-      /*COMET_LAUNCH_KERNEL(b1_print_matrix_int_3way_alt,
-        dim3(gridblockx, gridblocky, 1),
-        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
-        n, m, (int32_t*)matC);*/
+      //COMET_LAUNCH_KERNEL(b1_print_matrix_int_3way_alt,
+      //  dim3(gridblockx, gridblocky, 1),
+      //  dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+      //  n, m, (int32_t*)matC);
     } break;
     default: {
       printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
          env.num_kernel());
       COMET_INSIST(false && "Failure to call GEMM function.");
     }
-  }
+  }*/
   }
   else {
     switch(env.num_kernel()) {
