@@ -1041,10 +1041,24 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   print_output(env->is_proc_active(), cksum, *env);
 
   if (env->is_proc_active()) {
-    const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
-    const double result01 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env);
-    const double result10 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env);
-    const double result11 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env);
+
+    const double result00 =
+      Metrics_is_pass_threshold(*metrics, 0, 0, 0, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env) : 0;
+    const double result01 =
+      Metrics_is_pass_threshold(*metrics, 0, 0, 1, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env) : 0;
+    const double result10 =
+      Metrics_is_pass_threshold(*metrics, 0, 1, 0, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env) : 0;
+    const double result11 =
+      Metrics_is_pass_threshold(*metrics, 0, 1, 1, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env) : 0;
+
+    //const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
+    //const double result01 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env);
+    //const double result10 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env);
+    //const double result11 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env);
 
     printf("COMPUTED: MIN MIN  %.17f\n", result00);
     printf("COMPUTED: MIN MAX  %.17f\n", result01);
@@ -1129,19 +1143,19 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
 
 void DriverTest_duo2_simple_sparse_(int compute_method) {
 
-  if (comet::ComputeMethod::REF == compute_method ||
-      comet::BuildHas::DOUBLE_PREC) {
-
-    // REF method and DP build do not remove threshold-failed values,
-    // so don't test that.
-    const double tLL = .01;
-    const double tLH = .01;
-    const double tHH = .01;
-    const double tLLHH = .01;
-
-    DriverTest_duo2_simple_sparse_(compute_method, tLL, tLH, tHH, tLLHH);
-
-  } else {
+//  if (comet::ComputeMethod::REF == compute_method ||
+//      comet::BuildHas::DOUBLE_PREC) {
+//
+//    // REF method and DP build do not remove threshold-failed values,
+//    // so don't test that.
+//    const double tLL = .01;
+//    const double tLH = .01;
+//    const double tHH = .01;
+//    const double tLLHH = .01;
+//
+//    DriverTest_duo2_simple_sparse_(compute_method, tLL, tLH, tHH, tLLHH);
+//
+//  } else {
 
     const double tLL = .01;
     for (double tLH : {.37, .38}) {
@@ -1152,7 +1166,7 @@ void DriverTest_duo2_simple_sparse_(int compute_method) {
     }
     }
 
- }
+// }
 }
 
 //=============================================================================
@@ -1713,14 +1727,40 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
   print_output(env->is_proc_active(), cksum, *env);
 
   if (env->is_proc_active()) {
-    const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
-    const double result001 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env);
-    const double result010 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env);
-    const double result011 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env);
-    const double result100 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env);
-    const double result101 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env);
-    const double result110 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env);
-    const double result111 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env);
+    const double result000 =
+      Metrics_is_pass_threshold(*metrics, 0, 0, 0, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env) : 0;
+    const double result001 =
+      Metrics_is_pass_threshold(*metrics, 0, 0, 0, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env) : 0;
+    const double result010 =
+      Metrics_is_pass_threshold(*metrics, 0, 0, 1, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env) : 0;
+    const double result011 =
+      Metrics_is_pass_threshold(*metrics, 0, 0, 1, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env) : 0;
+
+    const double result100 =
+      Metrics_is_pass_threshold(*metrics, 0, 1, 0, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env) : 0;
+    const double result101 =
+      Metrics_is_pass_threshold(*metrics, 0, 1, 0, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env) : 0;
+    const double result110 =
+      Metrics_is_pass_threshold(*metrics, 0, 1, 1, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env) : 0;
+    const double result111 =
+      Metrics_is_pass_threshold(*metrics, 0, 1, 1, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env) : 0;
+
+    //const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
+    //const double result001 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env);
+    //const double result010 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env);
+    //const double result011 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env);
+    //const double result100 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env);
+    //const double result101 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env);
+    //const double result110 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env);
+    //const double result111 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env);
 
     printf("COMPUTED: A A A  %.17f\n", result000);
     printf("COMPUTED: A A T  %.17f\n", result001);
@@ -1877,21 +1917,21 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
 
 void DriverTest_duo3_simple_sparse_(int compute_method) {
 
-  if (comet::ComputeMethod::REF == compute_method ||
-      comet::BuildHas::DOUBLE_PREC) {
-
-    // REF method and DP build do not remove threshold-failed values,
-    // so don't test that.
-    const double tLLL = .01;
-    const double tLLH = .01;
-    const double tLHH = .01;
-    const double tHHH = .01;
-    const double tLLLHHH = .01;
-
-    DriverTest_duo3_simple_sparse_(compute_method, tLLL, tLLH, tLHH, tHHH,
-      tLLLHHH);
-
-  } else {
+//  if (comet::ComputeMethod::REF == compute_method ||
+//      comet::BuildHas::DOUBLE_PREC) {
+//
+//    // REF method and DP build do not remove threshold-failed values,
+//    // so don't test that.
+//    const double tLLL = .01;
+//    const double tLLH = .01;
+//    const double tLHH = .01;
+//    const double tHHH = .01;
+//    const double tLLLHHH = .01;
+//
+//    DriverTest_duo3_simple_sparse_(compute_method, tLLL, tLLH, tLHH, tHHH,
+//      tLLLHHH);
+//
+//  } else {
 
     const double tLLL = .01;
     const double tLHH = .01;
@@ -1904,7 +1944,7 @@ void DriverTest_duo3_simple_sparse_(int compute_method) {
     }
     }
 
- }
+// }
 }
 
 //=============================================================================

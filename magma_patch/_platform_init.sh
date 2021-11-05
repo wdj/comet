@@ -43,6 +43,7 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "spock" ]] && COMET_PLATFORM=SPOCK # OLCF-5 EA system.
 [[ "$COMET_HOST" = "birch" ]] && COMET_PLATFORM=BIRCH # OLCF-5 EA system.
 [[ "$COMET_HOST" = "borg" ]] && COMET_PLATFORM=BORG # OLCF-5 EA system.
+[[ "$COMET_HOST" = "bsd" ]] && COMET_PLATFORM=BSD # ORNL DGX-A100 system.
 
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform. $COMET_HOST" 1>&2
@@ -1391,10 +1392,46 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
 
 #----------------------------------------
+elif [ $COMET_PLATFORM = BSD ] ; then
+#----------------------------------------
+
+  #---Compiler.
+
+  local COMET_C_COMPILER=gcc
+  local COMET_CXX_COMPILER=g++
+  local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
+  local USE_GCC=ON
+  local COMET_EXTRA_COMPILE_OPTS="-std=c++14"
+
+  local USE_OPENMP=ON
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+
+  local COMET_USE_INT128=ON
+
+  #---Libraries.
+
+  local USE_CUDA=ON
+  local CUDA_ROOT="/usr/local/cuda"
+  local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
+  COMET_CUDA_LINK_OPTS+=" -L $CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
+  local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80;-arch=sm_80"
+
+  local USE_MAGMA=OFF
+  local COMET_MAGMA_GPU_ARCH=80
+  local COMET_MAGMA_MAKE_INC=make.inc.summit
+
+  local COMET_CAN_USE_MPI=OFF
+
+#----------------------------------------
 else
 #----------------------------------------
 
-  echo "${0##*/}: Unknown platform. $COMET_HOST" 1>&2
+  echo "${0##*/}: Unknown platform. $COMET_HOST $COMET_PLATFORM" 1>&2
   exit 1
 
 fi

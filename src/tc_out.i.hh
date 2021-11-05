@@ -416,6 +416,10 @@ public:
   enum {NT = 4};
 
   __host__ __device__
+  ThresholdsHelperMulti2Way()
+    : dvo_this_{} {}
+
+  __host__ __device__
   void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
     int iE, MFTypeIn& value0, MFTypeIn& value1) {
     dvo_this_[iE] = dvo_this;
@@ -433,7 +437,6 @@ public:
     MFT::decode(values[0][0], values[0][1], *dvo_this_[0]);
     MFT::decode(values[1][0], values[1][1], *dvo_this_[1]);
 
-//printf("YO2a %f %f %f %f\n", (double)values[0][0], (double)values[0][1], (double)values[1][0], (double)values[1][1]);
     // Set non-pass table values to zero.
     for (int iE = 0; iE < 2; ++iE) {
       for (int jE = 0; jE < 2; ++jE) {
@@ -447,7 +450,6 @@ public:
         }
       }
     }
-//printf("YO2b %f %f %f %f\n", (double)values[0][0], (double)values[0][1], (double)values[1][0], (double)values[1][1]);
 
     // Store updated table values.
     MFT::encode(*dvo_this_[0], values[0][0], values[0][1]);
@@ -472,6 +474,10 @@ public:
 
   typedef Thresholds::Elt_t Elt_t;
   enum {NT = 5};
+
+  __host__ __device__
+  ThresholdsHelperMulti3Way()
+    : dvo_this_{} {}
 
   __host__ __device__
   void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
@@ -685,7 +691,6 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 #endif
 
       values[indT_J] = (MFTypeIn)metric_entry;
-//if (I < 2 && J < 2) printf("%i %i %i %i %f\n", I, J, indT_I, indT_J, (double)metric_entry);
     } // indT_J
 
 #if 0
@@ -904,34 +909,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
         // Save entry to store into histogram.
         hhelper.add(metric_entry, indT_I, indT_J, indT_K);
 
-#if 0
-        // Check against threshold.
-        //const bool pass_threshold = CEnv::pass_threshold_active(
-        const bool pass_threshold = Thresholds::is_pass_active(
-          (Thresholds::Elt_t)(MFTypeIn)metric_entry, threshold);
-
-        // Apply threshold.
-        values[indT_K] = pass_threshold ? (MFTypeIn)metric_entry:
-                                          (MFTypeIn)0;
-#endif
-
         values[indT_K] = (MFTypeIn)metric_entry;
       } // indT_K
-
-#if 0
-      for (int indT_K = 0; indT_K < 2; ++indT_K) {
-
-        // Check against threshold.
-        const bool pass_threshold = Thresholds::is_pass_active(
-          //(Thresholds::Elt_t)values[indT_K], thresholds_data.data[0]);
-          (Thresholds::Elt_t)values[indT_K], threshold);
-  
-        // Apply threshold.
-        if (!pass_threshold)
-          values[indT_K] = (MFTypeIn)0;
-
-      } // indT_J
-#endif
 
       // Apply threshold part 1.
       thelper.add(thresholds_data, &dvo_this, indT_I, indT_J,
