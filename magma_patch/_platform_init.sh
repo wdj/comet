@@ -24,6 +24,7 @@ COMET_HOST="$(echo $(hostname -f) | \
 [[ "$COMET_HOST" = "cori" ]] && COMET_HOST="cgpu"
 [[ $(hostname -f | sed -e 's/.*\.//') = "juwels" ]] && COMET_HOST="juwels"
 # [[ $(echo "$COMET_HOST" | sed -e 's/.*\.//') = "jwlogin" ]] && COMET_HOST="jwlogin"
+[[ "${NERSC_HOST:-}" = "perlmutter" ]] && COMET_HOST="perlmutter"
 
 local COMET_PLATFORM=""
 [[ -n "${CRAYOS_VERSION:-}" ]] && COMET_PLATFORM=CRAY_XK7 # OLCF Titan, Chester
@@ -44,6 +45,7 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "birch" ]] && COMET_PLATFORM=BIRCH # OLCF-5 EA system.
 [[ "$COMET_HOST" = "borg" ]] && COMET_PLATFORM=BORG # OLCF-5 EA system.
 [[ "$COMET_HOST" = "bsd" ]] && COMET_PLATFORM=BSD # ORNL DGX-A100 system.
+[[ "$COMET_HOST" = "perlmutter" ]] && COMET_PLATFORM=PERLMUTTER # NERSC system.
 
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform. $COMET_HOST" 1>&2
@@ -1426,6 +1428,85 @@ elif [ $COMET_PLATFORM = BSD ] ; then
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
   local COMET_CAN_USE_MPI=OFF
+
+#----------------------------------------
+elif [ $COMET_PLATFORM = PERLMUTTER ] ; then
+#----------------------------------------
+
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
+  #---Modules etc.
+
+  module -q load PrgEnv-gnu
+  module -q load cpe-cuda
+  module -q load cmake
+  module list
+
+  #---Compiler.
+
+  local USE_GCC=ON
+  local COMET_C_COMPILER=$(which gcc) # presently unused
+  local COMET_CXX_COMPILER=$(which g++) # presently unused
+  local COMET_CXX_SERIAL_COMPILER=g++
+  #local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++17"
+  local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++14"
+
+  local USE_OPENMP=ON
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+
+  local COMET_USE_INT128=ON
+
+  #---Libraries.
+
+  #local USE_CUDA=OFF
+  local USE_CUDA=ON
+  local CUDA_ROOT=$CUDA_HOME
+  local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
+  #COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas_static -lcudart_static"
+  COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
+  #local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
+  #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80;-arch=sm_80"
+
+  local USE_CUTLASS=ON
+  #local USE_CUTLASS=OFF
+  #local COMET_CUTLASS_ARCH=Sm80
+  local COMET_COMPUTE_CAPABILITY=800
+  #COMET_WERROR=OFF
+
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=80
+  local COMET_MAGMA_MAKE_INC=make.inc.summit
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    #local COMET_MPI_CMAKE_OPTS="-DMPI_C_COMPILER:STRING=$COMET_C_COMPILER"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_C_INCLUDE_PATH:STRING=$CRAY_MPICH_DIR/include"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_C_LIBRARIES:STRING=$CRAY_MPICH_DIR/lib"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_COMPILER:STRING=$COMET_CXX_COMPILER"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH_DIR/include"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH_DIR/lib"
+    #local OPENMPI_DIR=$EBROOTOPENMPI
+    #local COMET_MPI_COMPILE_OPTS="-I$OPENMPI_DIR/include"
+    #local COMET_MPI_LINK_OPTS="-L$OPENMPI_DIR/lib -Wl,-rpath=$OPENMPI_DIR/lib -lmpi"
+    local COMET_MPI_COMPILE_OPTS="-I$CRAY_MPICH_DIR/include"
+    local COMET_MPI_LINK_OPTS="-L$CRAY_MPICH_DIR/lib -Wl,-rpath=$CRAY_MPICH_DIR/lib -lmpi"
+  fi
+
+  #---Testing.
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    # salloc --nodes 2 --qos interactive --time 04:00:00 --constraint gpu --gpus-per-node 4 --account=m1759_g
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=4 OMP_PROC_BIND=spread OMP_PLACES=threads srun -N 2 -n 64 --gpus-per-node 4 --cpus-per-task=2"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 -n 64 --gpus-per-node 4"
+  else
+    # salloc -N 1 --ntasks-per-node=1 --cpus-per-task=24 -G 1 -t 240 -A gronor -p booster
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=64 srun -n 1 -G 1"
+  fi
 
 #----------------------------------------
 else

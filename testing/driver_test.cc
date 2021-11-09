@@ -2078,7 +2078,8 @@ void DriverTest_threshold_() {
         "--metric_type %s "
         "--num_proc_vector %i "
         //"--num_field 71 --num_vector 17 " // takes too long for some cases.
-        "--num_field 23 --num_vector 13 "
+        //"--num_field 23 --num_vector 13 "
+        "--num_field 13 --num_vector 11 "
         //"--num_field 1 --num_vector 2 "
         //"--num_field 71 --num_vector 20 "
         "--num_way %i "
@@ -2106,12 +2107,13 @@ void DriverTest_threshold_() {
       const double tmax = 2 == num_way ? .99 : .65;
     for (int metric_type : {MT::CCC, MT::DUO})
     //for (int metric_type : {MT::CCC})
-    for (double threshold : {tmax, tmax*.8, tmax*.5, .01, 0.})
+    //for (double threshold : {tmax, tmax*.8, tmax*.5, .01, 0.})
+    for (double threshold : {tmax, tmax*.8, .01, 0.})
     //for (double threshold : {tmax})
     for (int compute_method : {CM::CPU, CM::GPU})
-    //for (int compute_method : {CM::CPU})
+    //for (int compute_method : {CM::GPU})
     for (int tc=1; tc<TC::NUM; ++tc) {
-    //for (int tc=3; tc<=3; ++tc) {
+    //for (int tc=2; tc<=2; ++tc) {
       // Some cases have too many thresholded values to be able to shrink.
       const bool is_trying_shrink = metrics_shrink > 1.+fuzz;
       if (is_trying_shrink && 2 == num_way &&
@@ -2122,6 +2124,11 @@ void DriverTest_threshold_() {
         continue;
       // Unimplemented.
       if (MT::CCC == metric_type && TC::B1 == tc) continue;
+
+      // Some cases take very long to run.
+      if (comet::BuildHas::DOUBLE_PREC && (1 != thresholds_case ||
+         tmax*.8 != threshold || TC::AUTO == tc)) continue;
+      //   (2 == tc || 4 == tc || 6 == tc))
 
       char thresholds1[1024];
       char thresholds2[1024];
@@ -2787,11 +2794,11 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
 
+#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2811,13 +2818,11 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, duo3_simple_sparse) {
   DriverTest_duo3_simple_sparse_();
 }
 
-#if 1
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }
@@ -2825,13 +2830,11 @@ TEST(DriverTest, ccc2_simple) {
 TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
 
-#if 1
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
