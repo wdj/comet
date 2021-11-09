@@ -2204,6 +2204,10 @@ void DriverTest_file_output_() {
     for (int all2all : {1})
     for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
     for (int compute_method : {CM::CPU, CM::GPU}) {
+      // Some cases take very long to run.
+      if (comet::BuildHas::DOUBLE_PREC && NumWay::_3 == num_way &&
+          COMET_COMPUTE_CAPABILITY >= 800) continue;
+
       const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
       const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
 
@@ -2227,6 +2231,10 @@ void DriverTest_file_output_() {
     //for (int metric_type : {MT::DUO})
     for (int compute_method : {CM::GPU})
     for (int tc : {TC::NO, TC::AUTO}) {
+      // Some cases take very long to run.
+      if (comet::BuildHas::DOUBLE_PREC && NumWay::_3 == num_way &&
+          COMET_COMPUTE_CAPABILITY >= 800) continue;
+
       const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
       const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
       //const int num_phase = 1;
