@@ -577,13 +577,17 @@ function main
 
   local CMAKE_EXTRA_OPTIONS=""
 
-  if [ "$USE_MPI" = ON ] ; then
+  #if [ "$USE_MPI" = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" ${COMET_MPI_CMAKE_OPTS:-} "
-  fi
+  #fi
 
-  if [ ${USE_CUDA:-OFF} = ON ] ; then
+  #if [ ${USE_CUDA:-OFF} = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" ${COMET_CUDA_CMAKE_OPTS:-} "
-  fi
+  #fi
+
+  #if [ ${USE_HIP:-OFF} = ON ] ; then
+    CMAKE_EXTRA_OPTIONS+=" ${COMET_HIP_CMAKE_OPTS:-} "
+  #fi
 
 #  local CMAKE_NVCC_OPTIONS=""
 #

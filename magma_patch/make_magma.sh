@@ -69,11 +69,13 @@ function do_make
 
   if [ ${USE_HIP:-OFF} = ON ] ; then
     cp make.inc-examples/make.inc.hip_openblas make.inc
+    local _CMGA_=$COMET_MAGMA_GPU_ARCH
 
     #sed -i -e 's/GPU_TARGET = gfx803 gfx900 gfx901/GPU_TARGET = gfx906 gfx908/' make.inc
-    sed -i -e 's/GPU_TARGET = gfx803 gfx900 gfx901/GPU_TARGET = gfx908 gfx90a/' make.inc
+    sed -i -e "s/GPU_TARGET = gfx803 gfx900 gfx901/GPU_TARGET = $_CMGA_/" make.inc
     #sed -i -e 's/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=gfx906,gfx908/' make.inc
-    sed -i -e 's/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=gfx908,gfx90a/' make.inc
+    #sed -i -e 's/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=gfx908,gfx90a/' make.inc
+    sed -i -e "s/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=$_CMGA_ -fno-legacy-pass-manager/" make.inc
 #    if [ ${USE_BLIS:-OFF} = ON ] ; then
 #      sed -i -e 's/lopenblas/lblis/' make.inc
 #      export OPENBLASDIR=$PWD/../../blis/blis

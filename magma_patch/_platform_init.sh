@@ -46,6 +46,7 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "borg" ]] && COMET_PLATFORM=BORG # OLCF-5 EA system.
 [[ "$COMET_HOST" = "bsd" ]] && COMET_PLATFORM=BSD # ORNL DGX-A100 system.
 [[ "$COMET_HOST" = "perlmutter" ]] && COMET_PLATFORM=PERLMUTTER # NERSC system.
+[[ "$COMET_HOST" = "bones" ]] && COMET_PLATFORM=BONES # NERSC system.
 
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform. $COMET_HOST" 1>&2
@@ -397,6 +398,8 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx908"
+
   COMET_WERROR=OFF
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
@@ -422,6 +425,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=gfx908
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -573,6 +577,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   # https://llvm.org/docs/AMDGPUUsage.html
 
+  local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx908"
+
   if [ -e $ROCM_PATH/include/gtest ] ; then
     # Poplar has gtest built-in.
     local COMET_TEST_COMPILE_OPTS=""
@@ -608,6 +614,7 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
 
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=gfx908
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local MPI_HOME=$(echo $PATH | sed 's,\(^\|.*:\)\([^:]*mvapich2[^:]*\)/bin.*,\2,')
@@ -1077,6 +1084,8 @@ elif [ $COMET_PLATFORM = SPOCK ] ; then
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx906 --offload-arch=gfx908"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx908"
+
   COMET_WERROR=OFF
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
@@ -1102,6 +1111,7 @@ elif [ $COMET_PLATFORM = SPOCK ] ; then
 
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=gfx908
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1209,6 +1219,8 @@ elif [ $COMET_PLATFORM = BIRCH ] ; then
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx908"
+
   COMET_WERROR=OFF
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
@@ -1246,6 +1258,7 @@ elif [ $COMET_PLATFORM = BIRCH ] ; then
 
   #local COMET_CAN_USE_MPI=OFF
   local COMET_CAN_USE_MPI=ON
+  local COMET_MAGMA_GPU_ARCH=gfx908
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     local COMET_MPI_COMPILE_OPTS="-I$CRAY_MPICH_DIR/include"
@@ -1295,7 +1308,8 @@ elif [ $COMET_PLATFORM = BORG ] ; then
 
   #---Modules etc.
 
-  module load cmake/3.20.2
+  #module load cmake/3.20.2
+  module load cmake
   module load rocm
   (module list) 2>&1 | grep -v '^ *$'
 
@@ -1329,6 +1343,8 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx90a"
+
   COMET_WERROR=OFF
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
@@ -1354,6 +1370,7 @@ elif [ $COMET_PLATFORM = BORG ] ; then
 
   local USE_MAGMA=OFF
   #local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=gfx90a
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1507,6 +1524,114 @@ elif [ $COMET_PLATFORM = PERLMUTTER ] ; then
     # salloc -N 1 --ntasks-per-node=1 --cpus-per-task=24 -G 1 -t 240 -A gronor -p booster
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=64 srun -n 1 -G 1"
   fi
+
+#----------------------------------------
+elif [ $COMET_PLATFORM = BONES ] ; then
+#----------------------------------------
+
+  #---Modules etc.
+
+  #module load cmake/3.20.2
+  module load cmake
+  module load rocm
+  (module list) 2>&1 | grep -v '^ *$'
+
+  local ROCBLAS_PATH=$ROCM_PATH
+
+  #---Compiler.
+
+  local USE_GCC=OFF
+  #local COMET_C_COMPILER=$(which gcc) # presently unused
+  local COMET_C_COMPILER=clang
+  local COMET_CXX_COMPILER=hipcc
+  local COMET_CXX_SERIAL_COMPILER=hipcc
+
+  local USE_OPENMP=OFF
+
+  local USE_HIP=ON
+  local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
+  COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
+  COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
+  COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
+  #COMET_HIP_COMPILE_OPTS+=" --amdgpu-target=gfx906,gfx908"
+  COMET_HIP_COMPILE_OPTS+=" --offload-arch=gfx908"
+  COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
+  COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
+  #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
+  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
+  local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
+  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  #COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
+  COMET_HIP_LINK_OPTS+=" --offload-arch=gfx908"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+
+  local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx908"
+
+  COMET_WERROR=OFF
+
+# If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
+
+  #---Libraries.
+
+  #local USE_BLIS=ON
+  local USE_BLIS=OFF
+
+  #local USE_LAPACK=OFF
+  local USE_LAPACK=ON
+
+  if [ "${USE_BLIS:-OFF}" != OFF ] ; then
+    local USE_CPUBLAS=ON
+  elif [ "${USE_LAPACK:-OFF}" != OFF ] ; then
+    local USE_CPUBLAS=ON
+  else
+    local USE_CPUBLAS=ON
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
+    local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
+  fi
+
+  local USE_MAGMA=OFF
+  #local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=gfx908
+
+#  if [ "${BLIS_PATH:-}" != "" ] ; then
+#    local USE_CPUBLAS=ON
+#    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/generic"
+#    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
+#    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/generic"
+#    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/generic -lblis"
+#    # ./configure --disable-threading --enable-cblas generic
+#  fi
+
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_MPI_COMPILE_OPTS="-I$CRAY_MPICH_DIR/include"
+    local COMET_MPI_LINK_OPTS="-L$CRAY_MPICH_DIR/lib -Wl,-rpath,$CRAY_MPICH_DIR/lib -lmpi"
+
+    local COMET_CMAKE_USE_MPI=OFF
+  fi
+
+  #---Testing.
+
+  #COMET_USE_GTEST=OFF
+
+  #XXX salloc -N2 -A stf006 $SHELL
+  #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
+  #XXX salloc -N2 -A stf006 $SHELL
+  #XXX salloc -N2 -A stf006 $SHELL
+  # salloc -N1 -A stf006 -t 360
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+  else
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
+  fi
+  #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
+  #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
 
 #----------------------------------------
 else
