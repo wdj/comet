@@ -338,20 +338,25 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_minproduct_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    buf->h = (GMFloat*)::malloc(n*sizeof(GMFloat));
-#else
-    if (env.is_double_prec()) {
-      magma_code = magma_minproduct_dmalloc_pinned((double**)&buf->h, n);
-      COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-        "Memory allocation error, possibly due to insufficient CPU memory.");
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      buf->h = (GMFloat*)::malloc(n*sizeof(GMFloat));
+//#else
     } else {
-      magma_code = magma_minproduct_smalloc_pinned((float**)&buf->h, n);
-      COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-        "Memory allocation error, possibly due to insufficient CPU memory.");
+      if (env.is_double_prec()) {
+        magma_code = magma_minproduct_dmalloc_pinned((double**)&buf->h, n);
+        COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
+          "Memory allocation error, possibly due to insufficient CPU memory.");
+        COMET_INSIST(System::accel_last_call_succeeded());
+      } else {
+        magma_code = magma_minproduct_smalloc_pinned((float**)&buf->h, n);
+        COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
+          "Memory allocation error, possibly due to insufficient CPU memory.");
+        COMET_INSIST(System::accel_last_call_succeeded());
+      }
     }
-#endif
+//#endif
     GMFloat_fill_nan((GMFloat*)buf->h, n);
 
     if (env.is_compute_method_gpu()) {
@@ -359,10 +364,12 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
         magma_code = magma_minproduct_dmalloc((double**)&buf->d, n);
         COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
           "Memory allocation error, possibly due to insufficient GPU memory.");
+        COMET_INSIST(System::accel_last_call_succeeded());
       } else {
         magma_code = magma_minproduct_smalloc((float**)&buf->d, n);
         COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
           "Memory allocation error, possibly due to insufficient GPU memory.");
+        COMET_INSIST(System::accel_last_call_succeeded());
       }
     }
     // TODO: ? fill GPU memory with NaNs
@@ -373,19 +380,24 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm4_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
-#else
-    magma_code = magma_mgemm4_zmalloc_pinned((Float_t**)&buf->h, n);
-    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-      "Memory allocation error, possibly due to insufficient CPU memory.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+//#else
+    } else {
+      magma_code = magma_mgemm4_zmalloc_pinned((Float_t**)&buf->h, n);
+      COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
+        "Memory allocation error, possibly due to insufficient CPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm4_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
         "Memory allocation error, possibly due to insufficient GPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else if (use_mgemm2_(env)) { //--------------------
@@ -394,19 +406,24 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm2_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
-#else
-    magma_code = magma_mgemm2_zmalloc_pinned((Float_t**)&buf->h, n);
-    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-      "Memory allocation error, possibly due to insufficient CPU memory.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+//#else
+    } else {
+      magma_code = magma_mgemm2_zmalloc_pinned((Float_t**)&buf->h, n);
+      COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
+        "Memory allocation error, possibly due to insufficient CPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm2_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
         "Memory allocation error, possibly due to insufficient GPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else if (use_mgemm3_(env)) { //--------------------
@@ -415,19 +432,24 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm3_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
-#else
-    magma_code = magma_mgemm3_zmalloc_pinned((Float_t**)&buf->h, n);
-    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-      "Memory allocation error, possibly due to insufficient CPU memory.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+//#else
+    } else {
+      magma_code = magma_mgemm3_zmalloc_pinned((Float_t**)&buf->h, n);
+      COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
+        "Memory allocation error, possibly due to insufficient CPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm3_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
         "Memory allocation error, possibly due to insufficient GPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else if (use_mgemm5_(env)) { //--------------------
@@ -436,19 +458,24 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm5_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
-#else
-    magma_code = magma_mgemm5_zmalloc_pinned((Float_t**)&buf->h, n);
-    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-      "Memory allocation error, possibly due to insufficient CPU memory.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+//#else
+    } else {
+      magma_code = magma_mgemm5_zmalloc_pinned((Float_t**)&buf->h, n);
+      COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
+        "Memory allocation error, possibly due to insufficient CPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm5_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
         "Memory allocation error, possibly due to insufficient GPU memory.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else { //--------------------
@@ -482,90 +509,115 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
 
     magma_minproduct_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    ::free(buf->h);
-#else
-    magma_code = magma_minproduct_free_pinned(buf->h);
-    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-      "Error in CPU memory free.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      ::free(buf->h);
+//#else
+    } else {
+      magma_code = magma_minproduct_free_pinned(buf->h);
+      COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
+        "Error in CPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_minproduct_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
         "Error in GPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else if (use_mgemm4_(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    ::free(buf->h);
-#else
-    magma_code = magma_mgemm4_free_pinned(buf->h);
-    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-             "Error in magma_mgemm4_free_pinned.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      ::free(buf->h);
+//#else
+    } else {
+      magma_code = magma_mgemm4_free_pinned(buf->h);
+      COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
+               "Error in magma_mgemm4_free_pinned.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm4_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
         "Error in GPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else if (use_mgemm2_(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    ::free(buf->h);
-#else
-    magma_code = magma_mgemm2_free_pinned(buf->h);
-    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-      "Error in CPU memory free.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      ::free(buf->h);
+//#else
+    } else {
+      magma_code = magma_mgemm2_free_pinned(buf->h);
+      COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
+        "Error in CPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm2_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
         "Error in GPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else if (use_mgemm3_(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    ::free(buf->h);
-#else
-    magma_code = magma_mgemm3_free_pinned(buf->h);
-    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-      "Error in CPU memory free.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      ::free(buf->h);
+//#else
+    } else {
+      magma_code = magma_mgemm3_free_pinned(buf->h);
+      COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
+        "Error in CPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm3_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
         "Error in GPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else if (use_mgemm5_(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = 0;
 
-#ifdef COMET_PLATFORM_CORI_GPU
-    // WORKAROUND
-    ::free(buf->h);
-#else
-    magma_code = magma_mgemm5_free_pinned(buf->h);
-    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-      "Error in CPU memory free.");
-#endif
+//#ifdef COMET_PLATFORM_CORI_GPU
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      ::free(buf->h);
+//#else
+    } else {
+      magma_code = magma_mgemm5_free_pinned(buf->h);
+      COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
+        "Error in CPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
+//#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm5_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
         "Error in GPU memory free.");
+      COMET_INSIST(System::accel_last_call_succeeded());
     }
 
   } else { //--------------------
@@ -604,6 +656,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
       (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
        //(double*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
        (double*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_minproduct_(env)) { //--------------------
 
@@ -612,6 +665,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
       (Magma_minproductFull, mat_dim1, mat_dim2, (float)0, (float)0,
        //(float*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
        (float*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm4_(env)) { //--------------------
 
@@ -623,6 +677,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     magma_mgemm4blas_zlaset(Magma_mgemm4Full, mat_dim1, mat_dim2, zero, zero,
       //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM4>().compute(env)));
       (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM4>>()));
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -634,6 +689,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     magma_mgemm2blas_zlaset(Magma_mgemm2Full, mat_dim1, mat_dim2, zero, zero,
       //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM2>().compute(env)));
       (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM2>>()));
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm3_(env)) { //--------------------
 
@@ -645,6 +701,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     magma_mgemm3blas_zlaset(Magma_mgemm3Full, mat_dim1, mat_dim2, zero, zero,
       //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM3>().compute(env)));
       (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM3>>()));
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm5_(env)) { //--------------------
 
@@ -656,6 +713,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     magma_mgemm5blas_zlaset(Magma_mgemm5Full, mat_dim1, mat_dim2, zero, zero,
       //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM5>().compute(env)));
       (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM5>>()));
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { //--------------------
 
@@ -1015,6 +1073,7 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
       //MagmaQueue<MW::MINPRODUCT>().togpu(env));
       //MagmaQueue<MW::MINPRODUCT>().togpu(env));
       //(Float_t*)buf->d, buf->dim0, env.stream_togpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_minproduct_(env)) { //--------------------
 
@@ -1026,6 +1085,7 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
       env.queue_togpu<MagmaQueue<MagmaCloneId::MINPRODUCT>>());
       //MagmaQueue<MW::MINPRODUCT>().togpu(env));
       //(Float_t*)buf->d, buf->dim0, env.stream_togpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
 //#   if ! defined COMET_USE_MAGMA_V2
 //#   endif
@@ -1039,6 +1099,7 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
                                   env.queue_togpu<MagmaQueue<MagmaCloneId::MGEMM4>>());
                                   //MagmaQueue<MW::MGEMM4>().togpu(env));
                                   //env.stream_togpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -1049,6 +1110,7 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
                                   env.queue_togpu<MagmaQueue<MagmaCloneId::MGEMM2>>());
                                   //MagmaQueue<MW::MGEMM2>().togpu(env));
                                   //env.stream_togpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm3_(env)) { //--------------------
 
@@ -1069,6 +1131,7 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
                                   env.queue_togpu<MagmaQueue<MagmaCloneId::MGEMM5>>());
                                   //MagmaQueue<MW::MGEMM5>().togpu(env));
                                   //env.stream_togpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { //--------------------
 
@@ -1115,6 +1178,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
       env.queue_fromgpu<MagmaQueue<MagmaCloneId::MINPRODUCT>>());
       //MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
       //env.stream_fromgpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_minproduct_(env)) { //--------------------
 
@@ -1126,6 +1190,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
       env.queue_fromgpu<MagmaQueue<MagmaCloneId::MINPRODUCT>>());
       //MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
       //env.stream_fromgpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm4_(env)) { //--------------------
 
@@ -1136,6 +1201,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
                                   env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM4>>());
                                   //MagmaQueue<MW::MGEMM4>().fromgpu(env));
                                   //env.stream_fromgpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -1146,6 +1212,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
                                   env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM2>>());
                                   //MagmaQueue<MW::MGEMM2>().fromgpu(env));
                                   //env.stream_fromgpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm3_(env)) { //--------------------
 
@@ -1156,6 +1223,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
                                   env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM3>>());
                                   //MagmaQueue<MW::MGEMM3>().fromgpu(env));
                                   //env.stream_fromgpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else if (use_mgemm5_(env)) { //--------------------
 
@@ -1166,6 +1234,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
                                   env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM5>>());
                                   //MagmaQueue<MW::MGEMM5>().fromgpu(env));
                                   //env.stream_fromgpu());
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { //--------------------
 

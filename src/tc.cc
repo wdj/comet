@@ -421,6 +421,7 @@ void TCBufs::malloc(int num_vector_local,
     // Allocate buffers.
 
 #   if defined COMET_USE_CUDA
+//printf("3a %zu %i\n", tc_bufs.tc_buf_size, System::proc_num());
       cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #   elif defined COMET_USE_HIP
       hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
@@ -429,6 +430,7 @@ void TCBufs::malloc(int num_vector_local,
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
 #   if defined COMET_USE_CUDA
+//printf("3b %zu %i\n", tc_bufs.tc_buf_size, System::proc_num());
       cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #   elif defined COMET_USE_HIP
       hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
@@ -437,6 +439,7 @@ void TCBufs::malloc(int num_vector_local,
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
 #   if defined COMET_USE_CUDA
+//printf("3c %zu %i\n", tc_bufs.matX_counts_size, System::proc_num());
       cudaMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
 #   elif defined COMET_USE_HIP
       hipMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);

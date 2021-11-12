@@ -146,15 +146,16 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   size_allocated_ = num_elts_ * elt_size_;
   size_allocated_ = size_allocated_ ? size_allocated_ : 1;
 # if defined COMET_USE_CUDA
-//#ifdef COMET_PLATFORM_CORI_GPU
-#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
-    // WORKAROUND
-    h = malloc(size_allocated_);
-#else
-    cudaMallocHost((void**)&h, size_allocated_);
-#endif
+//#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
+    if (System::compute_capability() >= 800) {
+      // WORKAROUND
+      h = malloc(size_allocated_);
+    } else {
+      cudaMallocHost((void**)&h, size_allocated_);
+    }
     COMET_INSIST(System::accel_last_call_succeeded());
     if (env_.is_compute_method_gpu()) {
+//printf("1 %zu %i\n", size_allocated_, System::proc_num());
       cudaMalloc((void**)&d, size_allocated_);
       COMET_INSIST(System::accel_last_call_succeeded());
     }
@@ -202,6 +203,7 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
 
   if (use_linalg_) {
 
+//printf("2 %zu %i\n", size_allocated_, System::proc_num());
     MagmaWrapper::malloc(this, dim0_, dim1_, env_);
 
     env_.cpu_mem_local_inc(size_allocated_);
@@ -269,13 +271,13 @@ void MirroredBuf::deallocate() {
     } else {
 
 #     if defined COMET_USE_CUDA
-//#ifdef COMET_PLATFORM_CORI_GPU
-#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
-        // WORKAROUND
-        free(h);
-#else
-        cudaFreeHost(h);
-#endif
+//#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
+        if (System::compute_capability() >= 800) {
+          // WORKAROUND
+          free(h);
+        } else {
+          cudaFreeHost(h);
+        }
         COMET_INSIST(System::accel_last_call_succeeded());
         if (env_.is_compute_method_gpu()) {
           cudaFree(d);
