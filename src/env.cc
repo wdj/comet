@@ -98,14 +98,18 @@ int System::compute_capability() {
   //// Assume only one GPU per rank.
   //cudaDeviceProp device_prop;
   //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
-  const int compute_capability = error != cudaSuccess ? 0 :
+  int num_devices;
+  cudaGetDeviceCount(&num_devices);
+  const int compute_capability = num_devices == 0 ? 0 :
     device_prop.major * 100 + device_prop.minor;
 #elif defined COMET_USE_HIP
   //hipDeviceProp_t device_prop;
   //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
   //const int compute_capability = device_prop.major * 100 + device_prop.minor;
   // This seems more stable than major/minor.
-  const int compute_capability = device_prop.gcnArch;
+  int num_devices;
+  hipGetDeviceCount(&num_devices);
+  const int compute_capability = num_devices == 0 ? 0 : device_prop.gcnArch;
 #else
   no_unused_variable_warning(device_prop);
   const int compute_capability = 0;
@@ -123,11 +127,15 @@ int System::pci_bus_id() {
   //// Assume only one GPU per rank.
   //cudaDeviceProp device_prop;
   //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
-  const int pci_bus_id = error != cudaSuccess ? 0 : device_prop.pciBusID;
+  int num_devices;
+  cudaGetDeviceCount(&num_devices);
+  const int pci_bus_id = num_devices == 0 ? 0 : device_prop.pciBusID;
 #elif defined COMET_USE_HIP
   //hipDeviceProp_t device_prop;
   //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
-  const int pci_bus_id = device_prop.pciBusID;
+  int num_devices;
+  hipGetDeviceCount(&num_devices);
+  const int pci_bus_id = num_devices == 0 ? 0 :device_prop.pciBusID;
 #else
   no_unused_variable_warning(device_prop);
   const int pci_bus_id = 0;
@@ -145,11 +153,15 @@ int System::pci_domain_id() {
   //// Assume only one GPU per rank.
   //cudaDeviceProp device_prop;
   //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
-  const int pci_domain_id = error != cudaSuccess ? 0 : device_prop.pciDomainID;
+  int num_devices;
+  cudaGetDeviceCount(&num_devices);
+  const int pci_domain_id = num_devices == 0 ? 0 : device_prop.pciDomainID;
 #elif defined COMET_USE_HIP
   //hipDeviceProp_t device_prop;
   //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
-  const int pci_domain_id = device_prop.pciDomainID;
+  int num_devices;
+  hipGetDeviceCount(&num_devices);
+  const int pci_domain_id = num_devices == 0 ? 0 : device_prop.pciDomainID;
 #else
   no_unused_variable_warning(device_prop);
   const int pci_domain_id = 0;
@@ -204,17 +216,18 @@ bool System::is_in_parallel_region() {
 
 System::accelDeviceProp_t& System::get_device_prop() {
   // NOTE: local static variable.
-  static accelDeviceProp_t device_prop;
+  static accelDeviceProp_t device_prop = {};
   static bool is_initialized = false;
   if (!is_initialized) {
 #if defined COMET_USE_CUDA
     const cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+    no_unused_variable_warning(error);
 #elif defined COMET_USE_HIP
     hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
 #else
     device_prop = 0;
 #endif
-    COMET_INSIST(System::accel_last_call_succeeded());
+    //COMET_INSIST(System::accel_last_call_succeeded());
     is_initialized = true;
   }
   return device_prop;
