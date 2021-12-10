@@ -93,19 +93,21 @@ int System::proc_num() {
 /// \brief Accelerator compute capability.
 
 int System::compute_capability() {
+  const accelDeviceProp_t device_prop = get_device_prop();
 #if defined COMET_USE_CUDA
-  cudaDeviceProp deviceProp;
-  // Assume only one GPU per rank.
-  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
+  //// Assume only one GPU per rank.
+  //cudaDeviceProp device_prop;
+  //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
   const int compute_capability = error != cudaSuccess ? 0 :
-    deviceProp.major * 100 + deviceProp.minor;
+    device_prop.major * 100 + device_prop.minor;
 #elif defined COMET_USE_HIP
-  hipDeviceProp_t deviceProp;
-  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-  //const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  //hipDeviceProp_t device_prop;
+  //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+  //const int compute_capability = device_prop.major * 100 + device_prop.minor;
   // This seems more stable than major/minor.
-  const int compute_capability = deviceProp.gcnArch;
+  const int compute_capability = device_prop.gcnArch;
 #else
+  no_unused_variable_warning(device_prop);
   const int compute_capability = 0;
 #endif
   COMET_INSIST(System::accel_last_call_succeeded());
@@ -116,16 +118,18 @@ int System::compute_capability() {
 /// \brief Accelerator pci bus id.
 
 int System::pci_bus_id() {
+  const accelDeviceProp_t device_prop = get_device_prop();
 #if defined COMET_USE_CUDA
-  cudaDeviceProp deviceProp;
-  // Assume only one GPU per rank.
-  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
-  const int pci_bus_id = error != cudaSuccess ? 0 : deviceProp.pciBusID;
+  //// Assume only one GPU per rank.
+  //cudaDeviceProp device_prop;
+  //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+  const int pci_bus_id = error != cudaSuccess ? 0 : device_prop.pciBusID;
 #elif defined COMET_USE_HIP
-  hipDeviceProp_t deviceProp;
-  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-  const int pci_bus_id = deviceProp.pciBusID;
+  //hipDeviceProp_t device_prop;
+  //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+  const int pci_bus_id = device_prop.pciBusID;
 #else
+  no_unused_variable_warning(device_prop);
   const int pci_bus_id = 0;
 #endif
   COMET_INSIST(System::accel_last_call_succeeded());
@@ -136,16 +140,18 @@ int System::pci_bus_id() {
 /// \brief Accelerator pci domain id.
 
 int System::pci_domain_id() {
+  const accelDeviceProp_t device_prop = get_device_prop();
 #if defined COMET_USE_CUDA
-  cudaDeviceProp deviceProp;
-  // Assume only one GPU per rank.
-  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
-  const int pci_domain_id = error != cudaSuccess ? 0 : deviceProp.pciDomainID;
+  //// Assume only one GPU per rank.
+  //cudaDeviceProp device_prop;
+  //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+  const int pci_domain_id = error != cudaSuccess ? 0 : device_prop.pciDomainID;
 #elif defined COMET_USE_HIP
-  hipDeviceProp_t deviceProp;
-  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-  const int pci_domain_id = deviceProp.pciDomainID;
+  //hipDeviceProp_t device_prop;
+  //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+  const int pci_domain_id = device_prop.pciDomainID;
 #else
+  no_unused_variable_warning(device_prop);
   const int pci_domain_id = 0;
 #endif
   COMET_INSIST(System::accel_last_call_succeeded());
@@ -180,6 +186,38 @@ bool System::accel_last_call_succeeded() {
 #endif
 
   return true;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Are we in an openmp parallel region.
+
+bool System::is_in_parallel_region() {
+# if COMET_USE_OPENMP
+    return omp_in_parallel();
+# else
+    return false;
+# endif
+};
+
+//-----------------------------------------------------------------------------
+/// \brief System utility function.
+
+System::accelDeviceProp_t& System::get_device_prop() {
+  // NOTE: local static variable.
+  static accelDeviceProp_t device_prop;
+  static bool is_initialized = false;
+  if (!is_initialized) {
+#if defined COMET_USE_CUDA
+    const cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+#elif defined COMET_USE_HIP
+    hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+#else
+    device_prop = 0;
+#endif
+    COMET_INSIST(System::accel_last_call_succeeded());
+    is_initialized = true;
+  }
+  return device_prop;
 }
 
 //=============================================================================

@@ -65,6 +65,8 @@ struct System {
   static double time();
   static bool accel_last_call_succeeded();
 
+  static bool is_in_parallel_region();
+#if 0
   static bool is_in_parallel_region() {
 #   if COMET_USE_OPENMP
       return omp_in_parallel();
@@ -72,6 +74,19 @@ struct System {
       return false;
 #   endif
   };
+#endif
+
+private:
+
+#if defined COMET_USE_CUDA
+  typedef cudaDeviceProp accelDeviceProp_t;
+#elif defined COMET_USE_HIP
+  typedef hipDeviceProp_t accelDeviceProp_t;
+#else
+  typedef int accelDeviceProp_t;
+#endif
+
+  static accelDeviceProp_t& get_device_prop();
 };
 
 namespace utils {
