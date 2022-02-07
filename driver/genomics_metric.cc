@@ -537,7 +537,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     "--num_field 1280000 --num_vector_local 4000 --metric_type ccc --sparse no "
     "--all2all yes --compute_method GPU --num_proc_vector %i "
     "--num_proc_field 1 --num_phase 1 --phase_min 0 --phase_max 0 "
-    "--checksum no --verbosity 0";
+    "--checksum no --verbosity 0 --tc 4";
 #endif
 
   char options[1024];
@@ -644,10 +644,11 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 void perform_run_preflight(int argc, char** argv) {
 
 // TODO: make this better.
-#ifdef COMET_USE_MAGMA
+//#ifdef COMET_USE_MAGMA
   CEnv env(MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
-  if (env.compute_method() == ComputeMethod::GPU) {
+  if (env.compute_method() == ComputeMethod::GPU &&
+      (env.metric_type() != MetricType::CZEK || BuildHas::MAGMA)) {
 
     // Perform preliminary run on GPU since sometimes first use is slower.
 
@@ -665,6 +666,7 @@ void perform_run_preflight(int argc, char** argv) {
           "--metric_type duo --sparse yes "
           "--num_field 262144 --num_vector_local 12288 "
 #else
+          //"--num_field 262144 --num_vector_local 12288 "
           "--num_field 768 --num_vector_local 768 "
           "--metric_type ccc "
 #endif
@@ -677,7 +679,7 @@ void perform_run_preflight(int argc, char** argv) {
     perform_run(options1);
   }
 
-#endif
+//#endif
 }
 
 //=============================================================================
@@ -710,6 +712,7 @@ int main(int argc, char** argv) {
 
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  //printf("%i %f\n", rank, System::time()-t1);
 
   if (argc == 1) {
     if (rank == 0) {
@@ -763,6 +766,7 @@ int main(int argc, char** argv) {
   }
 
   COMET_MPI_SAFE_CALL(MPI_Finalize());
+
   return 0;
 }
 

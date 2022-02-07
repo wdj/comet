@@ -922,9 +922,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             if (num_incorrect < max_to_print)
               fprintf(stderr, "Error: incorrect result detected.  "
                      "coords %zu %zu %zu  %i %i %i  "
-                     "expected %.20e  actual %.20e  diff %.20e\n",
+                     "expected %.20e  actual %.20e  diff %.20e  exp2 %.20e\n",
                      iG, jG, kG, iE, jE, kE,
-                     (double)value_expected, (double)value, diff);
+                     (double)value_expected, (double)value, diff, value_expected_nothreshold);
           } // is_correct
 
           num_incorrect += is_incorrect;
