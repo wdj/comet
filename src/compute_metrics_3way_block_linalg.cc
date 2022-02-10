@@ -868,6 +868,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const int J_block = si->perm1(i_block, j_block, k_block);
   const int K_block = si->perm2(i_block, j_block, k_block);
 
+//FIX
+  TCDebug tc_debug;
+//  tc_debug.I_base = I_block * nvl;
+//  tc_debug.J_base = J_block * nvl;
+//  tc_debug.K_base = K_block * nvl;
+
   const int J_min = si->J_lb;
   const int J_max = si->J_ub;
   const int J_count = J_max - J_min;
@@ -1039,7 +1045,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           vars.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
-          vars.J, vars.step_2way, *dm, magma_wrapper, vars.gemm_shapes, env_);
+          vars.J, vars.step_2way, *dm, magma_wrapper, vars.gemm_shapes, env_, tc_debug);
     }
 
     //========== Copy result matrix matB from GPU - WAIT

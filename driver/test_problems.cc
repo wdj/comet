@@ -673,6 +673,12 @@ static GMFloat metric_value_analytic_(size_t vi,
                  recip_ci, recip_cj, recip_ck, recip_sumcijk, env) :
         ccc_duo_value<CBPE::DUO>(rijk, si, sj, sk,
                  recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
+
+//FIX
+//if (iG==959557 && jG==567161 && kG==14914 && iE==1 && jE==1 && kE==0)
+//printf("%f %f %f %f %f %f %f %f\n",
+//(double)rijk, (double)si, (double)sj, (double)sk, (double)recip_ci, (double)recip_cj, (double)recip_ck, (double)recip_sumcijk);
+
     } // is_zero_denom
 
   return value;

@@ -545,6 +545,7 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 //  Thresholds::Elt_t threshold,
   bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
   GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
@@ -739,6 +740,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 //  Thresholds::Elt_t threshold,
   bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
   GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo);
@@ -905,6 +907,42 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
             rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
             recip_sumcijk, multiplier, param);
 
+#if 0
+//FIX
+const size_t IG = tc_debug.I_base + I;
+const size_t JG = tc_debug.J_base + J;
+const size_t KG = tc_debug.K_base + K;
+
+if (
+(
+IG==959557
+||
+JG==959557
+||
+KG==959557
+)
+&&
+(
+IG==567161
+||
+JG==567161
+||
+KG==567161
+)
+&&
+(
+IG==14914
+||
+JG==14914
+||
+KG==14914
+)
+)
+printf(
+"%f %f %f %f %f %f %f %f %f %f\n",
+(double)rijk, (double)sI, (double)sJ, (double)sK, (double)recip_cI, (double)recip_cJ, (double)recip_cK, (double)recip_sumcijk, (double)multiplier, (double)param);
+
+#endif
 
         // Save entry to store into histogram.
         hhelper.add(metric_entry, indT_I, indT_J, indT_K);
@@ -942,6 +980,7 @@ __global__ void tc_threshold_2way_kernel_(
 //  Thresholds::Elt_t threshold,
   bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
   GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
@@ -962,6 +1001,7 @@ __global__ void tc_threshold_2way_kernel_(
 //    threshold,
     is_using_xor,
     thresholds_data,
+    tc_debug,
     histograms_ptr, num_buckets, gemm_shape);
 }
 
@@ -980,6 +1020,7 @@ __global__ void tc_threshold_3way_kernel_(
 //  Thresholds::Elt_t threshold,
   bool is_using_xor,
   const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
   Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
   GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo);
@@ -1002,6 +1043,7 @@ __global__ void tc_threshold_3way_kernel_(
 //    threshold,
     is_using_xor,
     thresholds_data,
+    tc_debug,
     histograms_ptr, num_buckets, gemm_shape);
 }
 
@@ -1014,7 +1056,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way,
   Histograms& histograms, GemmShapes& gemm_shapes,
-  CEnv& env) {
+  CEnv& env, TCDebug tc_debug) {
 
   const int nvllX2 = nvll * 2;
   const int nvllD2 = nvll / 2;
@@ -1067,6 +1109,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
 //          threshold,
           is_using_xor,
           thresholds_data,
+          tc_debug,
           histograms.get_ptr(), histograms.num_buckets(),
           *gemm_shapes.gemm_shape_2way);
 
@@ -1080,7 +1123,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           param, multiplier,
 //          threshold,
           is_using_xor,
-          thresholds_data);
+          thresholds_data, tc_debug);
 
       }
 
@@ -1099,6 +1142,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
 //          threshold,
           is_using_xor,
           thresholds_data,
+          tc_debug,
           histograms.get_ptr(), histograms.num_buckets(),
           *gemm_shapes.gemm_shape_3way);
 
@@ -1113,7 +1157,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           J, step_2way, param, multiplier,
 //          threshold,
           is_using_xor,
-          thresholds_data);
+          thresholds_data, tc_debug);
 
       }
 
@@ -1137,6 +1181,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
  //             threshold,
               is_using_xor,
               thresholds_data,
+              tc_debug,
               histograms.get_ptr(), histograms.num_buckets(),
               *gemm_shapes.gemm_shape_2way);
           } // for
@@ -1152,7 +1197,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
               param, multiplier,
 //              threshold,
               is_using_xor,
-              thresholds_data);
+              thresholds_data, tc_debug);
           } // for
         } // for
 
@@ -1171,6 +1216,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
 //              threshold,
               is_using_xor,
               thresholds_data,
+              tc_debug,
               histograms.get_ptr(), histograms.num_buckets(),
               *gemm_shapes.gemm_shape_3way);
           } // for
@@ -1187,7 +1233,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
               J, step_2way, param, multiplier,
 //              threshold,
               is_using_xor,
-              thresholds_data);
+              thresholds_data, tc_debug);
           } // for
         } // for
 
@@ -1204,7 +1250,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way,
-  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env) {
+  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
   COMET_INSIST(vo);
   COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
@@ -1232,7 +1278,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     } else if (!env.thresholds().is_multi()) {
 
@@ -1240,7 +1286,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     } else if (env.num_way() == NumWay::_2) {
 
@@ -1248,7 +1294,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     } else {
 
@@ -1256,7 +1302,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     }
 
@@ -1270,7 +1316,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     } else if (!env.thresholds().is_multi()) {
 
@@ -1278,7 +1324,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     } else if (env.num_way() == NumWay::_2) {
 
@@ -1286,7 +1332,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     } else {
 
@@ -1294,7 +1340,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       tc_threshold_per_CBPE_<CBPE, MF, ThresholdsHelper>(
         nvll, nvl, vo, sums_I, sums_J, sums_K,
         counts_I, counts_J, counts_K, matX_counts, J, step_2way,
-        histograms, gemm_shapes, env);
+        histograms, gemm_shapes, env, tc_debug);
 
     }
 
@@ -1309,7 +1355,7 @@ void tc_out_( int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K,
   uint32_t* matX_counts, int J, int step_2way,
-  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env) {
+  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
@@ -1322,7 +1368,7 @@ void tc_out_( int nvll, int nvl, void* vo,
   if (env.is_threshold_tc())
     tc_threshold_<METRIC_FORMAT>(nvll, nvl, vo,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
-      J, step_2way, histograms, gemm_shapes, env);
+      J, step_2way, histograms, gemm_shapes, env, tc_debug);
 }
 
 //=============================================================================

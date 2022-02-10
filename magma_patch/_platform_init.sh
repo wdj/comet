@@ -1644,7 +1644,8 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
 
   #module load cmake/3.20.2
   module load cmake
-  module load rocm
+  #module load rocm
+  module load rocm/4.5.2
   (module list) 2>&1 | grep -v '^ *$'
 
   local ROCBLAS_PATH=$ROCM_PATH
@@ -1654,10 +1655,12 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   local USE_GCC=OFF
   #local COMET_C_COMPILER=$(which gcc) # presently unused
   local COMET_C_COMPILER=clang
-  local COMET_CXX_COMPILER=hipcc
-  local COMET_CXX_SERIAL_COMPILER=hipcc
+  local COMET_CXX_COMPILER=hipcc # amdclang
+  local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
 
-  local USE_OPENMP=OFF
+  #local USE_OPENMP=OFF
+  local USE_OPENMP=ON
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
@@ -1676,6 +1679,15 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   #COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+
+  # need this for amdclang
+  #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_AMD__"
+
+  if [ $USE_OPENMP = ON ] ; then
+    #COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib-debug/libomp.so"
+    COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib/libomp.so"
+    COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/llvm/lib"
+  fi
 
   local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx90a"
 
@@ -1702,9 +1714,13 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
   fi
 
-  local USE_MAGMA=OFF
-  #local USE_MAGMA=ON
+  local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
   local COMET_MAGMA_GPU_ARCH=gfx90a
+
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1727,7 +1743,7 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
 
   #---Testing.
 
-  #COMET_USE_GTEST=OFF
+  COMET_USE_GTEST=OFF
 
   #XXX salloc -N2 -A stf006 $SHELL
   #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
@@ -1736,10 +1752,12 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   # salloc -N1 -A stf006 -t 360
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
   fi
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
@@ -1752,7 +1770,8 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
 
   #module load cmake/3.20.2
   #module load cmake
-  module load rocm
+  #module load rocm
+  module load rocm/4.5.2
   (module list) 2>&1 | grep -v '^ *$'
 
   local ROCBLAS_PATH=$ROCM_PATH
@@ -1765,7 +1784,9 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   local COMET_CXX_COMPILER=hipcc
   local COMET_CXX_SERIAL_COMPILER=hipcc
 
-  local USE_OPENMP=OFF
+  #local USE_OPENMP=OFF
+  local USE_OPENMP=ON
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
@@ -1784,6 +1805,10 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   #COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+
+  if [ $USE_OPENMP = ON ] ; then
+    COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib-debug/libomp.so"
+  fi
 
   local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx90a"
 
@@ -1810,9 +1835,13 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
   fi
 
-  local USE_MAGMA=OFF
-  #local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=gfx90a
+
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1844,10 +1873,11 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   # salloc -N1 -A stf016_frontier -t 360
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
   fi
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
