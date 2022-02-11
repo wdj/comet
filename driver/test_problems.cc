@@ -388,6 +388,12 @@ static GMFloat metric_value_analytic_(size_t vi,
   const GMFloat value = (multiplier * float_n) / float_d;
   //const bool is_zero_denom = d == 0;
 
+//if (vi==0 && vj==4)
+//printf("2 %.20e %.20e %.20e\n",
+//(double)float_n,
+//(double)float_d,
+//(double)value);
+
   return value;
 }
 

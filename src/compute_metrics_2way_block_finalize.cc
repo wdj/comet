@@ -142,6 +142,13 @@ static void finalize_czek_(
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
           const GMFloat value = (multiplier * numer) / denom;
+
+//if (i==0 && j==4)
+//printf("1 %.20e %.20e %.20e\n",
+//(double)numer,
+//(double)denom,
+//(double)value);
+
           Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
         } // for i
       }   // for j

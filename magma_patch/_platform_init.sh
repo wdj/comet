@@ -1753,11 +1753,11 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=closest --gpus-per-node=8 -u"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=closest --gpus-per-node=8 -u"
   fi
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
@@ -1874,10 +1874,12 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=closest --gpus-per-node=8 -u"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=closest --gpus-per-node=8 -u"
   fi
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"

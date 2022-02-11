@@ -550,8 +550,9 @@ function main
   #---make results exactly reproducible on varyng number of procs.
   #CMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -ffast-math"
   CMAKE_CXX_FLAGS+=" -fno-math-errno -ffinite-math-only"
-  CMAKE_CXX_FLAGS+=" -fno-signed-zeros -fno-trapping-math -freciprocal-math"
+  CMAKE_CXX_FLAGS+=" -fno-signed-zeros -fno-trapping-math"
   if [ $USE_GCC = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -freciprocal-math"
     CMAKE_CXX_FLAGS+=" -fno-rounding-math"
     CMAKE_CXX_FLAGS+=" -fno-signaling-nans"
     CMAKE_CXX_FLAGS+=" -fcx-limited-range"

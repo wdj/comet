@@ -265,7 +265,6 @@ void DriverTest_czek2_() {
                     "--compute_method CPU ",
                     "--num_proc_vector 10 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU --all2all yes"));
-#endif
 
   EXPECT_EQ(
       true,
@@ -273,6 +272,7 @@ void DriverTest_czek2_() {
                     "--compute_method CPU ",
                     "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU --all2all yes"));
+#endif
 
 #if 1
   EXPECT_EQ(
@@ -343,6 +343,7 @@ void DriverTest_czek2_() {
                                 "--num_proc_vector 2 --num_proc_field "
                                 "2 --num_field 2 --num_vector_local 2 "
                                 "--compute_method GPU --all2all yes"));
+#endif
 
   //----------
   //---num_proc_repl, 2-way
@@ -362,9 +363,9 @@ void DriverTest_czek2_() {
     for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
     //for (int num_vector_local=4; num_vector_local<=4; ++num_vector_local) {
       for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-      //for (int num_proc_vector=4; num_proc_vector<=4; ++num_proc_vector) {
+      //for (int num_proc_vector=1; num_proc_vector<=1; ++num_proc_vector) {
         for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
-        //for (int num_proc_repl=4; num_proc_repl<=4; ++num_proc_repl) {
+        //for (int num_proc_repl=1; num_proc_repl<=1; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           //const int num_proc_field = 1;
           if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
@@ -438,7 +439,6 @@ void DriverTest_czek2_() {
       }
     }
   }
-#endif
 
   //----------
   //---Misc options
@@ -2802,11 +2802,11 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
+#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
 
-#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2842,11 +2842,13 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
 
+#if 1
 TEST(DriverTest, czek3) {
   DriverTest_czek3_();
 }
