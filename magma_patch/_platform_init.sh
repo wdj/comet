@@ -1700,23 +1700,29 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   #local USE_BLIS=ON
   local USE_BLIS=OFF
 
-  #local USE_LAPACK=OFF
-  local USE_LAPACK=ON
+  local USE_LAPACK=OFF
+  #local USE_LAPACK=ON
 
   if [ "${USE_BLIS:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
   elif [ "${USE_LAPACK:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
   else
+    #local USE_CPUBLAS=ON
+    #local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
+    #local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
+    #COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
     local USE_CPUBLAS=ON
-    local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
-    local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
-    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
+    module load openblas
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_OPENBLAS_ROOT/include"
+    local COMET_CPUBLAS_LINK_OPTS="-L$OLCF_OPENBLAS_ROOT/lib"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$OLCF_OPENBLAS_ROOT/lib -lopenblas"
   fi
 
   local USE_MAGMA=ON
   #local USE_MAGMA=OFF
   local COMET_MAGMA_GPU_ARCH=gfx90a
+  #local COMET_MAGMA_MAKE_INC=make.inc.frontier
 
   if [ $USE_MAGMA = ON ] ; then
     COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"
@@ -1743,7 +1749,7 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
 
   #---Testing.
 
-  COMET_USE_GTEST=OFF
+  #COMET_USE_GTEST=OFF
 
   #XXX salloc -N2 -A stf006 $SHELL
   #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
@@ -1753,6 +1759,7 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=closest --gpus-per-node=8 -u"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
@@ -1806,8 +1813,13 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  # need this for amdclang
+  #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_AMD__"
+
   if [ $USE_OPENMP = ON ] ; then
-    COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib-debug/libomp.so"
+    #COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib-debug/libomp.so"
+    COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib/libomp.so"
+    COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/llvm/lib"
   fi
 
   local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx90a"
@@ -1821,23 +1833,29 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   #local USE_BLIS=ON
   local USE_BLIS=OFF
 
-  #local USE_LAPACK=OFF
-  local USE_LAPACK=ON
+  local USE_LAPACK=OFF
+  #local USE_LAPACK=ON
 
   if [ "${USE_BLIS:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
   elif [ "${USE_LAPACK:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
   else
+    #local USE_CPUBLAS=ON
+    #local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
+    #local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
+    #COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
     local USE_CPUBLAS=ON
-    local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
-    local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
-    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
+    module load openblas
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_OPENBLAS_ROOT/include"
+    local COMET_CPUBLAS_LINK_OPTS="-L$OLCF_OPENBLAS_ROOT/lib"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$OLCF_OPENBLAS_ROOT/lib -lopenblas"
   fi
 
-  #local USE_MAGMA=OFF
   local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
   local COMET_MAGMA_GPU_ARCH=gfx90a
+  #local COMET_MAGMA_MAKE_INC=make.inc.frontier
 
   if [ $USE_MAGMA = ON ] ; then
     COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"

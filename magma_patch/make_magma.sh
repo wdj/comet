@@ -69,6 +69,9 @@ function do_make
 
   if [ ${USE_HIP:-OFF} = ON ] ; then
     cp make.inc-examples/make.inc.hip_openblas make.inc
+    if [ "${COMET_MAGMA_MAKE_INC:-}" != "" ] ; then
+      cp ../$COMET_MAGMA_MAKE_INC make.inc
+    fi
     local _CMGA_=$COMET_MAGMA_GPU_ARCH
 
     #sed -i -e 's/GPU_TARGET = gfx803 gfx900 gfx901/GPU_TARGET = gfx906 gfx908/' make.inc
@@ -84,8 +87,10 @@ function do_make
       sed -i -e 's/-frecursive/-frecursive -fPIC/' make.inc
       export OPENBLASDIR=$PWD/../../lapack/lapack
     else
-      sed -i -e 's/lopenblas/lsci_cray/' make.inc
-      export OPENBLASDIR=$CRAY_LIBSCI_PREFIX
+      #sed -i -e 's/lopenblas/lsci_cray/' make.inc
+      #export OPENBLASDIR=$CRAY_LIBSCI_PREFIX
+      export OPENBLASDIR=$OLCF_OPENBLAS_ROOT
+      export CPLUS_INCLUDE_PATH=$OLCF_ROCM_ROOT/include:${CPLUS_INCLUDE_PATH:-}
     fi
 
     env HIPDIR=$HIP_PATH make -f make.gen.hipMAGMA_*

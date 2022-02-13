@@ -301,6 +301,7 @@ function main
     #local MAGMA_VERSION="f50e717b2e7820b6fdd635eb894c3e6242b2c9e2"
     local MAGMA_VERSION="f50e717b"
     #local MAGMA_VERSION=2.6.1
+    #local MAGMA_VERSION="5959b878"
     if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
       rm -rf $MAGMA_DIR
       echo "Copying MAGMA ..."
