@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
       // Get token number
       col = num_delims - num_frontmatter_fields;
 
-      if (col % 2 == 1 && ! is_duo) {
+      if (col % 2 == 0 && ! is_duo) {
         cprev = c;
         continue;
       }
