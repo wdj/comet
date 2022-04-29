@@ -1458,8 +1458,8 @@ elif [ $COMET_PLATFORM = PERLMUTTER ] ; then
 
   #---Modules etc.
 
-  module -q load PrgEnv-gnu
-  module -q load cpe-cuda
+  module -q load PrgEnv-nvidia # PrgEnv-gnu
+  #module -q load cpe-cuda
   module -q load cmake
   module list
 
@@ -1481,11 +1481,13 @@ elif [ $COMET_PLATFORM = PERLMUTTER ] ; then
 
   #local USE_CUDA=OFF
   local USE_CUDA=ON
-  local CUDA_ROOT=$CUDA_HOME
+  local CUDA_ROOT=$NVIDIA_PATH/cuda # $CUDA_HOME
   local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
   #COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas_static -lcudart_static"
+  #COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/../math_libs/lib64 -Wl,-rpath=$CUDA_ROOT/../math_libs/lib64"
   COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   #local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
