@@ -1828,6 +1828,8 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
 
   COMET_WERROR=OFF
 
+  local COMET_USE_INT128=ON
+
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
 
   #---Libraries.
@@ -1854,8 +1856,8 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$OLCF_OPENBLAS_ROOT/lib -lopenblas"
   fi
 
-  local USE_MAGMA=ON
-  #local USE_MAGMA=OFF
+  #local USE_MAGMA=ON
+  local USE_MAGMA=OFF
   local COMET_MAGMA_GPU_ARCH=gfx90a
   #local COMET_MAGMA_MAKE_INC=make.inc.frontier
 

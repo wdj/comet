@@ -424,7 +424,7 @@ static void finalize_ccc_duo_(
 
       // Store the coords information for this metric item.
       // TODO: accessor function
-      metrics->data_coords_values_[index] =
+      metrics->coords_[index] =
         CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env);
 
       metrics->num_metric_items_local_computed_inc(1);

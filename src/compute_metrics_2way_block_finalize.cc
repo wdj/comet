@@ -300,7 +300,7 @@ static void finalize_ccc_duo_(
 
       // Store the coords information for this metric item.
       // TODO: accessor function
-      metrics->data_coords_values_[index] =
+      metrics->coords_[index] =
         CoordsInfo::set(iG, jG, iE, jE, *metrics, *env);
 
       metrics->num_metric_items_local_computed_inc(1);
@@ -338,12 +338,17 @@ static void finalize_ccc_duo_(
                 const size_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
-                fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
-                        " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64
-                        " coords %zu rank %i\n",
+                fprintf(stderr, "Error:"
+                        " r00 %" PRIu64 " r01 %" PRIu64
+                        " r10 %" PRIu64 " r11 %" PRIu64
+                        " m %" PRIu64
+                        " coords %zu %zu"
+                        " rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)(metrics->num_field_active),
-                       coords, env->proc_num());
+                       CoordsInfo::getiG(coords, *metrics, *env),
+                       CoordsInfo::getjG(coords, *metrics, *env),
+                       env->proc_num());
                 COMET_INSIST(! error1 &&
                   "Violation of algorithm computational invariant.");
               }
@@ -355,14 +360,18 @@ static void finalize_ccc_duo_(
                 const size_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
-                fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
+                fprintf(stderr, "Error:"
+                        " r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " si1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
-                        " coords %zu rank %i\n",
+                        " coords %zu %zu"
+                        " rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)si1,
                        (uint64_t)r10 + (uint64_t)r11, (uint64_t)(cbpe * si1),
-                       coords, env->proc_num());
+                       CoordsInfo::getiG(coords, *metrics, *env),
+                       CoordsInfo::getjG(coords, *metrics, *env),
+                       env->proc_num());
                 COMET_INSIST(! error2 &&
                   "Violation of algorithm computational invariant.");
               }
@@ -374,14 +383,18 @@ static void finalize_ccc_duo_(
                 const size_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
-                fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
+                fprintf(stderr, "Error:"
+                        " r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " sj1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
-                        " coords %zu rank %i\n",
+                        " coords %zu %zu"
+                        " rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)sj1,
                        (uint64_t)r01 + (uint64_t)r11, (uint64_t)(cbpe * sj1),
-                       coords, env->proc_num());
+                       CoordsInfo::getiG(coords, *metrics, *env),
+                       CoordsInfo::getjG(coords, *metrics, *env),
+                       env->proc_num());
                 COMET_INSIST(! error3 &&
                   "Violation of algorithm computational invariant.");
               }
@@ -416,12 +429,16 @@ static void finalize_ccc_duo_(
                 const size_t index =
                    Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
-                fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
+                fprintf(stderr, "Error:"
+                        " r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64
-                        " coords %zu rank %i\n",
+                        " coords %zu %zu"
+                        " rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)(metrics->num_field_active),
-                       coords, env->proc_num());
+                       CoordsInfo::getiG(coords, *metrics, *env),
+                       CoordsInfo::getjG(coords, *metrics, *env),
+                       env->proc_num());
                 COMET_INSIST(! error1 &&
                   "Violation of algorithm computational invariant.");
               }
@@ -433,14 +450,18 @@ static void finalize_ccc_duo_(
                 const size_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
-                fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
+                fprintf(stderr, "Error:"
+                        " r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " si1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
-                        " coords %zu rank %i\n",
+                        " coords %zu %zu"
+                        " rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)si1,
                        (uint64_t)r10 + (uint64_t)r11, (uint64_t)(cbpe * si1),
-                       coords, env->proc_num());
+                       CoordsInfo::getiG(coords, *metrics, *env),
+                       CoordsInfo::getjG(coords, *metrics, *env),
+                       env->proc_num());
                 COMET_INSIST(! error2 &&
                   "Violation of algorithm computational invariant.");
               }
@@ -452,14 +473,18 @@ static void finalize_ccc_duo_(
                 const size_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
-                fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
+                fprintf(stderr, "Error:"
+                        " r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " sj1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
-                        " coords %zu rank %i\n",
+                        " coords %zu %zu"
+                        " rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)sj1,
                        (uint64_t)r01 + (uint64_t)r11, (uint64_t)(cbpe * sj1),
-                       coords, env->proc_num());
+                       CoordsInfo::getiG(coords, *metrics, *env),
+                       CoordsInfo::getjG(coords, *metrics, *env),
+                       env->proc_num());
                 COMET_INSIST(! error3 &&
                   "Violation of algorithm computational invariant.");
               }

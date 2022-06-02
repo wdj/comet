@@ -56,11 +56,11 @@ MetricsMem::MetricsMem(CEnv* env) :
   data_(NULL),
   data_S_(NULL),
   data_C_(NULL),
-  data_coords_values_(NULL),
+  coords_(NULL),
   data_size_(0),
   data_S_size_(0),
   data_C_size_(0),
-  data_coords_values_size_(0) {
+  coords_size_(0) {
 }
 
 //-----------------------------------------------------------------------------
@@ -79,8 +79,8 @@ MetricsMem::~MetricsMem() {
   if (data_C_)
     gm_free(data_C_, data_C_size_, env_);
 
-  if (data_coords_values_)
-    gm_free(data_coords_values_, data_coords_values_size_, env_);
+  if (coords_)
+    gm_free(coords_, coords_size_, env_);
 }
 
 //-----------------------------------------------------------------------------
@@ -139,23 +139,23 @@ void* MetricsMem::malloc_data_C(size_t data_C_size) {
 
 //-----------------------------------------------------------------------------
 
-MetricItemCoords_t* MetricsMem::malloc_data_coords_values(
-  size_t data_coords_values_size) {
+MetricItemCoords_t* MetricsMem::malloc_coords(
+  size_t coords_size) {
 
   if (! env_->is_proc_active())
     return NULL;
 
-  if (!data_coords_values_ ||
-      data_coords_values_size > data_coords_values_size_) {
-    if (data_coords_values_) {
-      gm_free(data_coords_values_, data_coords_values_size_, env_);
+  if (!coords_ ||
+      coords_size > coords_size_) {
+    if (coords_) {
+      gm_free(coords_, coords_size_, env_);
     }
-    data_coords_values_
-       = (size_t*)gm_malloc(data_coords_values_size, env_);
-    data_coords_values_size_ = data_coords_values_size;
+    coords_
+       = (MetricItemCoords_t*)gm_malloc(coords_size, env_);
+    coords_size_ = coords_size;
   }
 
-  return data_coords_values_;
+  return coords_;
 }
 
 //=============================================================================
@@ -416,6 +416,26 @@ void GMMetrics_create(GMMetrics* metrics,
   // Perform checks.
   //--------------------
 
+
+
+#if 0
+  const b1 = static_cast<BasicTypes::BigUInt>(1);
+
+  COMET_INSIST_INTERFACE(env, (
+    (env->num_way() == NumWay::_2 && (
+      sizeof(MetricItemCoords_t) == sizeof(BasicTypes::BigUInt) ||
+       dm->num_vector * b1 * dm->num_vector <
+       (b1 << (8 * sizeof(MetricItemCoords_t))))) ||
+    (env->num_way() == NumWay::_3 && (
+      sizeof(MetricItemCoords_t) == sizeof(BasicTypes::BigUInt) ||
+       dm->num_vector * b1 * dm->num_vector b1 * dm->num_vector <
+       (b1 << (8 * sizeof(MetricItemCoords_t)))))
+    ) && "Unable to store metrix indices; please rebuild with INT128.");
+#endif
+
+
+
+
   COMET_INSIST_INTERFACE(env, (env->metric_type() != MetricType::DUO ||
                          env->sparse()) && "DUO method requires sparse input.");
 
@@ -537,7 +557,7 @@ void GMMetrics_create(GMMetrics* metrics,
   // Allocations: coords.
   //--------------------
 
-  metrics->data_coords_values_ = metrics_mem->malloc_data_coords_values(
+  metrics->coords_ = metrics_mem->malloc_coords(
     metrics->num_metric_items_local_allocated * sizeof(MetricItemCoords_t));
 
   //--------------------
@@ -645,7 +665,7 @@ void GMMetrics_create(GMMetrics* metrics,
             continue;
           COMET_ASSERT(Metrics_index_2_part1(*metrics, i, j, i_block, *env) ==
                        index);
-          metrics->data_coords_values_[index++] =
+          metrics->coords_[index++] =
             CoordsInfo::set(iG, jG, *metrics, *env);
         } // for i
       } // for j
@@ -678,7 +698,7 @@ void GMMetrics_create(GMMetrics* metrics,
             continue;
           const size_t index_this = index + i + j * (size_t)nvl;
           COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
-          metrics->data_coords_values_[index_this] =
+          metrics->coords_[index_this] =
             CoordsInfo::set(iG, jG, *metrics, *env);
         } // for i
       } // for j
@@ -730,7 +750,7 @@ void GMMetrics_create(GMMetrics* metrics,
                 const size_t index_this = index + i + j*(size_t)(k-(j+1));
                 COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_metrics_local);
-                metrics->data_coords_values_[index_this] =
+                metrics->coords_[index_this] =
                   //  iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
                   CoordsInfo::set(iG, jG, kG, *metrics, *env);
               }
@@ -772,7 +792,7 @@ void GMMetrics_create(GMMetrics* metrics,
                   const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
                   COMET_ASSERT(index_this>=0 &&
                                index_this<metrics->num_metrics_local);
-                  metrics->data_coords_values_[index_this] =
+                  metrics->coords_[index_this] =
                     //  iG + metrics->num_vector * (
                     //  jG + metrics->num_vector * (kG));
                     CoordsInfo::set(iG, jG, kG, *metrics, *env);
@@ -848,7 +868,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       I, J, K, i_block, j_block, k_block, *env) == index_this);
                     COMET_ASSERT(Metrics_index_3_part3(*metrics,
                       i, j, k, i_block, j_block, k_block, *env) == index_this);
-                    metrics->data_coords_values_[index_this] =
+                    metrics->coords_[index_this] =
                       //  iG + metrics->num_vector * (
                       //  jG + metrics->num_vector * (kG));
                       CoordsInfo::set(iG, jG, kG, *metrics, *env);
@@ -881,7 +901,7 @@ void GMMetrics_create(GMMetrics* metrics,
         if (is_shrink)
           continue;
         COMET_ASSERT(index < metrics->num_metrics_local);
-        metrics->data_coords_values_[index++] =
+        metrics->coords_[index++] =
           CoordsInfo::set(iG, jG, *metrics, *env);
       } // for i
     } // for j
@@ -907,7 +927,7 @@ void GMMetrics_create(GMMetrics* metrics,
           if (is_shrink)
             continue;
           COMET_ASSERT(index < metrics->num_metrics_local);
-          metrics->data_coords_values_[index++] =
+          metrics->coords_[index++] =
             CoordsInfo::set(iG, jG, kG, *metrics, *env);
         } // for i
       } // for k
