@@ -754,6 +754,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     }
   }
   env->synced_time();
+  fflush(NULL);
+  env->synced_time();
 
   // Validation: check for any wrong answers.
 
@@ -768,6 +770,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
            "max_incorrect_diff  %e  hostname  %s  rank  %i\n",
            do_.num_incorrect, do_.max_incorrect_diff, hn, rank);
   }
+  env->synced_time();
+  fflush(NULL);
+  env->synced_time();
 
   COMET_INSIST(do_.num_incorrect == 0);
 

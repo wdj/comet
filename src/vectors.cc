@@ -320,7 +320,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
 //=============================================================================
 // checksum of vector entries.
 
-size_t GMVectors_cksum(GMVectors* vectors, CEnv* env) {
+size_t GMVectors_cksum(const GMVectors* const vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {

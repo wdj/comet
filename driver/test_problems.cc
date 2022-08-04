@@ -711,6 +711,12 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   const size_t max_to_print = 10;
   double max_incorrect_diff = 0.;
 
+  const size_t hnlen = 256;
+  char hn[hnlen];
+  gethostname(hn, hnlen);
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+
   switch (env->data_type_metrics()) {
     //--------------------
     case GM_DATA_TYPE_FLOAT: {
@@ -879,7 +885,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           // Get expected.
           GMFloat value_expected_nothreshold
-            = metric_value_analytic_(iG, jG,kG, iE, jE, kE, tpi, *env);
+            = metric_value_analytic_(iG, jG, kG, iE, jE, kE, tpi, *env);
 
           // if metric may be thresholded to zero before now, then check.
           // NOTE: will never be here if is_shrink and entry failed threshold.
@@ -931,12 +937,16 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (is_incorrect) {
             const double diff = value - value_expected;
             max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
-            if (num_incorrect < max_to_print)
+            if (num_incorrect < max_to_print) {
               fprintf(stderr, "Error: incorrect result detected.  "
                      "coords %zu %zu %zu  %i %i %i  "
-                     "expected %.20e  actual %.20e  diff %.20e  exp2 %.20e\n",
+                     "expected %.20e  actual %.20e  diff %.20e  exp2 %.20e  hostname  %s  rank  %i\n",
                      iG, jG, kG, iE, jE, kE,
-                     (double)value_expected, (double)value, diff, value_expected_nothreshold);
+                     (double)value_expected, (double)value, diff,
+                     value_expected_nothreshold, hn, rank);
+
+            }
+
           } // is_correct
 
           num_incorrect += is_incorrect;

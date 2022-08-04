@@ -97,7 +97,8 @@ private:
 //=============================================================================
 // Type for storing coordinates of a metrics item.
 
-typedef size_t MetricItemCoords_t;
+//typedef size_t MetricItemCoords_t;
+typedef BasicTypes::BigUInt MetricItemCoords_t;
 
 //=============================================================================
 // Types (mainly) for Czekanowski metric
@@ -498,7 +499,7 @@ template<typename T> int mantissa_digits() {
 template<typename TO, typename TI>
 static TO safe_cast(const TI v) {
 #if ! defined(NDEBUG)
-  static_assert(sizeof(TO) < sizeof(TI), "");
+  static_assert(sizeof(TO) <= sizeof(TI), "");
 #endif
   // ISSUE: this doesn't compile under CUDA:
   // COMET_STATIC_ASSERT(sizeof(TO) < sizeof(TI)):

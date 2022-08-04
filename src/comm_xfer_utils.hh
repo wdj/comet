@@ -45,17 +45,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+struct CommRequest {
+
+  MPI_Request mpi_request_;
+  MPI_Request mpi_request_cksum_;
+  size_t cksum_;
+
+  CommRequest()
+    : mpi_request_(MPI_REQUEST_NULL)
+    , mpi_request_cksum_(MPI_REQUEST_NULL)
+    , cksum_(0) {
+  }
+
+  void wait() {
+    MPI_Status mpi_status;
+    COMET_MPI_SAFE_CALL(MPI_Wait(&mpi_request_, &mpi_status));
+    if (BuildHas::DEBUG) {
+      MPI_Status mpi_status_cksum;
+      COMET_MPI_SAFE_CALL(MPI_Wait(&mpi_request_cksum_, &mpi_status_cksum));
+    }
+  }
+
+  MPI_Request& mpi_request() {
+    return mpi_request_;
+  }
+};
+
 //-----------------------------------------------------------------------------
 
-MPI_Request gm_send_vectors_start(const GMVectors* vectors, int proc_num, int mpi_tag,
-                                  CEnv* env);
+//MPI_Request gm_send_vectors_start(const GMVectors* vectors, int proc_num, int mpi_tag,
+//                                  CEnv* env);
 
-MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
-                                  CEnv* env);
+//MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
+//                                  CEnv* env);
 
-void gm_send_vectors_wait(MPI_Request* mpi_request, CEnv* env);
+void comm_send_vectors_start(const GMVectors& vectors,
+                             int proc_num,
+                             int mpi_tag,
+                             CommRequest& request,
+                             CEnv& env);
 
-void gm_recv_vectors_wait(MPI_Request* mpi_request, CEnv* env);
+void comm_recv_vectors_start(const GMVectors& vectors,
+                             int proc_num,
+                             int mpi_tag,
+                             CommRequest& request,
+                             CEnv& env);
+
+//-----------------------------------------------------------------------------
+// Start/end MPI send/receive of vectors data
+
+//void gm_send_vectors_wait(MPI_Request* mpi_request, CEnv* env);
+
+//void gm_recv_vectors_wait(MPI_Request* mpi_request, CEnv* env);
 
 //--------------------
 

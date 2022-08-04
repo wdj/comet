@@ -1644,10 +1644,8 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
 
   #---Modules etc.
 
-  #module load cmake/3.20.2
-  module load cmake
-  #module load rocm
-  module load rocm/4.5.2
+  #module load cmake # cmake/3.20.2
+  module load rocm # rocm/4.5.2
   (module list) 2>&1 | grep -v '^ *$'
 
   local ROCBLAS_PATH=$ROCM_PATH
@@ -1682,6 +1680,8 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  USE_ROCPRIM_LOCAL_FORCE=YES
+
   # need this for amdclang
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_AMD__"
 
@@ -1694,6 +1694,8 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx90a"
 
   COMET_WERROR=OFF
+
+  local COMET_USE_INT128=ON
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
 
@@ -1777,10 +1779,8 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
 
   #---Modules etc.
 
-  #module load cmake/3.20.2
-  #module load cmake
-  #module load rocm
-  module load rocm/4.5.2
+  #module load cmake # cmake/3.20.2
+  module load rocm # rocm/4.5.2
   (module list) 2>&1 | grep -v '^ *$'
 
   local ROCBLAS_PATH=$ROCM_PATH
@@ -1791,7 +1791,7 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   #local COMET_C_COMPILER=$(which gcc) # presently unused
   local COMET_C_COMPILER=clang
   local COMET_CXX_COMPILER=hipcc
-  local COMET_CXX_SERIAL_COMPILER=hipcc
+  local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER 
 
   #local USE_OPENMP=OFF
   local USE_OPENMP=ON
@@ -1814,6 +1814,8 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   #COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+
+  USE_ROCPRIM_LOCAL_FORCE=YES
 
   # need this for amdclang
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_AMD__"
@@ -1856,8 +1858,8 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$OLCF_OPENBLAS_ROOT/lib -lopenblas"
   fi
 
-  #local USE_MAGMA=ON
-  local USE_MAGMA=OFF
+  local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
   local COMET_MAGMA_GPU_ARCH=gfx90a
   #local COMET_MAGMA_MAKE_INC=make.inc.frontier
 
@@ -1897,7 +1899,8 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=closest --gpus-per-node=8 -u"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=closest --gpus-per-node=8 -u"
+    local COMET_TEST_COMMAND="env OMP_PROC_BIND=spread OMP_PLACES=sockets OMP_NUM_THREADS=7 srun -N8 -n64 --cpus-per-task=7 --ntasks-per-node=8 --gpus-per-task=1 --gpu-bind=single:1 -u"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -n1 --cpus-per-task=16 --ntasks-per-node=1 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"

@@ -193,12 +193,13 @@ static size_t randomize_max() {
 //-----------------------------------------------------------------------------
 /// \brief Random number genrator.
 
-static size_t randomize(size_t i) {
+template<typename T>
+static size_t randomize(T i) {
 
   const size_t im = 714025;
   const size_t ia = 4096;
   const size_t ic = 150889;
-  return (i * ia + ic) % im;
+  return static_cast<size_t>((i * ia + ic) % im);
 }
 
 //-----------------------------------------------------------------------------

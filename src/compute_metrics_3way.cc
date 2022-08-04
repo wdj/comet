@@ -302,9 +302,16 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Part 2 Computation: triangular prisms.
   // ------------------
 
+  GMVectors* vectors_j_recv = NULL;
+  GMVectors* vectors_k_recv = NULL;
+  if(0) printf("%zu\n",(size_t)vectors_j_recv);
+  if(0) printf("%zu\n",(size_t)vectors_k_recv);
+
   GMVectors* vectors_j_this = 0;
-  MPI_Request req_send_j;
-  MPI_Request req_recv_j;
+  CommRequest comm_request_send_j;
+  CommRequest comm_request_recv_j;
+  //MPI_Request req_send_j;
+  //MPI_Request req_recv_j;
 
   const int num_section_steps_2 = gm_num_section_steps(env, 2);
   for (int section_step=0; section_step<num_section_steps_2; ++section_step) {
@@ -324,10 +331,16 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           // Communicate vectors start.
           vectors_j_this = vectors_j[index_j_comm];
           index_j_comm = 1 - index_j_comm; // toggle buffer num
-          req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
-                                             0+3*section_block_num, env);
-          req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
-                                             0+3*section_block_num, env);
+
+          comm_recv_vectors_start(*vectors_j_this, proc_recv_j,
+              0+3*section_block_num, comm_request_recv_j, *env);
+          comm_send_vectors_start(*vectors_i, proc_send_j,
+              0+3*section_block_num, comm_request_send_j, *env);
+          vectors_j_recv = vectors_j_this;
+          //req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
+          //                                   0+3*section_block_num, env);
+          //req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
+          //                                   0+3*section_block_num, env);
         } // if (gm_is_section_block_in_phase ...)
   
         if (have_unprocessed_section_block) {
@@ -343,8 +356,12 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
         if (gm_is_section_block_in_phase(env, section_block_num)) {
           // Communicate vectors wait.
-          gm_send_vectors_wait(&req_send_j, env);
-          gm_recv_vectors_wait(&req_recv_j, env);
+          comm_request_send_j.wait();
+          comm_request_recv_j.wait();
+          //fprintf(stderr, "%zu %zu\n", comm_request_recv_j.cksum_, GMVectors_cksum(vectors_j_recv, env));
+          COMET_ASSERT(comm_request_recv_j.cksum_ == GMVectors_cksum(vectors_j_recv, env));
+          //gm_send_vectors_wait(&req_send_j, env);
+          //gm_recv_vectors_wait(&req_recv_j, env);
 
           // Copy in vectors.
           gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
@@ -383,8 +400,10 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // ------------------
 
   GMVectors* vectors_k_this = 0;
-  MPI_Request req_send_k;
-  MPI_Request req_recv_k;
+  CommRequest comm_request_send_k;
+  CommRequest comm_request_recv_k;
+  //MPI_Request req_send_k;
+  //MPI_Request req_recv_k;
 
   int k_block_currently_resident = -1;
 
@@ -428,19 +447,29 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
               vectors_k_this = vectors_k[index_k_comm];
               index_k_comm = 1 - index_k_comm; // toggle buffer num
               // NOTE: in some cases may not need double buf, one may be enough
-              req_recv_k = gm_recv_vectors_start(vectors_k_this,
-                                       proc_recv_k, 1+3*section_block_num, env);
-              req_send_k = gm_send_vectors_start(vectors_i,
-                                       proc_send_k, 1+3*section_block_num, env);
+              comm_recv_vectors_start(*vectors_k_this, proc_recv_k,
+                  1+3*section_block_num, comm_request_recv_k, *env);
+              comm_send_vectors_start(*vectors_i, proc_send_k,
+                  1+3*section_block_num, comm_request_send_k, *env);
+              vectors_k_recv = vectors_k_this;
+              //req_recv_k = gm_recv_vectors_start(vectors_k_this,
+              //                         proc_recv_k, 1+3*section_block_num, env);
+              //req_send_k = gm_send_vectors_start(vectors_i,
+              //                         proc_send_k, 1+3*section_block_num, env);
             } // if do_k_comm
 
             // Communicate vectors start.
             vectors_j_this = vectors_j[index_j_comm];
             index_j_comm = 1 - index_j_comm; // toggle buffer num
-            req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
-                                               2+3*section_block_num, env);
-            req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
-                                                2+3*section_block_num, env);
+            comm_recv_vectors_start(*vectors_j_this, proc_recv_j,
+                2+3*section_block_num, comm_request_recv_j, *env);
+            comm_send_vectors_start(*vectors_i, proc_send_j,
+                2+3*section_block_num, comm_request_send_j, *env);
+            vectors_j_recv = vectors_j_this;
+            //req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
+            //                                   2+3*section_block_num, env);
+            //req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
+            //                                    2+3*section_block_num, env);
           } // if (gm_is_section_block_in_phase ...)
 
           if (have_unprocessed_section_block) {
@@ -457,8 +486,12 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           if (gm_is_section_block_in_phase(env, section_block_num)) {
             if (do_k_comm) {
               // Communicate vectors wait.
-              gm_send_vectors_wait(&req_send_k, env);
-              gm_recv_vectors_wait(&req_recv_k, env);
+              comm_request_send_k.wait();
+              comm_request_recv_k.wait();
+              
+              COMET_ASSERT(comm_request_recv_k.cksum_ == GMVectors_cksum(vectors_k_recv, env));
+              //gm_send_vectors_wait(&req_send_k, env);
+              //gm_recv_vectors_wait(&req_recv_k, env);
               k_block_currently_resident = k_block;
 
               // Copy in vectors.
@@ -483,8 +516,11 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
             } // if do_k_comm
 
             // Communicate vectors wait.
-            gm_send_vectors_wait(&req_send_j, env);
-            gm_recv_vectors_wait(&req_recv_j, env);
+            comm_request_send_j.wait();
+            comm_request_recv_j.wait();
+            COMET_ASSERT(comm_request_recv_j.cksum_ == GMVectors_cksum(vectors_j_recv, env));
+            //gm_send_vectors_wait(&req_send_j, env);
+            //gm_recv_vectors_wait(&req_recv_j, env);
 
             // Copy in vectors.
             gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);

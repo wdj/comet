@@ -105,7 +105,7 @@ void GMVectors_destroy(GMVectors* vectors, CEnv* env);
 
 //=============================================================================
 
-size_t GMVectors_cksum(GMVectors* vectors, CEnv* env);
+size_t GMVectors_cksum(const GMVectors* const vectors, CEnv* env);
 
 //=============================================================================
 // Copy vectors to mirrored buffer

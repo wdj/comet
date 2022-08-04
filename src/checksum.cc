@@ -432,7 +432,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         UI64_t ivalue = (UI64_t)( (value / scaling) * (one64 << (2 * w)) );
         // Construct an id that is a single number representing the coord
         // and value number.
-        UI64_t uid = coord_perm[0];
+        MetricItemCoords_t uid = coord_perm[0];
         for (int i = 1; i < env.num_way(); ++i) {
           uid = uid * metrics.num_vector_active + coord_perm[i];
         }

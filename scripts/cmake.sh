@@ -416,11 +416,13 @@ function main
 
   if [ ${USE_HIP:-OFF} = ON ] ; then
     local ROCPRIM_VERSION=3.5.1
-    if [ -e "${ROCM_PATH:-}/rocprim" ] ; then
-      # Link to if installed with rocm.
+    if [ 0 = 1 ] ; then
+      echo "" >/dev/null
+    elif [ -e "${ROCM_PATH:-}/rocprim" -a "${USE_ROCPRIM_LOCAL_FORCE:-}" != "YES" ] ; then
+      # Link to rocprim if installed with rocm.
       ln -s "${ROCM_PATH:-}/rocprim" rocPRIM-rocm-${ROCPRIM_VERSION}
     elif [ -e ../rocPRIM-rocm-${ROCPRIM_VERSION}/build/build_is_complete ] ; then
-      # Link to if already built.
+      # Link to rocprim if already built.
       ln -s ../rocPRIM-rocm-${ROCPRIM_VERSION} .
     else
       # Build.
@@ -431,15 +433,15 @@ function main
       pushd rocPRIM-rocm-${ROCPRIM_VERSION}
       mkdir build
       pushd build
-      cmake -DBUILD_BENCHMARK=ON -DCMAKE_CXX_COMPILER=hipcc ../.
+      cmake -DBUILD_BENCHMARK=ON -DCMAKE_CXX_COMPILER=hipcc -DBUILD_BENCHMARK=OFF -DROCM_PATH=$ROCM_PATH ../.
       make -j16
       touch build_is_complete
       # ISSUE: need to check for hipcc version consistency.
       popd
       popd
       # Save for use with other builds.
-      rm -rf $BUILDS_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}
-      mv rocPRIM-rocm-${ROCPRIM_VERSION} $BUILDS_DIR
+      #rm -rf $BUILDS_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}
+      #mv rocPRIM-rocm-${ROCPRIM_VERSION} $BUILDS_DIR
     fi
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/rocprim/include"
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
