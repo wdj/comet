@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------*/
 
 #if defined COMET_USE_CUDA
+#  define CUB_NS_QUALIFIER cub
 #  include "cub.cuh"
 #elif defined COMET_USE_HIP
 #  include "rocprim/rocprim.hpp"

@@ -4,7 +4,7 @@
 #
 #==============================================================================
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 #cmake_policy(SET CMP0004 OLD)
 #cmake_policy(SET CMP0074 NEW)
 string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
