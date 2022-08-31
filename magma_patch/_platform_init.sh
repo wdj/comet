@@ -1680,6 +1680,7 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   local COMET_C_COMPILER=clang
   local COMET_CXX_COMPILER=hipcc # amdclang
   local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
+  local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 
   #local USE_OPENMP=OFF
   local USE_OPENMP=ON
@@ -1815,6 +1816,7 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   local COMET_C_COMPILER=clang
   local COMET_CXX_COMPILER=hipcc
   local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER 
+  local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 
   #local USE_OPENMP=OFF
   local USE_OPENMP=ON
@@ -1838,7 +1840,7 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
-  USE_ROCPRIM_LOCAL_FORCE=YES
+  #USE_ROCPRIM_LOCAL_FORCE=YES
 
   # need this for amdclang
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_AMD__"
