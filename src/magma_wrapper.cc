@@ -78,6 +78,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # define PREPEND_COMMA(q)
 #endif
 
+#if defined COMET_USE_SEMIRING
+#include "semiring.h"
+#endif
 
 #include "env.hh"
 #include "assertions.hh"
@@ -973,10 +976,94 @@ void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
   COMET_INSIST(matA && matB && matC);
   COMET_INSIST(env.is_compute_method_gpu());
 
+#if defined COMET_USE_SEMIRING
+
+  //if (use_minproduct_(env)) { //--------------------
+  if (use_minproduct_(env) && !env.is_double_prec()) { //--------------------
+
+    const auto m_ = safe_cast<int>(m);
+    const auto n_ = safe_cast<int>(n);
+    const auto k_ = safe_cast<int>(k);
+    const auto ldda_ = safe_cast<std::size_t>(ldda);
+    const auto lddb_ = safe_cast<std::size_t>(lddb);
+    const auto lddc_ = safe_cast<std::size_t>(lddc);
+
+    if (env.is_double_prec()) {
+
+      //COMET_INSIST(m_ == n_);
+      //COMET_INSIST(m_ == lddc_);
+      //COMET_INSIST(k_ == lddb_);
+      //COMET_INSIST(k_ == ldda_);
+
+      srPlusMinFP64TN(m_, n_, k_,
+                     (double*)static_cast<const double*>(matA), ldda_,
+                     (double*)static_cast<const double*>(matB), lddb_,
+                     static_cast<double*>(matC), lddc_,
+                     env.stream_compute());
+
+#if 0
+      magma_minproductblas_dgemm(
+        Magma_minproductTrans,
+        Magma_minproductNoTrans,
+        m_,
+        n_,
+        k_,
+        alpha,
+        (double*)matA,
+        ldda_,
+        (double*)matB,
+        lddb_,
+        beta,
+        (double*)matC,
+        //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
+        lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
+#endif
+
+      COMET_INSIST(System::accel_last_call_succeeded() &&
+               "Failure in call to srPlusMinFP64TN.");
+
+    } else {
+
+      srPlusMinFP32TN(m_, n_, k_,
+                     (float*)static_cast<const float*>(matA), ldda_,
+                     (float*)static_cast<const float*>(matB), lddb_,
+                     static_cast<float*>(matC), lddc_,
+                     env.stream_compute());
+
+#if 0
+      magma_minproductblas_sgemm(
+        Magma_minproductTrans,
+        Magma_minproductNoTrans,
+        m_,
+        n_,
+        k_,
+        alpha,
+        (float*)matA,
+        ldda_,
+        (float*)matB,
+        lddb_,
+        beta,
+        (float*)matC,
+        //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
+        lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
+#endif
+
+      COMET_INSIST(System::accel_last_call_succeeded() &&
+               "Failure in call to srPlusMinFP32TN.");
+
+    }
+
+    env.ops_local_inc(2 * m * (double)n * (double)k);
+
+    return; // exit here, no need to call MAGMA
+  }
+
+#endif // COMET_USE_SEMIRING
+
+#if defined COMET_USE_MAGMA
+
   // The purpose of this code is to workaround the magma size
   // limitation (for non CUBLAS failover) by doing gemm in blocks.
-
-#ifdef COMET_USE_MAGMA
 
   const size_t rows = k;
   const size_t cols_A = m;
@@ -1045,6 +1132,7 @@ void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
   }
 
 #endif // COMET_USE_MAGMA
+
 }
 
 //-----------------------------------------------------------------------------

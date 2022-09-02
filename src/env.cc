@@ -692,10 +692,15 @@ bool CEnv::can_run(int tc_try) const {
     result = false; // currently unimplemented
   }
 
-  // If using GPU, must have MAGMA use if non-bitwise method OR
-  // if bitwise method and not using tc package.
-  if (is_compute_method_gpu() && (!is_metric_type_bitwise()
-      || (is_metric_type_bitwise() && !is_try_tc_(tc_try)))) {
+  // If using GPU, must have MAGMA or SEMIRING if non-bitwise method
+  if (is_compute_method_gpu() && !is_metric_type_bitwise()) {
+    //result = result && (BuildHas::MAGMA || BuildHas::SEMIRING);
+    result = result && (BuildHas::MAGMA || (BuildHas::SEMIRING && !BuildHas::DOUBLE_PREC));
+  }
+
+  // If using GPU, must have MAGMA if bitwise method and not using tc package.
+  if (is_compute_method_gpu() && is_metric_type_bitwise() &&
+      !is_try_tc_(tc_try)) {
     result = result && BuildHas::MAGMA;
   }
 

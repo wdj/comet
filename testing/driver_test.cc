@@ -227,6 +227,17 @@ void DriverTest_czek2_() {
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU"));
+
+#if 0
+  EXPECT_EQ(
+      true,
+      compare_2runs("--num_proc_vector 1 --num_field 128 --num_vector_local 48 "
+                    "--compute_method CPU",
+                    "--num_proc_vector 1 --num_field 128 --num_vector_local 48 "
+                    "--compute_method GPU"));
+return;
+#endif
+
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -2802,6 +2813,14 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
+TEST(DriverTest, czek2) {
+  DriverTest_czek2_();
+}
+
+TEST(DriverTest, czek3) {
+  DriverTest_czek3_();
+}
+
 #if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
@@ -2844,15 +2863,7 @@ TEST(DriverTest, duo2_simple_sparse) {
 }
 #endif
 
-TEST(DriverTest, czek2) {
-  DriverTest_czek2_();
-}
-
 #if 1
-TEST(DriverTest, czek3) {
-  DriverTest_czek3_();
-}
-
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }

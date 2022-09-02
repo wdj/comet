@@ -370,6 +370,24 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  #---Use the seMIring library.
+
+  if [ ${USE_SEMIRING:-OFF} = ON ] ; then
+    echo "Building seMIring ..."
+    #local SEMIRING_DIR="/ccs/home/kurzak1/seMIring"
+    #local SEMIRING_DIR="$REPO_DIR/tpls/seMIring"
+    local SEMIRING_VERSION=2022-07-19
+    gunzip < $REPO_DIR/tpls/seMIring-${SEMIRING_VERSION}.tar.gz | tar xf -
+    local SEMIRING_DIR="$BUILD_DIR/seMIring"
+    pushd $SEMIRING_DIR
+    make 2>&1 | tee out_make.txt
+    popd
+    COMET_HIP_COMPILE_OPTS+=" -DCOMET_USE_SEMIRING -I$SEMIRING_DIR/include"
+    COMET_HIP_COMPILE_OPTS+=" -I$SEMIRING_DIR/include"
+    COMET_HIP_LINK_OPTS+=" -L$SEMIRING_DIR/lib -Wl,-rpath=$SEMIRING_DIR/lib -lsemiring"
+  fi
+
+  #----------------------------------------------------------------------------
   #---Get NVIDIA CUB library.
 
   if [ ${USE_CUDA:-OFF} = ON ] ; then

@@ -237,6 +237,12 @@ struct BuildHas {
     enum {MAGMA = false};
 # endif
 
+# ifdef COMET_USE_SEMIRING
+    enum {SEMIRING = true};
+# else
+    enum {SEMIRING = false};
+# endif
+
 # ifdef COMET_USE_CPUBLAS
     enum {CPUBLAS = true};
 # else
