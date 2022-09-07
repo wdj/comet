@@ -978,8 +978,8 @@ void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
 
 #if defined COMET_USE_SEMIRING
 
-  //if (use_minproduct_(env)) { //--------------------
-  if (use_minproduct_(env) && !env.is_double_prec()) { //--------------------
+  if (use_minproduct_(env)) { //--------------------
+  //if (use_minproduct_(env) && !env.is_double_prec()) { //--------------------
 
     const auto m_ = safe_cast<int>(m);
     const auto n_ = safe_cast<int>(n);

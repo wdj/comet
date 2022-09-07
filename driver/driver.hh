@@ -46,7 +46,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Struct to hold driver options (options not in CEnv).
 
-typedef struct {
+struct DriverOptions {
   int num_field_local;
   int num_vector_local;
   size_t num_field;
@@ -69,16 +69,14 @@ typedef struct {
   size_t num_incorrect;
   double max_incorrect_diff;
   bool checksum;
-} DriverOptions;
 
-enum {
-  GM_PROBLEM_TYPE_RANDOM = 1,
-  GM_PROBLEM_TYPE_ANALYTIC = 2
+  DriverOptions(CEnv& env);
+
+  void finish_parsing(int argc, char** argv, CEnv& env);
+
 };
 
 //=============================================================================
-
-//void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env);
 
 void print_output(bool do_print,
                   Checksum& cksum,

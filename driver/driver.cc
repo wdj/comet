@@ -60,225 +60,273 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+// Initialize driver options.
+
+DriverOptions::DriverOptions(CEnv& env)
+  : num_field_local(0)
+  , num_vector_local(0)
+  , num_field(0)
+  , num_vector(0)
+  , num_field_active(0)
+  , num_vector_active(0)
+  , num_field_local_initialized(false)
+  , num_field_active_initialized(false)
+  , num_vector_local_initialized(false)
+  , num_vector_active_initialized(false)
+  , verbosity(1)
+  , stage_min(0)
+  , stage_max(env.num_stage() - 1)
+  , phase_min(0)
+  , phase_max(env.num_phase() - 1)
+  , input_file(NULL)
+  , histograms_file(NULL)
+  , output_file_stub(NULL)
+  , problem_type(ProblemType::DEFAULT)
+  , num_incorrect(0)
+  , max_incorrect_diff(0.)
+  , checksum(true) {
+}
+
+//-----------------------------------------------------------------------------
 // Parse remaining unprocessed arguments.
 
-void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
-  errno = 0;
-  int i = 0;
-  for (i = 1; i < argc; ++i) {
-    //----------
+void DriverOptions::finish_parsing(int argc, char** argv, CEnv& env) {
+
+  errno = 0; // from std C.
+  for (int i = 1; i < argc; ++i) {
+
     if (strcmp(argv[i], "--num_field") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_field.");
-      const long num_field = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && num_field >= 0
-                    && "Invalid setting for num_field.");
-      do_->num_field_active = num_field;
-      do_->num_field_active_initialized = true;
-      do_->num_field_local_initialized = false;
-    //----------
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for num_field.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 0
+                             && "Invalid setting for num_field.");
+      this->num_field_active = safe_cast<int>(value);
+      this->num_field_active_initialized = true;
+      this->num_field_local_initialized = false;
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--num_field_local") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_field_local.");
-      const long num_field_local = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && num_field_local >= 0 &&
-                    (long)(int)num_field_local == num_field_local &&
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for num_field_local.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 0 &&
                     "Invalid setting for num_field_local.");
-      do_->num_field_local = num_field_local;
-      do_->num_field_local_initialized = true;
-      do_->num_field_active_initialized = false;
-    //----------
+      this->num_field_local = safe_cast<int>(value);
+      this->num_field_local_initialized = true;
+      this->num_field_active_initialized = false;
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--num_vector") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_vector.");
-      const long num_vector = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && num_vector >= 0
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for num_vector.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 0
                     && "Invalid setting for num_vector.");
-      do_->num_vector_active = num_vector;
-      do_->num_vector_active_initialized = true;
-      do_->num_vector_local_initialized = false;
-    //----------
+      this->num_vector_active = safe_cast<int>(value);
+      this->num_vector_active_initialized = true;
+      this->num_vector_local_initialized = false;
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_vector_local.");
-      const long num_vector_local = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && num_vector_local >= 0 &&
-                    (long)(int)num_vector_local == num_vector_local &&
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for num_vector_local.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 0 &&
                     "Invalid setting for num_vector_local.");
-      do_->num_vector_local = num_vector_local;
-      do_->num_vector_local_initialized = true;
-      do_->num_vector_active_initialized = false;
-    //----------
+      this->num_vector_local = safe_cast<int>(value);
+      this->num_vector_local_initialized = true;
+      this->num_vector_active_initialized = false;
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--verbosity") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for verbosity.");
-      const long verbosity = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && verbosity >= 0 &&
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for verbosity.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 0 &&
                     "Invalid setting for verbosity.");
-      do_->verbosity = verbosity;
-      //--------------------
+      this->verbosity = safe_cast<int>(value);
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--checksum") == 0) {
-      //--------------------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for checksum.");
-      if (strcmp(argv[i], "yes") == 0) {
-        do_->checksum = true;
-      } else if (strcmp(argv[i], "no") == 0) {
-        do_->checksum = false;
-      } else {
-        COMET_INSIST_INTERFACE(env, false && "Invalid setting for checksum.");
-      }
-    //----------
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for checksum.");
+      if (strcmp(argv[i], "yes") == 0)
+        this->checksum = true;
+      else if (strcmp(argv[i], "no") == 0)
+        this->checksum = false;
+      else
+        COMET_INSIST_INTERFACE(&env, false && "Invalid setting for checksum.");
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--num_stage") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_stage.");
-      const long num_stage = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && num_stage >= 1
-                    && (long)(int)num_stage == num_stage
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for num_stage.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 1
                     && "Invalid setting for num_stage.");
-      env->num_stage(num_stage);
-      do_->stage_min = 0;
-      do_->stage_max = env->num_stage() - 1;
-    //----------
+      env.num_stage(safe_cast<int>(value));
+      this->stage_min = 0;
+      this->stage_max = env.num_stage() - 1;
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--stage_min") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_min.");
-      const long stage_min = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && stage_min >= 0
-                    && (long)(int)stage_min == stage_min
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for stage_min.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 0
                     && "Invalid setting for stage_min.");
-      do_->stage_min = stage_min;
-    //----------
+      this->stage_min = safe_cast<int>(value);
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--stage_max") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_max.");
-      const long stage_max = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && stage_max < env->num_stage()
-                    && (long)(int)stage_max == stage_max
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for stage_max.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value < env.num_stage()
                     && "Invalid setting for stage_max.");
-      do_->stage_max = stage_max;
-    //----------
+      this->stage_max = safe_cast<int>(value);
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--num_phase") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_phase.");
-      const long num_phase = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && num_phase >= 1
-                    && (long)(int)num_phase == num_phase
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for num_phase.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 1
                     && "Invalid setting for num_phase.");
-      env->num_phase(num_phase);
-      do_->phase_min = 0;
-      do_->phase_max = env->num_phase() - 1;
-    //----------
+      env.num_phase(safe_cast<int>(value));
+      this->phase_min = 0;
+      this->phase_max = env.num_phase() - 1;
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--phase_min") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_min.");
-      const long phase_min = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && phase_min >= 0
-                    && (long)(int)phase_min == phase_min
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for phase_min.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value >= 0
                     && "Invalid setting for phase_min.");
-      do_->phase_min = phase_min;
-    //----------
+      this->phase_min = safe_cast<int>(value);
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--phase_max") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_max.");
-      const long phase_max = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && phase_max < env->num_phase()
-                    && (long)(int)phase_max == phase_max
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for phase_max.");
+      const auto value = strtol(argv[i], NULL, 10);
+      COMET_INSIST_INTERFACE(&env, 0 == errno && value < env.num_phase()
                     && "Invalid setting for phase_max.");
-      do_->phase_max = phase_max;
-    //----------
+      this->phase_max = safe_cast<int>(value);
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--input_file") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for input_file.");
-      do_->input_file = argv[i];
-    //----------
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for input_file.");
+      this->input_file = argv[i];
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--histograms_file") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for histograms_file.");
-      do_->histograms_file = argv[i];
-    //----------
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for histograms_file.");
+      this->histograms_file = argv[i];
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--output_file_stub") == 0) {
-    //----------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for output_file_stub.");
-      do_->output_file_stub = argv[i];
-      //--------------------
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for output_file_stub.");
+      this->output_file_stub = argv[i];
+
+    //--------------------
+
     } else if (strcmp(argv[i], "--problem_type") == 0) {
-      //--------------------
+
       ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for problem_type.");
-      if (strcmp(argv[i], "random") == 0) {
-        do_->problem_type = GM_PROBLEM_TYPE_RANDOM;
-      } else if (strcmp(argv[i], "analytic") == 0) {
-        do_->problem_type = GM_PROBLEM_TYPE_ANALYTIC;
-      } else {
-        COMET_INSIST_INTERFACE(env, false && "Invalid setting for problem_type.");
-      }
-     //----------
+      COMET_INSIST_INTERFACE(&env, i < argc && "Missing value for problem_type.");
+      if (strcmp(argv[i], "random") == 0)
+        this->problem_type = ProblemType::RANDOM;
+      else if (strcmp(argv[i], "analytic") == 0)
+        this->problem_type = ProblemType::ANALYTIC;
+      else
+        COMET_INSIST_INTERFACE(&env, false && "Invalid setting for problem_type.");
+
     } else if (strcmp(argv[i], "--threshold") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--metric_type") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--num_way") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--all2all") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--duo_multiplier") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
-      ++i; // processed elsewhere by CEnv.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--sparse") == 0) {
-      ++i; // processed elsewhere by CEnv.
-    } else if (strcmp(argv[i], "--fastnodes") == 0) {
-      // optionally processed by caller.
-    } else if (strcmp(argv[i], "--nopreflight") == 0) {
-      // optionally processed by caller.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--tc") == 0) {
-      ++i; // optionally processed by caller.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
-      ++i; // optionally processed by caller.
+      ++i; // processed by CEnv.
     } else if (strcmp(argv[i], "--metrics_shrink") == 0) {
-      ++i; // optionally processed by caller.
+      ++i; // processed by CEnv.
+    } else if (strcmp(argv[i], "--fastnodes") == 0) {
+      // processed by main.
+    } else if (strcmp(argv[i], "--nopreflight") == 0) {
+      // processed by main.
     } else {
     //----------
-      if (env->proc_num() == 0) {
+      if (env.proc_num() == 0) {
         fprintf(stderr, "Invalid argument \"%s\". ", argv[i]);
       }
-      COMET_INSIST_INTERFACE(env, false && "Error: argument not recognized.");
+      COMET_INSIST_INTERFACE(&env, false && "Error: argument not recognized.");
     //----------
     } // if/else
 
   } // for i
 
-  COMET_INSIST_INTERFACE(env, (do_->num_field_local_initialized ||
-                do_->num_field_active_initialized)
-                && "Error: must set num_field_local or num_field.");
-  COMET_INSIST_INTERFACE(env, (do_->num_vector_local_initialized ||
-                do_->num_vector_active_initialized)
-                && "Error: must set num_vector_local or num_vector.");
+  COMET_INSIST_INTERFACE(&env, (this->num_field_local_initialized ||
+                this->num_field_active_initialized)
+                && "Error: must set either num_field_local or num_field.");
+  COMET_INSIST_INTERFACE(&env, (this->num_vector_local_initialized ||
+                this->num_vector_active_initialized)
+                && "Error: must set either num_vector_local or num_vector.");
 }
 
 //-----------------------------------------------------------------------------
@@ -294,6 +342,7 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
 }
 
 //-----------------------------------------------------------------------------
+// Print a line of output to summarize result of run.
 
 void print_output(bool do_print,
                   Checksum& cksum,
@@ -457,25 +506,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   // Parse remaining unprocessed arguments.
 
-  DriverOptions do_ = {0};
-  do_.num_field_local_initialized = false;
-  do_.num_field_active_initialized = false;
-  do_.num_vector_local_initialized = false;
-  do_.num_vector_active_initialized = false;
-  do_.verbosity = 1;
-  do_.stage_min = 0;
-  do_.stage_max = env->num_stage() - 1;
-  do_.phase_min = 0;
-  do_.phase_max = env->num_phase() - 1;
-  do_.input_file = NULL;
-  do_.histograms_file = NULL;
-  do_.output_file_stub = NULL;
-  do_.problem_type = problem_type_default();
-  do_.checksum = true;
-  do_.num_incorrect = 0;
-  do_.max_incorrect_diff = 0.;
-
-  finish_parsing(argc, argv, &do_, env);
+  DriverOptions do_(*env);
+  do_.finish_parsing(argc, argv, *env);
 
   // Set up parallel deomp for vectors, metrics.
 
@@ -490,7 +522,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     env->data_type_vectors(), env);
-//env->stream_compute();
 
   vctime += env->synced_time() - time_beg;
 

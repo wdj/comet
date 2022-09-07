@@ -334,9 +334,9 @@ void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
                            CEnv* env) {
   COMET_INSIST(vectors && env);
 
-  if (problem_type == GM_PROBLEM_TYPE_RANDOM) {
+  if (problem_type == ProblemType::RANDOM) {
     set_vectors_random_(vectors, verbosity, env);
-  } else if (problem_type == GM_PROBLEM_TYPE_ANALYTIC) {
+  } else if (problem_type == ProblemType::ANALYTIC) {
     set_vectors_analytic_(vectors, verbosity, env);
   } else {
     COMET_INSIST(false && "Invalid problem_type");
@@ -696,7 +696,7 @@ static GMFloat metric_value_analytic_(size_t vi,
 void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                              CEnv* env) {
   COMET_INSIST(metrics && do_ && env);
-  COMET_INSIST(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
+  COMET_INSIST(ProblemType::ANALYTIC == do_->problem_type);
   COMET_INSIST(NULL == do_->input_file);
 
   if (! env->is_proc_active())
@@ -972,7 +972,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env) {
     return;
   }
 
-  if (GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type) {
+  if (ProblemType::ANALYTIC == do_->problem_type) {
     check_metrics_analytic_(metrics, do_, env);
   }
 }

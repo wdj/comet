@@ -231,9 +231,9 @@ void DriverTest_czek2_() {
 #if 0
   EXPECT_EQ(
       true,
-      compare_2runs("--num_proc_vector 1 --num_field 128 --num_vector_local 48 "
+      compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 8 "
                     "--compute_method CPU",
-                    "--num_proc_vector 1 --num_field 128 --num_vector_local 48 "
+                    "--num_proc_vector 1 --num_field 1 --num_vector_local 8 "
                     "--compute_method GPU"));
 return;
 #endif
@@ -426,7 +426,7 @@ return;
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 10; ++num_field) {
       create_vectors_file("czek_2way_in.bin", num_field, num_vector,
-                          comet::MetricType::CZEK, 2, comet::problem_type_default(), 1);
+                          comet::MetricType::CZEK, 2, comet::ProblemType::DEFAULT, 1);
       for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
 
@@ -2556,7 +2556,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 3*300; ++num_field) {
       create_vectors_file("ccc_duo_2way_in.bin", num_field, num_vector,
-                          comet::MetricType::CCC, 2, comet::problem_type_default(), 1);
+                          comet::MetricType::CCC, 2, comet::ProblemType::DEFAULT, 1);
       for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
 
