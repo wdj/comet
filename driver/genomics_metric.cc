@@ -558,7 +558,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     }
     CEnv env(node_comm, options);
     double t1 = env.synced_time();
-    perform_run(options, node_comm, &env);
+    Driver::perform_run(options, node_comm, env);
     double t2 = env.synced_time();
     double time = t2 - t1;
     if (!(trial == 0 && num_trial != 1)) {
@@ -676,7 +676,7 @@ void perform_run_preflight(int argc, char** argv) {
     char options1[1024];
     sprintf(options1, options_template_1, num_proc);
 
-    perform_run(options1);
+    Driver::perform_run(options1);
   }
 
 //#endif
@@ -748,7 +748,7 @@ int main(int argc, char** argv) {
       printf("Commencing run.\n");
     }
 
-    perform_run(argc, (char**)argv, NULL, fast_comm);
+    Driver::perform_run(argc, (char**)argv, fast_comm);
 
     COMET_MPI_SAFE_CALL(MPI_Comm_free(&fast_comm));
 
@@ -761,7 +761,7 @@ int main(int argc, char** argv) {
 
     // Perform actual run.
 
-    perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
+    Driver::perform_run(argc, (char**)argv, MPI_COMM_WORLD);
 
   }
 

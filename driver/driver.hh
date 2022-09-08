@@ -47,41 +47,9 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Struct to hold driver options (options not in CEnv).
 
-#if 0
-struct DriverOptions {
-  int num_field_local;
-  int num_vector_local;
-  size_t num_field;
-  size_t num_vector;
-  size_t num_field_active;
-  size_t num_vector_active;
-  bool is_inited_num_field_local;
-  bool is_inited_num_field_active;
-  bool is_inited_num_vector_local;
-  bool is_inited_num_vector_active;
-  int verbosity;
-  int stage_min;
-  int stage_max;
-  int phase_min;
-  int phase_max;
-  char* input_file;
-  char* histograms_file;
-  char* output_file_stub;
-  int problem_type;
-  size_t num_incorrect;
-  double max_incorrect_diff;
-  bool checksum;
+class Driver {
 
-  DriverOptions(CEnv& env);
-
-  void finish_parsing(int argc, char** argv, CEnv& env);
-
-};
-#endif
-
-
-
-struct Driver {
+public:
   int num_field_local;
   int num_vector_local;
   size_t num_field;
@@ -126,7 +94,32 @@ struct Driver {
 
   void print_output(Checksum& cksum);
 
-  static void print_output(Checksum& cksum, CEnv& env);
+  static void print_output(Checksum& cksum, CEnv& env) {
+    Driver driver(env);
+    driver.print_output(cksum);
+  }
+
+  static void perform_run(int argc, char** argv, MPI_Comm base_comm);
+
+  static void perform_run(const char* const options);
+
+  static void perform_run(const char* const options, MPI_Comm base_comm,
+                          CEnv& env);
+
+  static void perform_run(Checksum& cksum, const char* const description,
+                          MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
+
+
+private:
+
+  CEnv& env_;
+
+  static void perform_run_(Checksum& cksum, int argc, char** argv,
+                           const char* const description,
+                           MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
+
+  static void perform_run_(Checksum& cksum, int argc, char** argv,
+                           MPI_Comm base_comm, CEnv& env);
 
   class Timer {
   public:
@@ -142,45 +135,7 @@ struct Driver {
     CEnv& env_;
     double time_begin_;
   };
-
-
-
-
-
-private:
-
-  CEnv& env_;
 };
-
-
-//=============================================================================
-
-#if 0
-void print_output(bool do_print,
-                  Checksum& cksum,
-                  CEnv& env,
-                  char* output_file_stub = 0,
-                  size_t num_written = 0,
-                  double vctime = 0,
-                  double mctime = 0,
-                  double cktime = 0,
-                  double intime = 0,
-                  double outtime = 0,
-                  double tottime = 0);
-#endif
-
-void perform_run(int argc, char** argv, const char* const description,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
-
-void perform_run(const char* const options,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
-
-void perform_run(comet::Checksum& cksum, int argc, char** argv,
-                 const char* const description,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
-
-void perform_run(comet::Checksum& cksum, const char* const options,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
 //=============================================================================
 

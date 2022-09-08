@@ -90,7 +90,7 @@ void DriverTest_perf_() {
 
     CEnv env(MPI_COMM_WORLD, options[i]);
 
-    perform_run(options[i], MPI_COMM_WORLD, &env);
+    Driver::perform_run(options[i], MPI_COMM_WORLD, env);
 
     const double ops = env.ops();
     const double ops_rate_proc = ops / (env.ctime() * env.num_proc());
