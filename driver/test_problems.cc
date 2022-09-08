@@ -693,11 +693,11 @@ static GMFloat metric_value_analytic_(size_t vi,
 //=============================================================================
 // Check correctness of metrics, if possible.
 
-void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
+void check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
                              CEnv* env) {
-  COMET_INSIST(metrics && do_ && env);
-  COMET_INSIST(ProblemType::ANALYTIC == do_->problem_type);
-  COMET_INSIST(NULL == do_->input_file);
+  COMET_INSIST(metrics && env);
+  COMET_INSIST(ProblemType::ANALYTIC == driver.problem_type);
+  COMET_INSIST(NULL == driver.input_file);
 
   if (! env->is_proc_active())
     return;
@@ -958,22 +958,22 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     default:
       COMET_INSIST(false && "Invalid data type.");
   } // switch
-  do_->num_incorrect += num_incorrect;
-  do_->max_incorrect_diff = utils::max(max_incorrect_diff,
-                                       do_->max_incorrect_diff);
+  driver.num_incorrect += num_incorrect;
+  driver.max_incorrect_diff = utils::max(max_incorrect_diff,
+                                       driver.max_incorrect_diff);
 }
 
 //=============================================================================
 
-void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env) {
-  COMET_INSIST(metrics && do_ && env);
+void check_metrics(GMMetrics* metrics, Driver& driver, CEnv* env) {
+  COMET_INSIST(metrics && env);
 
-  if (NULL != do_->input_file) {
+  if (NULL != driver.input_file) {
     return;
   }
 
-  if (ProblemType::ANALYTIC == do_->problem_type) {
-    check_metrics_analytic_(metrics, do_, env);
+  if (ProblemType::ANALYTIC == driver.problem_type) {
+    check_metrics_analytic_(metrics, driver, env);
   }
 }
 

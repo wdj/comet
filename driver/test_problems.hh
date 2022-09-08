@@ -56,13 +56,12 @@ struct ProblemType {
   };
 };
 
-
 //-----------------------------------------------------------------------------
 
 void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
                            CEnv* env);
 
-void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env);
+void check_metrics(GMMetrics* metrics, Driver& driver, CEnv* env);
 
 //-----------------------------------------------------------------------------
 /// \brief Help[er class with test problem size info.

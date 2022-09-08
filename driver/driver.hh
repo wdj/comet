@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "env.hh"
 #include "checksum.hh"
+#include "vectors.hh"
 
 //=============================================================================
 
@@ -46,6 +47,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Struct to hold driver options (options not in CEnv).
 
+#if 0
 struct DriverOptions {
   int num_field_local;
   int num_vector_local;
@@ -53,10 +55,10 @@ struct DriverOptions {
   size_t num_vector;
   size_t num_field_active;
   size_t num_vector_active;
-  bool num_field_local_initialized;
-  bool num_field_active_initialized;
-  bool num_vector_local_initialized;
-  bool num_vector_active_initialized;
+  bool is_inited_num_field_local;
+  bool is_inited_num_field_active;
+  bool is_inited_num_vector_local;
+  bool is_inited_num_vector_active;
   int verbosity;
   int stage_min;
   int stage_max;
@@ -75,6 +77,81 @@ struct DriverOptions {
   void finish_parsing(int argc, char** argv, CEnv& env);
 
 };
+#endif
+
+
+
+struct Driver {
+  int num_field_local;
+  int num_vector_local;
+  size_t num_field;
+  size_t num_vector;
+  size_t num_field_active;
+  size_t num_vector_active;
+  bool is_inited_num_field_local;
+  bool is_inited_num_field_active;
+  bool is_inited_num_vector_local;
+  bool is_inited_num_vector_active;
+  int verbosity;
+  int stage_min;
+  int stage_max;
+  int phase_min;
+  int phase_max;
+  char* input_file;
+  char* histograms_file;
+  char* output_file_stub;
+  int problem_type;
+  size_t num_incorrect;
+  double max_incorrect_diff;
+  bool checksum;
+
+  size_t num_metric_items_computed;
+  size_t num_metrics_active;
+  size_t num_written;
+  double vctime;
+  double mctime;
+  double cktime;
+  double intime;
+  double outtime;
+  double tottime;
+  size_t num_metric_items_local_computed;
+  size_t num_metrics_active_local;
+  size_t num_local_written;
+
+  Driver(CEnv& env);
+
+  void finish_parsing(int argc, char** argv);
+
+  void set_vectors(GMVectors& vectors);
+
+  void print_output(Checksum& cksum);
+
+  static void print_output(Checksum& cksum, CEnv& env);
+
+  class Timer {
+  public:
+    Timer(CEnv& env) : env_(env), time_begin_(0) {
+    }
+    void start() {
+      time_begin_ = env_.synced_time();
+    }
+    double elapsed() {
+      return env_.synced_time() - time_begin_;
+    }
+  private:
+    CEnv& env_;
+    double time_begin_;
+  };
+
+
+
+
+
+private:
+
+  CEnv& env_;
+};
+
 
 //=============================================================================
 
