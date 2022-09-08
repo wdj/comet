@@ -121,6 +121,12 @@ private:
   static void perform_run_(Checksum& cksum, int argc, char** argv,
                            MPI_Comm base_comm, CEnv& env);
 
+  void fflush_() {
+    env_.synced_time();
+    fflush(NULL);
+    env_.synced_time();
+  }
+
   class Timer {
   public:
     Timer(CEnv& env) : env_(env), time_begin_(0) {

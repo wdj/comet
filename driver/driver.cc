@@ -791,18 +791,17 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   // Output a local checksum, for testing purposes.
 
-  if (false) {
-    // One more sync before checking num_correct, to allow flush of output.
-    env.synced_time();
+  const bool do_output_local_checksum = false;
+
+  if (do_output_local_checksum) {
+    driver.fflush_();
     if (driver.checksum && env.is_proc_active() && driver.verbosity > 0) {
       printf("local checksum: ");
       cksum_local.print(env);
       printf("\n");
     }
   }
-  env.synced_time();
-  fflush(NULL);
-  env.synced_time();
+  driver.fflush_();
 
   // Validation: check for any wrong answers.
 
@@ -817,9 +816,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
            "max_incorrect_diff  %e  hostname  %s  rank  %i\n",
            driver.num_incorrect, driver.max_incorrect_diff, hn, rank);
   }
-  env.synced_time();
-  fflush(NULL);
-  env.synced_time();
+  driver.fflush_();
 
   COMET_INSIST(driver.num_incorrect == 0);
 
