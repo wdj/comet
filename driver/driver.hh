@@ -155,6 +155,7 @@ private:
 
 //=============================================================================
 
+#if 0
 void print_output(bool do_print,
                   Checksum& cksum,
                   CEnv& env,
@@ -166,6 +167,7 @@ void print_output(bool do_print,
                   double intime = 0,
                   double outtime = 0,
                   double tottime = 0);
+#endif
 
 void perform_run(int argc, char** argv, const char* const description,
                  MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);

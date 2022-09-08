@@ -650,6 +650,7 @@ void Driver::set_vectors(GMVectors& vectors) {
 //-----------------------------------------------------------------------------
 // Print a line of output to summarize result of run.
 
+#if 0
 void print_output(bool do_print,
                   Checksum& cksum,
                   CEnv& env,
@@ -748,7 +749,7 @@ void print_output(bool do_print,
 
   printf("\n");
 }
-
+#endif
 
 
 
@@ -918,6 +919,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   //double total_time_beg = env->synced_time();
   Driver::Timer timer_total(*env);
+  timer_total.start();
 
   // Parse remaining unprocessed arguments.
 
@@ -1200,8 +1202,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   // Output run information.
 
-  print_output(do_print, cksum, *env, driver.output_file_stub, driver.num_written,
-    driver.vctime, driver.mctime, driver.cktime, driver.intime, driver.outtime, driver.tottime);
+  //print_output(do_print, cksum, *env, driver.output_file_stub, driver.num_written,
+  //  driver.vctime, driver.mctime, driver.cktime, driver.intime, driver.outtime, driver.tottime);
+  driver.print_output(cksum);
 
   // Output a local checksum, for testing purposes.
 
