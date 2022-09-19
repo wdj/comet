@@ -1458,12 +1458,13 @@ elif [ $COMET_PLATFORM = PERLMUTTER ] ; then
 
   #---Modules etc.
 
-  module -q load PrgEnv-nvidia # PrgEnv-gnu
-  #module -q unload PrgEnv-gnu
+  #module -q load PrgEnv-nvidia # PrgEnv-gnu
+  module -q load PrgEnv-gnu
+  local CRAY_MPICH_DIR=$CRAY_MPICH_PREFIX # CRAY_MPICH_BASEDIR/gnu/9.1
   #module -q load craype
   #module -q load cray-mpich
   #module -q load cudatoolkit/11.5
-  #module -q load cpe-cuda
+  module -q load cpe-cuda
   module -q load cmake
   module list
 
@@ -1538,6 +1539,7 @@ elif [ $COMET_PLATFORM = PERLMUTTER ] ; then
     #local COMET_MPI_LINK_OPTS="-L$OPENMPI_DIR/lib -Wl,-rpath=$OPENMPI_DIR/lib -lmpi"
     local COMET_MPI_COMPILE_OPTS="-I$CRAY_MPICH_DIR/include"
     local COMET_MPI_LINK_OPTS="-L$CRAY_MPICH_DIR/lib -Wl,-rpath=$CRAY_MPICH_DIR/lib -lmpi"
+    COMET_MPI_LINK_OPTS+=" $PE_MPICH_GTL_DIR_nvidia80 $PE_MPICH_GTL_LIBS_nvidia80"
 
     local COMET_CMAKE_USE_MPI=OFF
   fi
