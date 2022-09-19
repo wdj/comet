@@ -221,22 +221,21 @@ void DriverTest_czek2_() {
   //---2-way, all2all no
   //----------
 
+#if 0
+  EXPECT_EQ(
+      true,
+      compare_2runs("--metric_type czekanowski --num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                    "--compute_method GPU",
+                    "--metric_type czekanowski --num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                    "--compute_method CPU"));
+#endif
+
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU"));
-
-#if 0
-  EXPECT_EQ(
-      true,
-      compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 8 "
-                    "--compute_method CPU",
-                    "--num_proc_vector 1 --num_field 1 --num_vector_local 8 "
-                    "--compute_method GPU"));
-return;
-#endif
 
   EXPECT_EQ(
       true,

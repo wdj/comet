@@ -188,6 +188,7 @@ static void finalize_czek_(
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
           matB_cbuf->elt_const<GMFloat>(i, j);
+//printf("numer %f\n", numer);
         const GMFloat vs_i = vs_l->sum(i);
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;

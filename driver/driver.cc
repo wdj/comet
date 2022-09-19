@@ -531,7 +531,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 //-----------------------------------------------------------------------------
 
 void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
-                  MPI_Comm base_comm, CEnv& env) {
+                          MPI_Comm base_comm, CEnv& env) {
   COMET_INSIST(argc > 0 && argv);
 
   Driver::Timer timer_total(env);
@@ -601,8 +601,11 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   Checksum cksum(driver.checksum);
   Checksum cksum_local(driver.checksum);
 
-  {
-    // Initialize output.
+  const bool is_all_phase_all_stage =
+    driver.phase_min==0 && driver.phase_max==env.num_phase() - 1 &&
+    driver.stage_min==0 && driver.stage_max==env.num_stage() - 1;
+
+  { // BEGIN BLOCK initialize output.
 
     timer.start();
     MetricsIO metrics_io(driver.output_file_stub, driver.verbosity, env);
@@ -611,8 +614,8 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
     Histograms histograms(driver.histograms_file, env);
     dm->attach_histograms(&histograms);
 
-  {
-    // Initialize metrics mem, compute metrics.
+
+  { // BEGIN BLOCK initialize metrics mem, compute metrics.
 
     MetricsMem metrics_mem(&env);
 
@@ -693,7 +696,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
     timer.start();
 
-  }
+  } // END BLOCK initialize metrics mem, compute metrics.
     driver.mctime += timer.elapsed();
 
     // Finalize output.
@@ -703,11 +706,11 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
     histograms.finalize();
     histograms.output();
-    if (driver.phase_min==0 && driver.phase_max==env.num_phase() - 1 &&
-        driver.stage_min==0 && driver.stage_max==env.num_stage() - 1) {
+    if (is_all_phase_all_stage)
       histograms.check(driver.num_vector_active);
-    }
-  }
+
+  } // END BLOCK initialize outputs
+
   driver.outtime += timer.elapsed();
 
   // Deallocate vectors.
@@ -741,16 +744,13 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
     const size_t num_metrics_active_expected =
       utils::nchoosek(dm->num_vector_active, env.num_way());
 
-    if (env.all2all() &&
-        driver.phase_min==0 && driver.phase_max==env.num_phase() - 1 &&
-        driver.stage_min==0 && driver.stage_max==env.num_stage() - 1) {
+    if (env.all2all() && is_all_phase_all_stage) {
 
       COMET_INSIST(driver.num_metrics_active == num_metrics_active_expected);
 
-      if (!env.is_shrink()) {
-        COMET_INSIST(driver.num_metric_items_computed ==
-                     env.num_metric_items_per_metric() * num_metrics_expected);
-      }
+      COMET_INSIST(driver.num_metric_items_computed ==
+                   env.num_metric_items_per_metric() * num_metrics_expected
+                   || env.is_shrink());
     }
 
 #if 0

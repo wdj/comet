@@ -376,7 +376,9 @@ function main
     echo "Building seMIring ..."
     #local SEMIRING_DIR="/ccs/home/kurzak1/seMIring"
     #local SEMIRING_DIR="$REPO_DIR/tpls/seMIring"
-    local SEMIRING_VERSION=2022-07-19
+    #local SEMIRING_VERSION=2022-07-19
+    #local SEMIRING_VERSION=2022-09-09
+    local SEMIRING_VERSION=2022-09-15
     gunzip < $REPO_DIR/tpls/seMIring-${SEMIRING_VERSION}.tar.gz | tar xf -
     local SEMIRING_DIR="$BUILD_DIR/seMIring"
     pushd $SEMIRING_DIR

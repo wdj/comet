@@ -1001,6 +1001,8 @@ void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
                      static_cast<double*>(matC), lddc_,
                      env.stream_compute());
 
+//printf("m %i n %i k %i lda %zu ldb %zu ldc %zu\n", m_, n_, k_, ldda_, lddb_, lddc_);
+
 #if 0
       magma_minproductblas_dgemm(
         Magma_minproductTrans,
