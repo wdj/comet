@@ -114,6 +114,10 @@ private:
 
   CEnv& env_;
 
+  bool do_print() const {
+    return env_.is_proc_active() && env_.proc_num() == 0 && verbosity > 0;
+  }
+
   static void perform_run_(Checksum& cksum, int argc, char** argv,
                            const char* const description,
                            MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
