@@ -48,6 +48,8 @@ function repo_dir
 
 function main
 {
+  # Initializations.
+
   # Location of this script.
   #local SCRIPT_DIR=$(script_dir)
   local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
@@ -55,24 +57,35 @@ function main
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  time make -j4 VERBOSE=1
+  # make.
 
-  #pushd ./install_dir/bin
-  #local FILE
-  #for FILE in $(cd $REPO_DIR/tools; ls *.cc) ; do
-  #  g++ -o $(basename $FILE .cc) $REPO_DIR/tools/$FILE
-  #done
-  #for FILE in $(cd $REPO_DIR/tools; ls *.sh) ; do
-  #  cp $REPO_DIR/tools/$FILE .
-  #done
-  #popd
+  time make -j4 VERBOSE=1
 
   if [ $? != 0 ] ; then
     exit $?
   fi
 
+  # make install.
+
   time make install
-  exit $?
+
+  if [ $? != 0 ] ; then
+    exit $?
+  fi
+
+  # make and install the tools.
+
+  (cd $REPO_DIR && tar cf - tools) | tar xf -
+  pushd tools
+  make
+  for FILE in $(ls *.cc) ; do
+    cp $(basename $FILE .cc) ../install_dir/bin
+  done
+  for FILE in $(ls *.sh) ; do
+    cp $FILE ../install_dir/bin
+  done
+  popd
+
 } # main
 
 #==============================================================================

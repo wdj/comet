@@ -6,6 +6,93 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <string>
+
+//-----------------------------------------------------------------------------
+
+class OutputBuf {
+
+  enum {BUF_SIZE = 4};
+
+public:
+
+  OutputBuf(char* const output_file_name)
+    : output_file_(fopen(output_file_name, "wb"))
+    , num_elts_in_buf_(0) {
+    if (!output_file_) {
+      fprintf(stderr, "Error: unable to open file. %s\n", output_file_name);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  ~OutputBuf() {
+    if (is_buf_nonempty()) {
+      fprintf(stderr, "Error: nonempty output buffer on completion. %i\n",
+        num_elts_in_buf_);
+      exit(EXIT_FAILURE);
+    }
+    fclose(output_file_);    
+  }
+
+  bool is_buf_full() const {
+    return BUF_SIZE == num_elts_in_buf_;
+  }
+
+  bool is_buf_nonempty() const {
+    return 0 != num_elts_in_buf_;
+  }
+
+  void add(int value) {
+
+    // Output value has two bits.
+    if (value < 0 || value > 3) {
+      fprintf(stderr, "Invalid output value. %i\n", value);
+      exit(EXIT_FAILURE);
+    }
+
+    // Internal consistency check.
+    if (num_elts_in_buf_ < 0 || num_elts_in_buf_ >= BUF_SIZE) {
+      fprintf(stderr, "Internal error: "
+              "invalid number of elements in buffer. %i\n", num_elts_in_buf_);
+      exit(EXIT_FAILURE);
+    }
+
+    // Add the two bits to the buffer.
+
+    buffer_ = (buffer_ << 2) | value;
+    num_elts_in_buf_++;
+
+    // Flush if full.
+
+    if (is_buf_full())
+      flush();
+  }
+
+  void flush() {
+
+    // Flush buffer to file.
+
+    if (!num_elts_in_buf_)
+      return;
+
+    // NOTE: if the buffer is not full, then make low order
+    // bits into high order bits to write out.
+
+    if (BUF_SIZE != num_elts_in_buf_)
+      buffer_ = buffer_ << (2 * (4 - num_elts_in_buf_));
+
+    fputc(buffer_, output_file_);
+    buffer_ = 0;
+    num_elts_in_buf_ = 0;
+  }
+
+private:
+
+  FILE* output_file_;
+  int num_elts_in_buf_;
+  char buffer_;
+};
+
 //-----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
@@ -34,11 +121,7 @@ int main(int argc, char** argv) {
   }
   argnum++;
 
-  FILE* snpbinfile = fopen(argv[argnum], "wb");
-  if (!snpbinfile) {
-    fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
-    return 1;
-  }
+  OutputBuf output_buf(argv[argnum]);
   argnum++;
 
   // Initializations.
@@ -131,9 +214,6 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    int out_buf = 0;
-    int num_buf = 0;
-
     //----------
     // PASS 2: loop to output results
     //----------
@@ -188,16 +268,7 @@ int main(int argc, char** argv) {
 
       // Insert the 2 bits into the output buffer
 
-      out_buf = (out_buf << 2) | sn;
-      num_buf++;
-
-      // Output buffer has 8 bits, so flush
-
-      if (num_buf == 4) {
-        fputc(out_buf, snpbinfile);
-        out_buf = 0;
-        num_buf = 0;
-      }
+      output_buf.add(sn);
 
     } // for i - second pass loop
 
@@ -205,12 +276,8 @@ int main(int argc, char** argv) {
 
     // Final flush of buffer
 
-    if (num_buf != 0) {
-      out_buf = out_buf << (2 * (4 - num_buf));
-      fputc(out_buf, snpbinfile);
-      out_buf = 0;
-      num_buf = 0;
-    }
+    if (output_buf.is_buf_nonempty())
+      output_buf.flush();
 
     // Process next line
 
@@ -225,7 +292,7 @@ int main(int argc, char** argv) {
   free(line);
 
   fclose(snptxtfile);
-  fclose(snpbinfile);
+  //fclose(snpbinfile);
 
   return 0;
 }

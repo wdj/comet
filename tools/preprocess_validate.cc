@@ -15,8 +15,10 @@ int main(int argc, char** argv) {
   }
 
   int argnum = 1;
+
+  char* metric_type = argv[argnum];
   
-  if (strcmp(argv[argnum], "ccc") != 0 && strcmp(argv[argnum], "duo") != 0) {
+  if (strcmp(metric_type, "ccc") != 0 && strcmp(metric_type, "duo") != 0) {
     fprintf(stderr, "Error: invalid metric_type\n");
     return 1; 
   }      
@@ -100,6 +102,7 @@ int main(int argc, char** argv) {
         inbyte = fgetc(snpbinfile); // Get new byte
 
       const int sn = (inbyte >> (6 - 2*sn_num) ) & 3;
+//printf("%i %i\n", elt_num, sn);
 
       // Map
 
@@ -138,8 +141,11 @@ int main(int argc, char** argv) {
       if ((c0==c0true && c1==c1true) || (c0==c1true && c1==c0true)) {
         num_validated++;
       } else {
-        printf("Error: invalid value detected, line %i elt %i\n", line_num, elt_num);
-        printf("actual %c %c  expected %c %c\n", c0, c1, c0true, c1true);
+        printf("Error: invalid value detected, line %i elt %i\n", line_num+1, elt_num+1);
+        if (is_duo)
+          printf("actual %c  expected %c\n", c0, c0true);
+        else
+          printf("actual %c %c  expected %c %c\n", c0, c1, c0true, c1true);
         return 1;
       }
       num_checked++;
@@ -152,8 +158,8 @@ int main(int argc, char** argv) {
 
   } // line_num
 
-  printf("Number of elements validated: %ul of %ul\n",
-         num_validated, num_checked);
+  printf("%s metric number of elements validated: %ul of %ul\n",
+         metric_type, num_validated, num_checked);
 
   // Finish
 

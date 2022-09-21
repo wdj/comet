@@ -14,7 +14,7 @@ salloc -N1 -A $OLCF_PROJECT -t 1440
 
 TOOLS_DIR=$HOME/genomics/genomics_gpu/tools
 pushd $TOOLS_DIR
-./make.sh
+make
 popd
 
 export PATH="${PATH}:$TOOLS_DIR"

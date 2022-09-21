@@ -96,7 +96,7 @@ function configure_1case
 
     popd
 
-    # Make convrnience symlink to this install dir.
+    # Make convenience symlink to this install dir.
     pushd $BUILDS_DIR
     rm -f $(basename $INSTALL_DIR)
     ln -s $INSTALL_DIR .
