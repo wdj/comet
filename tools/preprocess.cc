@@ -7,6 +7,8 @@
 #include <stdlib.h>
 
 #include <string>
+#include <sstream>
+#include <iostream>
 
 //-----------------------------------------------------------------------------
 
@@ -68,6 +70,20 @@ public:
       flush();
   }
 
+  template<typename T> void add(std::string& value_string) const {
+
+
+    std::stringstream value_stream(value_string);
+    T value;
+    value_stream >> value;
+    const size_t num_written = fwrite(&value, sizeof(value), 1, output_file_);
+    if (num_written != 1) {
+      fprintf(stderr, "Error: file write error. %zu\n",
+              num_written);
+      exit(EXIT_FAILURE);
+    }
+  }
+
   void flush() {
 
     // Flush buffer to file.
@@ -95,23 +111,38 @@ private:
 
 //-----------------------------------------------------------------------------
 
+bool is_delim(int c) {
+  return '\t' == c || ' ' == c;
+}
+
+//-----------------------------------------------------------------------------
+
 int main(int argc, char** argv) {
 
   // Parse arguments.
 
   if (argc != 4) {
     printf("preprocess: convert text SNP file to a packed binary SNP file.\n");
-    printf("Usage: preprocess <metric_type> <snp_text_file> <snp_bin_file>\n");
+    printf("Usage: preprocess <metric_type_prec> "
+           "<snp_text_file> <snp_bin_file>\n");
     return 0;
   }
 
   int argnum = 1;
+  char* metric_type_prec = argv[argnum];
 
-  if (strcmp(argv[argnum], "ccc") != 0 && strcmp(argv[argnum], "duo") != 0) {
-    fprintf(stderr, "Error: invalid metric_type\n");
+  if (strcmp(metric_type_prec, "ccc") != 0 &&
+      strcmp(metric_type_prec, "duo") != 0 &&
+      strcmp(metric_type_prec, "czekanowski_single") != 0 &&
+      strcmp(metric_type_prec, "czekanowski_double") != 0) {
+    fprintf(stderr, "Error: invalid metric_type_prec\n");
     return 1;
   }
-  const bool is_duo = strcmp(argv[argnum], "duo") == 0;
+  const bool is_ccc = strcmp(metric_type_prec, "ccc") == 0;
+  const bool is_duo = strcmp(metric_type_prec, "duo") == 0;
+  const bool is_czek = strcmp(metric_type_prec, "czekanowski_single") == 0 ||
+                       strcmp(metric_type_prec, "czekanowski_double") == 0;
+  const bool is_single = strcmp(metric_type_prec, "czekanowski_single") == 0;
   argnum++;
 
   FILE* snptxtfile = fopen(argv[argnum], "r");
@@ -126,8 +157,7 @@ int main(int argc, char** argv) {
 
   // Initializations.
 
-  const int max_line_len = 2000000;
-  int* line = (int*)malloc(max_line_len * sizeof(*line));
+  std::string line;
 
   const int num_frontmatter_fields = 4;
 
@@ -142,16 +172,13 @@ int main(int argc, char** argv) {
 
   while ((c = fgetc(snptxtfile)) != EOF) {
 
-    line[line_len] = c;
-    line_len++;
-    if (line_len > max_line_len) {
-      fprintf(stderr, "Error: input line too long\n");
-      return 1;
-    }
+    if (line.size() < line_len+1)
+      line.resize(line_len+1);
 
-    if (c != '\n') {
+    line[line_len++] = c;
+
+    if (c != '\n')
       continue;
-    }
 
     // Reached end of a line, so process it
 
@@ -161,32 +188,43 @@ int main(int argc, char** argv) {
     // PASS 1: loop over tokens to get the allele labels
     //----------
 
-    int i, num_delims;
-    for (i=0, num_delims=0; i<line_len; ++i) {
+    for (int i=0, num_delims=0; i<line_len; ++i) {
 
       c = line[i];
-      if (c == '\t' || c == ' ') {
+      if (is_delim(c)) {
         // Found delimiter, go to next token
         num_delims++;
         continue;
       }
-      if (num_delims < num_frontmatter_fields) {
-        // Skip first four tokens - pick these up with another command
+      // Skip first four tokens - pick these up elsewhere.
+      if (num_delims < num_frontmatter_fields)
         continue;
-      }
 
       // Get token number
       col = num_delims - num_frontmatter_fields;
 
-      if (col % 2 == 1 && ! is_duo) {
+      // Perform check.
+      if (col % 2 == 1 && is_ccc) {
         if ((c=='0' && cprev!='0') ||
             (c!='0' && cprev=='0')) {
-          fprintf(stderr, "Error: token pair must be both zero or both nonzero\n");
+          fprintf(stderr,
+            "Error: token pair must be both zero or both nonzero\n");
           return 1;
         }
       }
 
-      // Record values of the tokens encountered
+      // Handle Czekanowski case.
+
+      if (is_czek) {
+        // Skip to end of token.
+        while (i+1 < line_len && !is_delim(line[i+1])) {
+          ++i;
+        }
+
+        continue;
+      }
+
+      // Record values of the tokens encountered.
 
       if (c == '0') {
       } else if (clo == 0) {
@@ -209,8 +247,8 @@ int main(int argc, char** argv) {
     if (0 == chi)
       chi = clo;
 
-    if (col % 2 == 0 && ! is_duo) {
-      fprintf(stderr, "Error: line has invalid number of tokens\n");
+    if (col % 2 == 0 && is_ccc) {
+      fprintf(stderr, "Error: line has invalid number of tokens. %i\n", col-1);
       return 1;
     }
 
@@ -218,23 +256,41 @@ int main(int argc, char** argv) {
     // PASS 2: loop to output results
     //----------
 
-    for (i=0, num_delims=0; i<line_len; ++i) {
+    for (int i=0, num_delims=0; i<line_len; ++i) {
 
       c = line[i];
-      if (c == '\t' || c == ' ') {
+      if (is_delim(c)) {
         // Found delimiter, go to next token
         num_delims++;
         continue;
       }
-      if (num_delims < num_frontmatter_fields) {
-        // Skip first four tokens - pick these up with another command
+      // Skip first four tokens - pick these up with another command
+      if (num_delims < num_frontmatter_fields)
         continue;
-      }
 
       // Get token number
       col = num_delims - num_frontmatter_fields;
 
-      if (col % 2 == 0 && ! is_duo) {
+      // Handle Czekanowski case.
+
+      if (is_czek) {
+        // Find end of token.
+        int len = 1;
+        while (i+len < line_len && !is_delim(line[i+len])) {
+          ++len;
+        }
+
+        std::string token(line.substr(i, len));
+        if (is_single)
+          output_buf.add<float>(token);
+        else
+          output_buf.add<double>(token);
+
+        i += len;
+        continue;
+      }
+
+      if (col % 2 == 0 && is_ccc) {
         cprev = c;
         continue;
       }
@@ -289,10 +345,7 @@ int main(int argc, char** argv) {
 
   // Finish
 
-  free(line);
-
   fclose(snptxtfile);
-  //fclose(snpbinfile);
 
   return 0;
 }
