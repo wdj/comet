@@ -18,11 +18,13 @@ bool is_delim(int c) {
 
 int main(int argc, char** argv) {
 
+  // Parse arguments.
+
   if (!(argc == 5 || (argc == 4 && (
           strcmp(argv[1], "czekanowski_single") == 0 ||
           strcmp(argv[1], "czekanowski_double") == 0)))) {
-    printf("preprocess_validate: check binary SNP file "
-           "against text SNP file.\n");
+    printf("preprocess_validate: check binary SNP (CoMet input) file "
+           "against text SNP (tped) file.\n");
     printf("Usage: preprocess_validate <metric_type_prec> <snp_bin_file> "
            "<snp_text_file> [<allele_label_file>]\n");
     return 0;
@@ -78,7 +80,7 @@ int main(int argc, char** argv) {
   enum {NULL_AL = -1};
 
   //----------
-  // Loop over lines
+  // LOOP over lines.
   //----------
 
   for (int line_num=0; ; ++line_num) {
@@ -87,7 +89,7 @@ int main(int argc, char** argv) {
     int clo = NULL_AL;
     int chi = NULL_AL;
 
-    // Read from allele label file to get info for this line.
+    // If appropriate, read from allele label file to get info for this line.
 
     if (!is_czek) {
       if ((c = fgetc(alfile)) != EOF) {
@@ -113,12 +115,18 @@ int main(int argc, char** argv) {
     if (EOF == c)
       break;
 
+    enum {NEWLINE = 10};
+
     //----------
-    // Loop over elements of this line
+    // LOOP over elements of this line.
     //----------
 
     int input_buf = 0;
     for (int elt_num=0; ; ++elt_num) {
+
+      //----------
+      // 1. Handle ccc, duo case.
+      //----------
 
       if (!is_czek) {
 
@@ -126,19 +134,11 @@ int main(int argc, char** argv) {
         // NOTE: assuming here that the tped file is syntactically correct.
 
         const int c0true = fgetc(snptxtfile);
-//        if (EOF == c0true)
-//          break;
         int discard = fgetc(snptxtfile); // skip delim
-//        if (EOF == discard)
-//          break;
         const int c1true = is_duo ? '0' : fgetc(snptxtfile);
-//        if (EOF == c1true)
-//          break;
-        if (! is_duo)
+        if (!is_duo)
           discard = fgetc(snptxtfile); // skip delim
-//        if (EOF == discard)
-//          break;
-        const int is_end_of_line = discard == 10;
+        const int is_end_of_line = discard == NEWLINE;
 
         // Extract element from bin file (2 bits).
 
@@ -147,7 +147,8 @@ int main(int argc, char** argv) {
         if (sn_num == 0) {
           // Get new byte.
           if((input_buf = fgetc(snpbinfile)) == EOF) {
-            fprintf(stderr, "Error: premature termination of bin file, line %i elt %i\n", line_num+1, elt_num+1);
+            fprintf(stderr, "Error: premature termination of bin file, "
+                            "line %i elt %i\n", line_num+1, elt_num+1);
             return 1;
           }
         }
@@ -161,15 +162,14 @@ int main(int argc, char** argv) {
 
         if (is_duo) {
           c1 = '0';
-          if (sn == 0) {
+          if (sn == 0)
             c0 = clo;
-          } else if (sn == 1) {
+          else if (sn == 1)
             c0 = chi;
-          } else if (sn == 2) {
+          else if (sn == 2)
             c0 = '0';
-          } else if (sn == 3) {
+          else if (sn == 3)
             c0 = 'X'; // should never happen.
-          }
         } else { // is_ccc
           if (sn == 0) {
             c0 = clo;
@@ -188,14 +188,16 @@ int main(int argc, char** argv) {
 
         // Check.
 
-        if ((c0==c0true && c1==c1true) || (c0==c1true && c1==c0true)) {
+        if ((c0==c0true && c1==c1true) || (c0==c1true && c1==c0true))
           num_validated++;
-        } else {
-          printf("Error: invalid value detected, line %i elt %i\n", line_num+1, elt_num+1);
+        else {
+          fprintf(stderr, "Error: invalid value detected, line %i elt %i\n",
+                  line_num+1, elt_num+1);
           if (is_duo)
-            printf("actual %c  expected %c\n", c0, c0true);
+            fprintf(stderr, "actual %c  expected %c\n", c0, c0true);
           else
-            printf("actual %c %c  expected %c %c\n", c0, c1, c0true, c1true);
+            fprintf(stderr, "actual %c %c  expected %c %c\n", c0, c1,
+                    c0true, c1true);
           return 1;
         }
 
@@ -206,19 +208,23 @@ int main(int argc, char** argv) {
 
       } else { // is_czek
 
+      //----------
+      // 2. Handle Czekanowski case.
+      //----------
+
         // Pick up true element information from text file.
         // NOTE: assuming here that the tped file is syntactically correct.
 
         std::string token;
 
-        while ((c = fgetc(snptxtfile)) != EOF && !is_delim(c) && c != 10) {
+        while ((c = fgetc(snptxtfile)) != EOF && !is_delim(c) && c != NEWLINE)
           token += c;
-        }
-        const int is_end_of_line = c == 10;
+        const int is_end_of_line = c == NEWLINE;
 
         // Extract element from bin file (4 or 8 bytes).
 
         void* value = 0;
+        //assert(sizeof(void*)>=sizeof(float) && sizeof(void*)>=sizeof(double));
 
         const size_t num_read = fread(&value,
           is_single ? sizeof(float) : sizeof(double), 1, snpbinfile);
@@ -232,11 +238,11 @@ int main(int argc, char** argv) {
 
         if ( (is_single && *(float*)&value != std::stof(token)) || (
              !is_single && *(double*)&value != std::stod(token)) ) {
-          printf("Error: invalid value detected, line %i elt %i\n", line_num+1, elt_num+1);
+          fprintf(stderr, "Error: invalid value detected, line %i elt %i\n",
+                  line_num+1, elt_num+1);
           return 1;
-        } else {
+        } else
           num_validated++;
-        }
 
         num_checked++;
 
@@ -245,12 +251,17 @@ int main(int argc, char** argv) {
 
       } // !is_czek
 
+      //----------
+      // End handling of cases.
+      //----------
+
     } // elt_num
 
   } // line_num
 
   printf("%s metric number of elements validated: %ul of %ul: %s\n",
-         metric_type_prec, num_validated, num_checked, num_validated == num_checked ? "=== PASSED ===" : "");
+         metric_type_prec, num_validated, num_checked,
+         num_validated == num_checked ? "=== PASSED ===" : "");
 
   // Finish
 

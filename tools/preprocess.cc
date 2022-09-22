@@ -12,13 +12,13 @@
 
 //-----------------------------------------------------------------------------
 
-class OutputBuf {
+class ElementWriter {
 
   enum {BUF_SIZE = 4};
 
 public:
 
-  OutputBuf(char* const output_file_name)
+  ElementWriter(char* const output_file_name)
     : output_file_(fopen(output_file_name, "wb"))
     , num_elts_in_buf_(0) {
     if (!output_file_) {
@@ -27,7 +27,7 @@ public:
     }
   }
 
-  ~OutputBuf() {
+  ~ElementWriter() {
     if (is_buf_nonempty()) {
       fprintf(stderr, "Error: nonempty output buffer on completion. %i\n",
         num_elts_in_buf_);
@@ -122,7 +122,8 @@ int main(int argc, char** argv) {
   // Parse arguments.
 
   if (argc != 4) {
-    printf("preprocess: convert text SNP file to a packed binary SNP file.\n");
+    printf("preprocess: convert text SNP (tped) file "
+           "to a binary SNP (CoMet input) file.\n");
     printf("Usage: preprocess <metric_type_prec> "
            "<snp_text_file> <snp_bin_file>\n");
     return 0;
@@ -152,7 +153,7 @@ int main(int argc, char** argv) {
   }
   argnum++;
 
-  OutputBuf output_buf(argv[argnum]);
+  ElementWriter element_writer(argv[argnum]);
   argnum++;
 
   // Initializations.
@@ -168,110 +169,124 @@ int main(int argc, char** argv) {
   int chi = 0;
   int col = 0;
 
-  // Loop to input chars from input file
+  //----------
+  // LOOP to input chars from input file
+  //----------
 
   while ((c = fgetc(snptxtfile)) != EOF) {
 
     if (line.size() < line_len+1)
       line.resize(line_len+1);
 
+    // Store this character of line.
     line[line_len++] = c;
 
+    // Wait for end of line.
     if (c != '\n')
       continue;
 
-    // Reached end of a line, so process it
+    // Reached end of a line, so process it.
 
     line_len--;
 
     //----------
-    // PASS 1: loop over tokens to get the allele labels
+    // PASS 1: loop over tokens to identify the allele labels.
     //----------
 
-    for (int i=0, num_delims=0; i<line_len; ++i) {
+    // Only needed for ccc, duo.
+    if (!is_czek) {
 
-      c = line[i];
-      if (is_delim(c)) {
-        // Found delimiter, go to next token
-        num_delims++;
-        continue;
-      }
-      // Skip first four tokens - pick these up elsewhere.
-      if (num_delims < num_frontmatter_fields)
-        continue;
+      for (int i=0, num_delims=0; i<line_len; ++i) {
 
-      // Get token number
-      col = num_delims - num_frontmatter_fields;
+        // Get character in line.
+        c = line[i];
+        if (is_delim(c)) {
+          // Found delimiter, go to next token
+          num_delims++;
+          continue;
+        }
+        // Skip first four tokens ("frontmatter").
+        if (num_delims < num_frontmatter_fields)
+          continue;
 
-      // Perform check.
-      if (col % 2 == 1 && is_ccc) {
-        if ((c=='0' && cprev!='0') ||
-            (c!='0' && cprev=='0')) {
-          fprintf(stderr,
-            "Error: token pair must be both zero or both nonzero\n");
+        // Get token number
+        col = num_delims - num_frontmatter_fields;
+
+        // Perform check.
+        if (col % 2 == 1 && is_ccc) {
+          if ((c=='0' && cprev!='0') ||
+              (c!='0' && cprev=='0')) {
+            fprintf(stderr,
+              "Error: token pair must be both zero or both nonzero\n");
+            return 1;
+          }
+        }
+
+//        // Handle Czekanowski case.
+//
+//        if (is_czek) {
+//          // Skip to end of token.
+//          while (i+1 < line_len && !is_delim(line[i+1])) {
+//            ++i;
+//          }
+//
+//          continue;
+//        }
+
+        // Record values of the tokens encountered.
+
+        if (c == '0') {
+        } else if (clo == 0) {
+          clo = c;
+        } else if (clo < c && chi == 0) {
+          chi = c;
+        } else if (clo > c && chi == 0) {
+          chi = clo;
+          clo = c;
+        } else if (c != clo && c != chi) {
+          fprintf(stderr, "Error: malformed input snp file.\n");
           return 1;
         }
-      }
 
-      // Handle Czekanowski case.
+        cprev = c;
+      } // for i - PASS 1.
 
-      if (is_czek) {
-        // Skip to end of token.
-        while (i+1 < line_len && !is_delim(line[i+1])) {
-          ++i;
-        }
+      //----------
 
-        continue;
-      }
-
-      // Record values of the tokens encountered.
-
-      if (c == '0') {
-      } else if (clo == 0) {
-        clo = c;
-      } else if (clo < c && chi == 0) {
-        chi = c;
-      } else if (clo > c && chi == 0) {
+      if (0 == chi)
         chi = clo;
-        clo = c;
-      } else if (c != clo && c != chi) {
-        fprintf(stderr, "Error: malformed input snp file.\n");
+
+      if (col % 2 == 0 && is_ccc) {
+        fprintf(stderr, "Error: ccc requires an even number "
+                "of non-frontmatter tokens. %i\n", col-1);
         return 1;
       }
 
-      cprev = c;
-    } // for i - first pass loop
+    } // if (!is_czek)
 
     //----------
-
-    if (0 == chi)
-      chi = clo;
-
-    if (col % 2 == 0 && is_ccc) {
-      fprintf(stderr, "Error: line has invalid number of tokens. %i\n", col-1);
-      return 1;
-    }
-
-    //----------
-    // PASS 2: loop to output results
+    // PASS 2: loop to output results.
     //----------
 
     for (int i=0, num_delims=0; i<line_len; ++i) {
 
+      // Get character in line.
       c = line[i];
       if (is_delim(c)) {
         // Found delimiter, go to next token
         num_delims++;
         continue;
       }
-      // Skip first four tokens - pick these up with another command
+      // Skip first four tokens ("frontmatter").
       if (num_delims < num_frontmatter_fields)
         continue;
 
-      // Get token number
+      // Get token number.
       col = num_delims - num_frontmatter_fields;
 
-      // Handle Czekanowski case.
+      //----------
+      // 1. Handle Czekanowski case.
+      //----------
 
       if (is_czek) {
         // Find end of token.
@@ -280,60 +295,73 @@ int main(int argc, char** argv) {
           ++len;
         }
 
+        // Write token to file in binary format.
         std::string token(line.substr(i, len));
         if (is_single)
-          output_buf.add<float>(token);
+          element_writer.add<float>(token);
         else
-          output_buf.add<double>(token);
+          element_writer.add<double>(token);
 
-        i += len;
-        continue;
-      }
+        // Complete the processing of this token.
+        i += len - 1;
 
-      if (col % 2 == 0 && is_ccc) {
-        cprev = c;
-        continue;
-      }
+      } else {
 
-      const int c0 = cprev;
-      const int c1 = c;
+      //----------
+      // 2. Handle ccc, duo case.
+      //----------
 
-      // Next map the token pair to a pair of bits needed by CoMet.
+        // ccc case: only process when we have two input tokens.
+        if (col % 2 == 0 && is_ccc) {
+          cprev = c;
+          continue;
+        }
 
-      // Note the alphabetically first allele is mapped to the zero bit
+        const int c0 = cprev;
+        const int c1 = c;
 
-      // NOTE: order of lines matters below.
-      int sn = is_duo ? (
-            c1 == '0' ? 2 * (1) + 1 * (0)  //  0  ->  1 0
-          : c1 == clo ? 2 * (0) + 1 * (0)  //  A  ->  0 0
-          : c1 == chi ? 2 * (0) + 1 * (1)  //  B  ->  0 1
-          : -1
-        ) : (
-            c0 == '0' && c1 == '0' ? 2 * (1) + 1 * (0)  //  00  ->  1 0
-          : c0 == clo && c1 == clo ? 2 * (0) + 1 * (0)  //  AA  ->  0 0
-          : c0 == clo && c1 == chi ? 2 * (0) + 1 * (1)  //  AB  ->  0 1
-          : c0 == chi && c1 == clo ? 2 * (0) + 1 * (1)  //  BA  ->  0 1
-          : c0 == chi && c1 == chi ? 2 * (1) + 1 * (1)  //  BB  ->  1 1
-          : -1
-        );
+        enum {SN_UNDEFINED = -1};
 
-      if (sn == -1) {
-        fprintf(stderr, "Error: unknown error encountered mapping tokens\n");
-        return 1;
-      }
+        // Map the token or token pair to 2-bits element needed by CoMet.
+        // NOTE the alphabetically first allele is mapped to the zero bit.
 
-      // Insert the 2 bits into the output buffer
+        // NOTE: order of lines matters below.
+        int sn = is_duo ? (
+              c1 == '0' ? 2 * (1) + 1 * (0)  //  0  ->  1 0
+            : c1 == clo ? 2 * (0) + 1 * (0)  //  A  ->  0 0
+            : c1 == chi ? 2 * (0) + 1 * (1)  //  B  ->  0 1
+            : SN_UNDEFINED
+          ) : (
+              c0 == '0' && c1 == '0' ? 2 * (1) + 1 * (0)  //  00  ->  1 0
+            : c0 == clo && c1 == clo ? 2 * (0) + 1 * (0)  //  AA  ->  0 0
+            : c0 == clo && c1 == chi ? 2 * (0) + 1 * (1)  //  AB  ->  0 1
+            : c0 == chi && c1 == clo ? 2 * (0) + 1 * (1)  //  BA  ->  0 1
+            : c0 == chi && c1 == chi ? 2 * (1) + 1 * (1)  //  BB  ->  1 1
+            : SN_UNDEFINED
+          );
 
-      output_buf.add(sn);
+        if (SN_UNDEFINED == sn) {
+          fprintf(stderr, "Error: error encountered mapping tokens.\n");
+          return 1;
+        }
 
-    } // for i - second pass loop
+        // Write 2 bits to file (buffered).
+        element_writer.add(sn);
+
+      } // if (is_czek)
+
+      //----------
+      // End handling of cases.
+      //----------
+
+    } // for i - PASS 2.
 
     //----------
 
     // Final flush of buffer
 
-    if (output_buf.is_buf_nonempty())
-      output_buf.flush();
+    if (element_writer.is_buf_nonempty())
+      element_writer.flush();
 
     // Process next line
 
