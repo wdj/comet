@@ -6,27 +6,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-//enum {MAX_VECTOR_LABEL_LEN = 27};
-enum {MAX_VECTOR_LABEL_LEN = 255};
-
 //-----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
 
+  // Parse arguments.
+
   if (argc < 6) {
-    printf("postprocess_ccc_duo: convert metrics file from binary to text\n");
-    printf("Usage: postprocess <num_way> <allele_label_file>"
-           " <vector_label_file> <metrics_bin_file> <metrics_txt_file>\n");
+    printf("postprocess: convert metrics file from binary to text\n");
+    printf("Usage: postprocess [<metric_type>] <num_way> <allele_label_file>"
+           " <line_label_file> <metrics_bin_file> <metrics_txt_file>\n");
     return 0;
   }
 
   int argnum = 1;
 
-  //if (strcmp(argv[argnum], "ccc") != 0 && strcmp(argv[argnum], "duo") != 0) {
-  //  fprintf(stderr, "Error: invalid metric_type\n");
-  //  return 1;
-  //}
-  //const bool is_duo = strcmp(argv[argnum++], "duo") == 0;
+  bool is_czek;
+  if (7 == argc) {
+    if (strcmp(argv[argnum], "ccc") != 0 &&
+        strcmp(argv[argnum], "duo") != 0 &&
+        strcmp(argv[argnum], "czekanowski") != 0) {
+      fprintf(stderr, "Error: invalid metric_type. %s\n", argv[argnum]);
+      return 1;
+    }
+    is_czek = strcmp(argv[argnum++], "czekanowski") == 0;
+  }
 
   if (!( ('2' == argv[argnum][0] || '3' == argv[argnum][0]) &&
          0 == argv[argnum][1] )) {
@@ -35,15 +39,15 @@ int main(int argc, char** argv) {
   }
   const int num_way = atoi(argv[argnum++]);
 
-  FILE* allele_label_file = fopen(argv[argnum], "r");
-  if (!allele_label_file) {
+  FILE* allele_label_file = is_czek ? NULL : fopen(argv[argnum], "r");
+  if (!is_czek && !allele_label_file) {
     fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
     return 1;
   }
   argnum++;
 
-  FILE* vector_label_file = fopen(argv[argnum], "r");
-  if (!vector_label_file) {
+  FILE* line_label_file = fopen(argv[argnum], "r");
+  if (!line_label_file) {
     fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
     return 1;
   }
@@ -70,16 +74,16 @@ int main(int argc, char** argv) {
 
   int num_read = 0;
   int fseek_success = 0;
-  float value = 0;
   int coord[NUM_WAY_MAX];
   const int no_allele = 'X'; // Marker for case only one allele label in a line
 
-  // Determine vector label length by examining first vector label.
+  // Determine line label length by examining first line label.
+  // NOTE: this is coordinated with line_labels.sh - uniform label lengths.
 
   int i = 0;
-  for (i=0; i<MAX_VECTOR_LABEL_LEN; ++i) {
+  for (i=0 ;; ++i) {
 
-    fseek_success = fseek(vector_label_file, i, SEEK_SET);
+    const int fseek_success = fseek(line_label_file, i, SEEK_SET);
     if (0 != fseek_success) {
       fprintf(stderr, "Error: error reading file. 0.1\n");
       return 1;
@@ -88,7 +92,7 @@ int main(int argc, char** argv) {
     unsigned char c = 0;
     const int num_to_read = 1;
 
-    num_read = fread(&c, sizeof(unsigned char), num_to_read, vector_label_file);
+    int num_read = fread(&c, sizeof(unsigned char), num_to_read, line_label_file);
     if (num_to_read != num_read) {
       fprintf(stderr, "Error: error reading file. 0.2\n");
       return 1;
@@ -99,36 +103,41 @@ int main(int argc, char** argv) {
 
   } // for i
 
-  if (MAX_VECTOR_LABEL_LEN == i) {
-    fprintf(stderr, "Error in vector labels file.\n");
-    return 1;
-  }
-
-  const int vector_label_len = i;
+  const int line_label_len = i;
   const int allele_label_len = 2;
 
-  // Loop over result values in specified file
-  // while statement reads first coord.
+  // LOOP over result values in specified file.
+
+  // while statement reads first coord of metric.
 
   while ((num_read = fread(&coord[0], sizeof(int), 1, metricsbinfile)) == 1) {
 
-    // Get (rest of) coordinates and metric value
+    // Get (rest of the) coordinates and metric value
 
-    num_read = fread(&coord[1], sizeof(int), 1, metricsbinfile);
-    if (1 != num_read) {
-      fprintf(stderr, "Error: error reading file. 1\n");
-      return 1;
-    }
-
-    if (3 == num_way) {
-      num_read = fread(&coord[2], sizeof(int), 1, metricsbinfile);
-      if (num_read != 1) {
-        fprintf(stderr, "Error: error reading file. 2\n");
+    for (int i=1; i<num_way; ++i) {
+      const int num_read = fread(&coord[i], sizeof(int), 1, metricsbinfile);
+      if (1 != num_read) {
+        fprintf(stderr, "Error: error reading metric coord\n");
         return 1;
       }
     }
 
-    num_read = fread(&value, sizeof(float), 1, metricsbinfile);
+//    num_read = fread(&coord[1], sizeof(int), 1, metricsbinfile);
+//    if (1 != num_read) {
+//      fprintf(stderr, "Error: error reading file. 1\n");
+//      return 1;
+//    }
+//
+//    if (3 == num_way) {
+//      num_read = fread(&coord[2], sizeof(int), 1, metricsbinfile);
+//      if (num_read != 1) {
+//        fprintf(stderr, "Error: error reading file. 2\n");
+//        return 1;
+//      }
+//    }
+
+    float value = 0;
+    int num_read = fread(&value, sizeof(float), 1, metricsbinfile);
     if (1 != num_read) {
       fprintf(stderr, "Error: error reading file. 3\n");
       return 1;
@@ -137,64 +146,67 @@ int main(int argc, char** argv) {
     int lineno[NUM_WAY_MAX];
     int bitno[NUM_WAY_MAX];
     unsigned char allele_label[NUM_WAY_MAX][allele_label_len];
-    unsigned char vector_label[NUM_WAY_MAX][vector_label_len+1];
+    unsigned char line_label[NUM_WAY_MAX][line_label_len+1];
 
-    // Loop over coordinates
+    // LOOP over coordinates.
 
     for (int way_num=0; way_num<num_way; ++way_num) {
 
-      // Decode vector number (line number in file) and whether lo or hi bit
+      // Decode vector number (line number in file) and whether lo or hi bit.
 
-      lineno[way_num] = coord[way_num] / 2;
-      bitno[way_num] = coord[way_num] % 2;
+      const int num_bitno = is_czek ? 1 : 2;
 
-      // Get allele labels
+      lineno[way_num] = coord[way_num] / num_bitno;
+      bitno[way_num] = coord[way_num] % num_bitno;
 
-      fseek_success = fseek(allele_label_file,
-        (allele_label_len+1)*lineno[way_num], SEEK_SET);
-      if (0 != fseek_success) {
-        fprintf(stderr, "Error: error reading file. 4\n");
-        return 1;
-      }
+      // Get allele labels if needed.
 
-      //fprintf(stderr, "%i %i\n", num_way, lineno[way_num]);
+      allele_label[way_num][0] == no_allele;
+      allele_label[way_num][1] == no_allele;
+      if (allele_label_file) {
+        const int fseek_success = fseek(allele_label_file,
+          (allele_label_len+1)*lineno[way_num], SEEK_SET);
+        if (0 != fseek_success) {
+          fprintf(stderr, "Error: error reading file. 4\n");
+          return 1;
+        }
 
-      num_read = fread(&allele_label[way_num], sizeof(unsigned char),
-        allele_label_len, allele_label_file);
-      if (allele_label_len != num_read) {
-        fprintf(stderr, "Error: error reading file. 5 %s  %i\n",
-                metricsbinfilename, lineno[way_num]);
-        return 1;
+        const int num_read = fread(&allele_label[way_num],
+          sizeof(unsigned char), allele_label_len, allele_label_file);
+        if (allele_label_len != num_read) {
+          fprintf(stderr, "Error: error reading file. 5 %s  %i\n",
+                  metricsbinfilename, lineno[way_num]);
+          return 1;
+        }
       }
 
       // If repeated then disregard upper value, replace with "X"
-      if (allele_label[way_num][0] == allele_label[way_num][1]) {
+      if (allele_label[way_num][0] == allele_label[way_num][1])
         allele_label[way_num][1] = no_allele;
-      }
 
-      // Get vector label
+      // Get line label.
 
-      fseek_success = fseek(vector_label_file,
-        (vector_label_len+1)*lineno[way_num], SEEK_SET);
+      fseek_success = fseek(line_label_file,
+        (line_label_len+1)*lineno[way_num], SEEK_SET);
       if (0 != fseek_success) {
         fprintf(stderr, "Error: error reading file. 6\n");
         return 1;
       }
 
-      num_read = fread(&vector_label[way_num], sizeof(unsigned char),
-                       vector_label_len, vector_label_file);
-      if (vector_label_len != num_read) {
+      num_read = fread(&line_label[way_num], sizeof(unsigned char),
+                       line_label_len, line_label_file);
+      if (line_label_len != num_read) {
         fprintf(stderr, "Error: error reading file. 7\n");
         return 1;
       }
 
-      // Remove end padding
-      for (int j=0; j<vector_label_len; ++j) {
-        if (' ' == (int)vector_label[way_num][j]) {
-          vector_label[way_num][j] = 0;
+      // Remove line label end padding that was added to help with indexing.
+      for (int j=0; j<line_label_len; ++j) {
+        if (' ' == (int)line_label[way_num][j]) {
+          line_label[way_num][j] = 0;
         }
       }
-      vector_label[way_num][vector_label_len] = 0;
+      line_label[way_num][line_label_len] = 0;
 
     } // for way_num
 
@@ -241,17 +253,21 @@ int main(int argc, char** argv) {
 
     // Output line and bit numbers
 
-    for (int i=0; i<num_way; ++i) {
-      int iperm = perm[i];
-      fprintf(metricstxtfile, 0 != i ? " " : "");
-      fprintf(metricstxtfile, "%i %i", lineno[iperm], bitno[iperm]);
-    } // for i
+    for (int way_num=0; way_num<num_way; ++way_num) {
+      int iperm = perm[way_num];
+      fprintf(metricstxtfile, 0 != way_num ? " " : "");
+      fprintf(metricstxtfile, "%i", lineno[iperm]);
+      if (!is_czek)
+        fprintf(metricstxtfile, " %i", bitno[iperm]);
+    } // for way_num
 
-    // Output vector label
+    // Output line label
 
     for (int way_num=0; way_num<num_way; ++way_num) {
       int iperm = perm[way_num];
-      fprintf(metricstxtfile, " %s_%c", vector_label[iperm], allele_label[iperm][bitno[iperm]]);
+      fprintf(metricstxtfile, " %s", line_label[iperm]);
+      if (!is_czek)
+        fprintf(metricstxtfile, "_%c", allele_label[iperm][bitno[iperm]]);
     } // for i
 
     // Output value
@@ -261,8 +277,9 @@ int main(int argc, char** argv) {
   } // while
 
   fclose(metricsbinfile);
-  fclose(allele_label_file);
-  fclose(vector_label_file);
+  if (!is_czek)
+    fclose(allele_label_file);
+  fclose(line_label_file);
   fclose(metricstxtfile);
 
   return 0;

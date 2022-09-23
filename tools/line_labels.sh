@@ -7,12 +7,14 @@ function main
 {
   if [ "$2" = "" ] ; then
     echo "${0##*/}: extract line labels from SNP text file"
-    echo "Usage: ${0##*/} <snp_text_file> <label_file>"
+    echo "Usage: ${0##*/} <snp_text_file> <line_label_file>"
     exit
   fi
 
   local infile="$1"
   local outfile="$2"
+
+  # Find length (in chars) of longest label.
 
   local MAX_LABEL_LEN=$(cat $infile | \
     tr ' ' '\t' | \
@@ -21,7 +23,7 @@ function main
     sort -n | \
     tail -n1)
 
-  #echo $MAX_LABEL_LEN
+  # To help with indexing, right-pad all lines to uniform length.
 
   tr ' ' '\t' < "$infile" | \
     cut -f2 | \
@@ -37,7 +39,7 @@ function main
   num_long_lines=$(grep ".$dots" "$outfile" | wc -l)
 
   if [ $num_long_lines -gt 0 ] ; then
-    echo "Error: labels are too long; please adjust code." 1>&2
+    echo "Internal error: labels are too long; please adjust code." 1>&2
     exit 1
   fi
 

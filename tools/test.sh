@@ -1,14 +1,19 @@
 #!/bin/bash
 #==============================================================================
 
+# Exit immediately on error.
+set -eu -o pipefail
+
+#==============================================================================
+
 function main ()
 {
   scratch_dir=/gpfs/alpine/stf006/scratch/$USER
 
   local metric_type_prec
-  for metric_type_prec in ccc duo czekanowski_single czekanowski_double ; do
+  #for metric_type_prec in ccc duo czekanowski_single czekanowski_double ; do
   #for metric_type_prec in ccc duo ; do
-  #for metric_type_prec in duo ; do
+  for metric_type_prec in duo ; do
   #for metric_type_prec in czekanowski_single ; do
 
     local metric_type=$(echo $metric_type_prec | cut -f1 -d_)
@@ -17,7 +22,8 @@ function main ()
     # Make tped file.
     num_vector=17 num_field=73
 
-    cmd="./make_tped_example.sh $metric_type ${metric_type}_test.tped $num_vector $num_field"
+    cmd="./make_tped_example.sh $metric_type ${metric_type}_test.tped \
+                                $num_vector $num_field"
     echo $cmd
     $cmd
 
@@ -46,11 +52,10 @@ function main ()
     # Extract per-line allele labels from tped.
 
     if [ $metric_type != czekanowski ] ; then
-      cut -f5- ${metric_type}_test.tped \
-        | awk 'BEGIN{FS=OFS=ORS=""}{split($0,a); asort(a); for(i in a) 
-            if (a[i] != a[i-1] && a[i] != "\t") printf a[i] ; print "\n"}' \
-        | sed -e 's/^.$/&&/' \
-        > ${metric_type}_test_allele_labels.txt
+      cmd="./allele_labels.sh ${metric_type}_test.tped \
+                              ${metric_type}_test_allele_labels.txt"
+      echo $cmd
+      $cmd
     fi
 
     # Validate results against original tped file.
@@ -62,7 +67,8 @@ function main ()
     echo $cmd
     $cmd
 
-    for num_way in 2 3 ; do
+    #for num_way in 2 3 ; do
+    for num_way in 2 ; do
 
       # CoMet run to generate metrics
 
@@ -78,7 +84,7 @@ function main ()
         tc=1
       fi
 
-      if [ 1 = 1 ] ; then
+      if [ 0 = 1 ] ; then
 
         cp ${metric_type_prec}_test.bin $scratch_dir
 
@@ -96,18 +102,21 @@ function main ()
 
       fi
 
-      cmd="./postprocess $num_way ${metric_type}_test_allele_labels.txt \
+      cmd="./postprocess $metric_type $num_way \
+        ${metric_type}_test_allele_labels.txt \
         ${metric_type}_test_line_labels.txt \
         ${metric_type_prec}_test_${num_way}way_0.bin \
         ${metric_type_prec}_test_${num_way}way_0.txt"
       echo $cmd
       $cmd
 
-      tr ' ' '\t' < ${metric_type_prec}_test_${num_way}way_0.txt | \
+      cmd="tr ' ' '\t' < ${metric_type_prec}_test_${num_way}way_0.txt | \
         cut -f1-$(( 2 * $num_way )) | \
         ./validate $metric_type_prec $num_way ${metric_type}_test.tped \
           ${metric_type}_test_line_indices.bin \
-          > ${metric_type_prec}_test_${num_way}way_0_validate.txt
+          > ${metric_type_prec}_test_${num_way}way_0_validate.txt"
+      echo $cmd
+      bash -c "$cmd"
 
       cmd="./validate_all.sh $num_way ${metric_type_prec}_test_${num_way}way_0.txt"
       echo $cmd

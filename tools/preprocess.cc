@@ -14,6 +14,7 @@
 
 class ElementWriter {
 
+  // 4 seminibbles per byte.
   enum {BUF_SIZE = 4};
 
 public:

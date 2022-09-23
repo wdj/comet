@@ -9,49 +9,30 @@
 #include <string.h>
 #include <assert.h>
 
-//enum{MAX_LABEL_LEN = 27};
-enum{MAX_LABEL_LEN = 255};
+enum {NUM_WAY_MAX = 3};
 
-enum {MAX_FIELDS = 2000000};
+#define ASSERT(condition, command) { if (!(condition)) {command; return 1;} }
+
+enum{MAX_LABEL_LEN = 255};
 
 //-----------------------------------------------------------------------------
 
-int process_line(int argc, char** argv, const bool is_duo,
-                 FILE* snptxtfile, FILE* lifile) {
+bool is_delim(int c) {
+  return '\t' == c || ' ' == c;
+}
 
-  // Process args.
+//-----------------------------------------------------------------------------
 
-  if (argc != 1+4 && argc != 1+6) {
-    // Input format expectd from each line of stdin:
-    printf("Usage: "
-      "validate lineno0 bitno0 lineno1 bitno1 [lineno2 bitno2]\n");
-    printf("Line and bit numbers are 0-based\n");
-    return 1;
-  }
+template<class Field_t>
+int calculate_metric_elt(char* metric_type, int num_way,
+  int vector_num[NUM_WAY_MAX], int bit_num[NUM_WAY_MAX],
+  FILE* snptxtfile, FILE* lifile) {
 
-  // Infer from number of command line args whether 2-way or 3-way.
+  // Initializations.
 
-  const int num_way = argc == 1+4 ? 2 : 3;
-  enum {NUM_WAY_MAX = 3};
-
-  // lineno values refer to the vectors being compared from the original file.
-  int lineno[NUM_WAY_MAX];
-  lineno[0] = atoi(argv[1]);
-  lineno[1] = atoi(argv[3]);
-  lineno[2] = num_way == 3 ? atoi(argv[5]) : 0;
-  assert(lineno[0] >= 0);
-  assert(lineno[1] >= 0);
-  assert(lineno[2] >= 0);
-
-  // bitno values refer to the table entry of the metric for those vectors.
-
-  int bitno[NUM_WAY_MAX];
-  bitno[0] = atoi(argv[2]);
-  bitno[1] = atoi(argv[4]);
-  bitno[2] = num_way == 3 ? atoi(argv[6]) : 0;
-  assert(bitno[0] >= 0 && bitno[0] < 2);
-  assert(bitno[1] >= 0 && bitno[1] < 2);
-  assert(bitno[2] >= 0 && bitno[2] < 2);
+  const bool is_ccc = strcmp(metric_type, "ccc") == 0;
+  const bool is_duo = strcmp(metric_type, "duo") == 0;
+  const bool is_czek = strcmp(metric_type, "czekanowski") == 0;
 
   //CHECK
   // Allele labels would be "A", "C", "T", "G", and if none then use "X".
@@ -60,6 +41,15 @@ int process_line(int argc, char** argv, const bool is_duo,
   const int allele_label_null = 'X';
 
   // Initialize line labels to null.
+
+
+
+// TODO: use ASSERT everywhere.
+
+
+// TODO: replace with c++ string.
+
+
 
   const int line_label_len = MAX_LABEL_LEN;
   unsigned char line_label[NUM_WAY_MAX][line_label_len+1];
@@ -70,107 +60,81 @@ int process_line(int argc, char** argv, const bool is_duo,
   // Access the snp txt file.
 
   int fseek_success = fseek(snptxtfile, 0, SEEK_SET);
-  if (0 != fseek_success) {
-    fprintf(stderr, "Error: error reading SNP data file (0).\n");
-    return 1;
-  }
+  ASSERT(0 == fseek_success,
+         fprintf(stderr, "Error: error reading SNP data file (0).\n"));
 
   // Allele label is represented by a character, stored as an int.
 
-  typedef int AlleleLabel_t;
+  Field_t c = 0;
 
-  AlleleLabel_t c = 0;
-
-  // Read first line of snptxtfile to get upper bound on num fields per line.
-
-//  int num_read = 0;
-//  while ((c = fgetc(snptxtfile)) != '\n') {
-//    if (c == EOF) {
-//      fprintf(stderr, "Error snp file has no newlines.");
-//      return 1;
-//    }
-//    num_read++;
-//  }
-  const int num_read = 2 * MAX_FIELDS + 256 + 10;
-
-  const int num_allele_labels_per_field = is_duo ? 1 : 2;
-
-  // Round up. Note this is an overestimate because counting white space etc.
-  const int num_field_max = (num_read + num_allele_labels_per_field - 1) / num_allele_labels_per_field;
+  const int num_allele_labels_per_field = is_ccc ? 2 : 1;
 
   // Allocate storage for allele labels and allele bits for each needed SNP.
 
   enum {NUM_ALLELE_LABELS_PER_FIELD_MAX = 2};
 
-  AlleleLabel_t allele_labels[NUM_WAY_MAX][NUM_ALLELE_LABELS_PER_FIELD_MAX];
-  AlleleLabel_t* elts[NUM_WAY_MAX];
-  for (int i=0; i<num_way; ++i) {
-    allele_labels[i][0] = allele_label_null;
-    allele_labels[i][1] = allele_label_null;
-    elts[i] = (AlleleLabel_t*)malloc(num_field_max * NUM_ALLELE_LABELS_PER_FIELD_MAX * sizeof(AlleleLabel_t));
+  Field_t allele_labels[NUM_WAY_MAX][NUM_ALLELE_LABELS_PER_FIELD_MAX];
+  Field_t* elts[NUM_WAY_MAX];
+  for (int way_num=0; way_num<num_way; ++way_num) {
+    allele_labels[way_num][0] = allele_label_null;
+    allele_labels[way_num][1] = allele_label_null;
+    elts[way_num] = NULL;
   }
 
   int num_field = 0;
 
-  // For speed set up memory for reading a full line.
+  // Initial size of snp file line - will be reallocated as needed.
 
-  size_t linesize = num_read;
-  unsigned char* linep = (unsigned char*)malloc(linesize);;
+  size_t linesize = 1;
+  unsigned char* line = (unsigned char*)malloc(linesize);;
 
-  // Loop over num_way to input the required vectors.
+  // LOOP over num_way to input the required vectors.
 
   for (int way_num=0; way_num<num_way; ++way_num) {
 
     // Get location in the line index file needed to get the line index.
 
-    fseek_success = fseek(lifile, lineno[way_num]*sizeof(size_t), SEEK_SET);
-    if (0 != fseek_success) {
-      fprintf(stderr, "Error: error reading line_indices file (1).\n");
-      return 1;
-    }
+    fseek_success = fseek(lifile, vector_num[way_num]*sizeof(size_t), SEEK_SET);
+    ASSERT(0 == fseek_success,
+           fprintf(stderr, "Error: error reading line_indices file (1).\n"));
 
     // Get the index to the required line in the snptxtfile.
 
     size_t line_index = 0;
     size_t num_read = fread(&line_index, sizeof(size_t), 1, lifile);
-    if (1 != num_read) {
-      fprintf(stderr, "Error: error reading line_indices file (2).\n");
-      return 1;
-    }
+    ASSERT(1 == num_read,
+           fprintf(stderr, "Error: error reading line_indices file (2).\n"));
 
     // Set next-read pointer to start of needed line in snptxtfile.
 
     fseek_success = fseek(snptxtfile, line_index, SEEK_SET);
-    if (0 != fseek_success) {
-      fprintf(stderr, "Error: error reading SNP data file (1).\n");
-      return 1;
-    }
+    ASSERT(0 == fseek_success,
+           fprintf(stderr, "Error: error reading SNP data file (1).\n"));
 
     const int num_frontmatter_fields = 4;
-    int num_delim = 0;
-    int index = 0;
 
     // Loop to read the line from snptxtfile - loop up to newline.
 
-    const size_t num_read_line = getline((char**)&linep, &linesize, snptxtfile) - 1;
-    if (!linep || num_read_line > linesize) {
-      fprintf(stderr, "Error: memory %zu %zu\n", num_read_line, linesize);
-      return 1;
-    }
+    const size_t num_read_line = getline((char**)&line, &linesize, snptxtfile) - 1;
+    ASSERT(line && num_read_line <= linesize,
+      fprintf(stderr, "Error: memory %zu %zu\n", num_read_line, linesize));
 
-    //while ((c = fgetc(snptxtfile)) != '\n') {
-    for (size_t ii=0; ii<num_read_line; ++ii) {
+    // Allocate elts[way_num] since now we have an upper bound on size.
+    elts[way_num] = (Field_t*)malloc(num_read_line *
+      num_allele_labels_per_field * sizeof(Field_t));
 
-      c = linep[ii];
+    for (size_t i=0, index=0, num_delim=0; i<num_read_line; ++i) {
+
+      c = line[i];
 
       // Skip tab or space (these are separators).
 
-      if (c == '\t' || c == ' ') {
+      if (is_delim(c)) {
         num_delim++;
         continue;
       }
 
-      // Get line label
+      // Get line label if at column 2.
 
       if (num_delim == 1) {
         // Append character to label.
@@ -194,7 +158,7 @@ int process_line(int argc, char** argv, const bool is_duo,
 
       // If first cycle of num_way loop, then count num_field.
 
-      if (way_num == 0)
+      if (0 == way_num && index % num_allele_labels_per_field == 0)
         num_field++;
 
       // Record allele label. Normalize into alphabetical order.
@@ -216,17 +180,21 @@ int process_line(int argc, char** argv, const bool is_duo,
         }
       } // if c
 
-    } // while c
+    } // for i
 
   } // for way_num
 
-  free(linep);
-
-  num_field /= num_allele_labels_per_field;
+  free(line);
 
   // Now we have all 2 (or 3) vectors and their associated data.
 
   // We will account for sparsity of the data
+
+
+
+
+
+
 
   // First get sum_i's and count_i's
 
@@ -247,7 +215,7 @@ int process_line(int argc, char** argv, const bool is_duo,
 
         count1[way_num] += 1;
 
-        const int rho = (e0 == allele_labels[way_num][bitno[way_num]]);
+        const int rho = (e0 == allele_labels[way_num][bit_num[way_num]]);
         sum1[way_num] += rho;
       } // for f
 
@@ -264,8 +232,8 @@ int process_line(int argc, char** argv, const bool is_duo,
 
         // Calculate row and add to sum - see paper
 
-        const int rho = (e0 == allele_labels[way_num][bitno[way_num]]) +
-                        (e1 == allele_labels[way_num][bitno[way_num]]);
+        const int rho = (e0 == allele_labels[way_num][bit_num[way_num]]) +
+                        (e1 == allele_labels[way_num][bit_num[way_num]]);
         sum1[way_num] += rho;
       } // for f
 
@@ -296,10 +264,10 @@ int process_line(int argc, char** argv, const bool is_duo,
 
       countijk += 1;
 
-      const int rho0 = (e00 == allele_labels[0][bitno[0]]);
-      const int rho1 = (e10 == allele_labels[1][bitno[1]]);
+      const int rho0 = (e00 == allele_labels[0][bit_num[0]]);
+      const int rho1 = (e10 == allele_labels[1][bit_num[1]]);
       const int rho2 = num_way == 2 ? 1 :
-                       (e20 == allele_labels[2][bitno[2]]);
+                       (e20 == allele_labels[2][bit_num[2]]);
 
       sumijk += rho0 * rho1 * rho2;
     } // for f
@@ -324,13 +292,13 @@ int process_line(int argc, char** argv, const bool is_duo,
 
       countijk += 1;
 
-      const int rho0 = (e00 == allele_labels[0][bitno[0]]) +
-                       (e01 == allele_labels[0][bitno[0]]);
-      const int rho1 = (e10 == allele_labels[1][bitno[1]]) +
-                       (e11 == allele_labels[1][bitno[1]]);
+      const int rho0 = (e00 == allele_labels[0][bit_num[0]]) +
+                       (e01 == allele_labels[0][bit_num[0]]);
+      const int rho1 = (e10 == allele_labels[1][bit_num[1]]) +
+                       (e11 == allele_labels[1][bit_num[1]]);
       const int rho2 = num_way == 2 ? 1 :
-                       (e20 == allele_labels[2][bitno[2]]) +
-                       (e21 == allele_labels[2][bitno[2]]);
+                       (e20 == allele_labels[2][bit_num[2]]) +
+                       (e21 == allele_labels[2][bit_num[2]]);
 
       sumijk += rho0 * rho1 * rho2;
     } // for f
@@ -360,12 +328,18 @@ int process_line(int argc, char** argv, const bool is_duo,
     multiplier * fijk * (1 - param * f1[0]) *  (1 - param * f1[1])
                       * (1 - param * f1[2]);
 
+
+
+
+
+
+
   // Sort lines to output each result in a uniform order
 
   int perm[3];
 
   if (num_way == 2) {
-    if (lineno[0] > lineno[1]) {
+    if (vector_num[0] > vector_num[1]) {
       perm[0] = 0;
       perm[1] = 1;
     } else {
@@ -373,27 +347,27 @@ int process_line(int argc, char** argv, const bool is_duo,
       perm[1] = 0;
     }
   } else {
-    if (lineno[0] > lineno[1] && lineno[1] > lineno[2]) {
+    if (vector_num[0] > vector_num[1] && vector_num[1] > vector_num[2]) {
       perm[0] = 0;
       perm[1] = 1;
       perm[2] = 2;
-    } else if (lineno[0] > lineno[2] && lineno[2] > lineno[1]) {
+    } else if (vector_num[0] > vector_num[2] && vector_num[2] > vector_num[1]) {
       perm[0] = 0;
       perm[1] = 2;
       perm[2] = 1;
-    } else if (lineno[1] > lineno[0] && lineno[0] > lineno[2]) {
+    } else if (vector_num[1] > vector_num[0] && vector_num[0] > vector_num[2]) {
       perm[0] = 1;
       perm[1] = 0;
       perm[2] = 2;
-    } else if (lineno[1] > lineno[2] && lineno[2] > lineno[0]) {
+    } else if (vector_num[1] > vector_num[2] && vector_num[2] > vector_num[0]) {
       perm[0] = 1;
       perm[1] = 2;
       perm[2] = 0;
-    } else if (lineno[2] > lineno[0] && lineno[0] > lineno[1]) {
+    } else if (vector_num[2] > vector_num[0] && vector_num[0] > vector_num[1]) {
       perm[0] = 2;
       perm[1] = 0;
       perm[2] = 1;
-    } else if (lineno[2] > lineno[1] && lineno[1] > lineno[0]) {
+    } else if (vector_num[2] > vector_num[1] && vector_num[1] > vector_num[0]) {
       perm[0] = 2;
       perm[1] = 1;
       perm[2] = 0;
@@ -402,21 +376,21 @@ int process_line(int argc, char** argv, const bool is_duo,
 
   // Do output to stdout
 
-  for (int i=0; i<num_way; ++i) {
-    int iperm = perm[i];
-    printf(0 != i ? " " : "");
-    printf("%i %i", lineno[iperm], bitno[iperm]);
-  } // for i
+  for (int way_num=0; way_num<num_way; ++way_num) {
+    int iperm = perm[way_num];
+    printf(0 != way_num ? " " : "");
+    printf("%i %i", vector_num[iperm], bit_num[iperm]);
+  } // for way_num
 
-  for (int i=0; i<num_way; ++i) {
-    int iperm = perm[i];
-    printf(" %s_%c", line_label[iperm], allele_labels[iperm][bitno[iperm]]);
-  } // for i
+  for (int way_num=0; way_num<num_way; ++way_num) {
+    int iperm = perm[way_num];
+    printf(" %s_%c", line_label[iperm], allele_labels[iperm][bit_num[iperm]]);
+  } // for way_num
 
   printf(" %f\n", value);
 
-  for (int i=0; i<num_way; ++i) {
-    free(elts[i]);
+  for (int way_num=0; way_num<num_way; ++way_num) {
+    free(elts[way_num]);
   }
   return 0;
 }
@@ -426,6 +400,8 @@ int process_line(int argc, char** argv, const bool is_duo,
 int main(int argc, char** argv) {
 
   // Help message.
+
+// TODO metric_type_prec
 
   if (argc < 4) {
     printf("validate: create metrics data for validation of calculations\n");
@@ -437,61 +413,36 @@ int main(int argc, char** argv) {
 
   // Parse arguments.
 
-  if (strcmp(argv[1], "ccc") != 0 && strcmp(argv[1], "duo") != 0) {
-    fprintf(stderr, "Error: invalid metric_type\n");
+  int argnum = 1;
+
+  if (strcmp(argv[argnum], "ccc") != 0 &&
+      strcmp(argv[argnum], "duo") != 0 &&
+      strcmp(argv[argnum], "czekanowski") != 0) {
+    fprintf(stderr, "Error: invalid metric_type. %s\n", argv[argnum]);
     return 1;
   }
+  char* metric_type = argv[argnum++];
+  const bool is_czek = strcmp(metric_type, "czekanowski") == 0;
 
-  if (strcmp(argv[2], "2") != 0 && strcmp(argv[2], "3") != 0) {
+  if (strcmp(argv[argnum], "2") != 0 && strcmp(argv[argnum], "3") != 0) {
     fprintf(stderr, "Error: invalid num_way\n");
     return 1;
   }
+  const int num_way = atoi(argv[argnum++]);
 
-  const bool is_duo = strcmp(argv[1], "duo") == 0;
-  const int num_way = atoi(argv[2]);
-  char* snptxtfilepath = argv[3];
-  char* lifilepath = argv[4];
-
-  // Access input files.
-
-  FILE* snptxtfile = fopen(snptxtfilepath, "r");
+  FILE* snptxtfile = fopen(argv[argnum], "r");
   if (!snptxtfile) {
-    fprintf(stderr, "Error: unable to open file. %s\n", snptxtfilepath);
+    fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
     return 1;
   }
-//  int fseek_success = fseek(snptxtfile, 0, SEEK_SET);
-//  if (0 != fseek_success) {
-//    fprintf(stderr, "xxxError: error reading SNP data file (0).\n");
-//    return 1;
-//  }
+  argnum++;
 
-  FILE* lifile = fopen(lifilepath, "rb");
+  FILE* lifile = fopen(argv[argnum], "rb");
   if (!lifile) {
-    fprintf(stderr, "Error: unable to open file. %s\n", lifilepath);
+    fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
     return 1;
   }
-
-#if 0
-for (size_t line_num=0; line_num<10 ; ++line_num) {
-
-    int fseek_success = fseek(lifile, line_num*sizeof(size_t), SEEK_SET);
-    if (0 != fseek_success) {
-      fprintf(stderr, "Error: error reading line_indices file (1).\n");
-      return 1;
-    }
-
-    // Get the index to the required line in the snptxtfile.
-
-    size_t line_index = 0;
-    int num_read = fread(&line_index, sizeof(size_t), 1, lifile);
-    if (1 != num_read) {
-      fprintf(stderr, "Error: error reading line_indices file (xx).\n");
-      return 1;
-    }
-
-printf("%zu %zu\n", line_num, line_index);
-}
-#endif
+  argnum++;
 
   // Prepare to read from stdin.
 
@@ -524,19 +475,17 @@ printf("%zu %zu\n", line_num, line_index);
       continue;
     }
 
-    // Create an (argc, argv) arg list consisting of the tokens.
+    // Have entire line, now create an (argc, argv) arg list consisting of the tokens.
 
     line[lineptr] = 0;
     argv_[0] = (char*)&line[lineptr];
     for (int i=0; i<lineptr; ++i) {
-      if (line[i] == ' ' || line[i] == '\t') {
+      if (is_delim(line[i]))
         line[i] = 0;
-      }
     }
     for (int i=0; i<lineptr; ++i) {
-      if (line[i] != 0 && (i == 0 || line[i-1] == 0)) {
+      if (line[i] != 0 && (i == 0 || line[i-1] == 0))
           argv_[argc_++] = (char*)&line[i];
-      }
     }
     argc_ = argc_ < 2*num_way+1 ? argc_ : 2*num_way+1;
 
@@ -545,7 +494,28 @@ printf("%zu %zu\n", line_num, line_index);
     // Only use the first several tokens, specifying line and bit numbers;
     // discard the actual metric values.
 
-    int result = process_line(argc_, argv_, is_duo, snptxtfile, lifile);
+    // line numbers in original file (= vector numbers) specifying which metric.
+    int vector_num[NUM_WAY_MAX];
+    vector_num[0] = atoi(argv_[1]);
+    vector_num[1] = is_czek ? atoi(argv_[2]) : atoi(argv_[3]);
+    vector_num[2] = num_way==2 ? 0 :
+                    is_czek ? atoi(argv_[3]) : atoi(argv_[5]);
+    assert(vector_num[0] >= 0 && vector_num[1] >= 0 && vector_num[2] >= 0);
+
+    // table enrty index for this metric.
+    int bit_num[NUM_WAY_MAX];
+    bit_num[0] = is_czek ? 0 : atoi(argv_[2]);
+    bit_num[1] = is_czek ? 0 : atoi(argv_[4]);
+    bit_num[2] = num_way==2 ? 0 :
+                 is_czek ? 0 : atoi(argv_[6]);
+
+
+
+
+
+    int result = calculate_metric_elt<int>(metric_type, num_way, vector_num, bit_num,
+                                           snptxtfile, lifile);
+
     if (result != 0) {
       fprintf(stderr, "Error processing metric value.\n");
       return 1;
@@ -559,7 +529,6 @@ printf("%zu %zu\n", line_num, line_index);
 
   // Finalize.
 
-  //free(line);
   fclose(snptxtfile);
   fclose(lifile);
 

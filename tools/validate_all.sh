@@ -40,7 +40,7 @@ function process_files_simple
     local numdiffs
     numdiffs=$(paste $F1 $F2 | awk '$'$C1' - $'$C2' > '$TOL' || $'$C2' - $'$C1' > '$TOL' {print $0 }' | wc -l)
     if [ $numdiffs = 0 ] ; then
-      echo "PASSED." # >/dev/null >/dev/null
+      echo "=== PASSED ===" # >/dev/null >/dev/null
     else
       echo "FAILED with $numdiffs diffs." >/dev/null
       echo "Checking $F1 ... FAILED with $numdiffs diffs."
