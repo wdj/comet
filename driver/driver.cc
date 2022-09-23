@@ -351,6 +351,10 @@ void Driver::set_vectors(GMVectors& vectors) {
     VectorsIO::read(vectors, this->input_file, env_);
   else
     set_vectors_synthetic(&vectors, this->problem_type, this->verbosity, &env_);
+
+  if (this->verbosity > 2)
+    VectorsIO::print(vectors, env_);
+
 }
 
 //-----------------------------------------------------------------------------

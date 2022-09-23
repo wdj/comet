@@ -118,9 +118,9 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
       }   // vector_local
       // Print.
 //TODO: move this
-      if (verbosity > 2) {
-        VectorsIO::print(*vectors, *env);
-      }
+      //if (verbosity > 2) {
+      //  VectorsIO::print(*vectors, *env);
+      //}
     } break;
     //--------------------
     case GM_DATA_TYPE_BITS2: {
@@ -155,9 +155,9 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
       }   // vl
       // Print.
 //TODO: move this
-      if (verbosity > 2) {
-        VectorsIO::print(*vectors, *env);
-      }
+      //if (verbosity > 2) {
+      //  VectorsIO::print(*vectors, *env);
+      //}
     } break;
     //--------------------
     default:
@@ -276,9 +276,9 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
       }   // vector_local
       // Print.
 //TODO: move this
-      if (verbosity > 2) {
-        VectorsIO::print(*vectors, *env);
-      }
+      //if (verbosity > 2) {
+      //  VectorsIO::print(*vectors, *env);
+      //}
     } break;
     //--------------------
     case GM_DATA_TYPE_BITS2: {
@@ -317,9 +317,9 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
         } // field_local
       }   // vector_local
 //TODO: move this
-      if (verbosity > 2) {
-        VectorsIO::print(*vectors, *env);
-      }
+      //if (verbosity > 2) {
+      //  VectorsIO::print(*vectors, *env);
+      //}
     } break;
     //--------------------
     default:
