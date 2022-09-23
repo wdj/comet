@@ -61,7 +61,8 @@ public:
 
     // Add the two bits to the buffer.
 
-    buffer_ = (buffer_ << 2) | value;
+    //buffer_ = (buffer_ << 2) | value;
+    buffer_ = buffer_ | (value << 2*num_elts_in_buf_);;
     num_elts_in_buf_++;
 
     // Flush if full.
@@ -94,8 +95,8 @@ public:
     // NOTE: if the buffer is not full, then make low order
     // bits into high order bits to write out.
 
-    if (BUF_SIZE != num_elts_in_buf_)
-      buffer_ = buffer_ << (2 * (4 - num_elts_in_buf_));
+//    if (BUF_SIZE != num_elts_in_buf_)
+//      buffer_ = buffer_ << (2 * (4 - num_elts_in_buf_));
 
     fputc(buffer_, output_file_);
     buffer_ = 0;
@@ -195,6 +196,9 @@ int main(int argc, char** argv) {
 
     // Only needed for ccc, duo.
     if (!is_czek) {
+
+      clo = 0;
+      chi = 0;
 
       for (int i=0, num_delims=0; i<line_len; ++i) {
 

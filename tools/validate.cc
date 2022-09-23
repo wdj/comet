@@ -1,6 +1,7 @@
 //-----------------------------------------------------------------------------
-// "Manually" calculate a CCC or DUO metric value directly from the original
-// SNP file.
+// "Manually" calculate metric values directly from original SNP (tped) file.
+// This uses The CoMet output metrics file ONLY to get the required metrics
+// coords, not the actual metrics values.
 //-----------------------------------------------------------------------------
 
 #include <stdio.h>
@@ -23,7 +24,7 @@ int process_line(int argc, char** argv, const bool is_duo,
   if (argc != 1+4 && argc != 1+6) {
     // Input format expectd from each line of stdin:
     printf("Usage: "
-      "validate_ccc_duo lineno0 bitno0 lineno1 bitno1 [lineno2 bitno2]\n");
+      "validate lineno0 bitno0 lineno1 bitno1 [lineno2 bitno2]\n");
     printf("Line and bit numbers are 0-based\n");
     return 1;
   }
@@ -427,9 +428,10 @@ int main(int argc, char** argv) {
   // Help message.
 
   if (argc < 4) {
-    printf("validate_ccc_duo: create validation data for calculations\n");
-    printf("Usage: validate_ccc_duo <metric_type> <num_way> <snptxtfile> <line_index_file>\n");
-    printf("Here stdin is composed of metric entries, one per line.\n");
+    printf("validate: create metrics data for validation of calculations\n");
+    printf("Usage: validate "
+           "<metric_type> <num_way> <snptxtfile> <line_index_file>\n");
+    printf("Here stdin has the (ascii) metric entries, one per line.\n");
     return 0;
   }
 

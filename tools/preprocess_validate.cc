@@ -153,7 +153,10 @@ int main(int argc, char** argv) {
           }
         }
 
-        const int sn = (input_buf >> (6 - 2*sn_num) ) & 3;
+        //const int sn = (input_buf >> (6 - 2*sn_num) ) & 3;
+        const int sn = (input_buf >> (2*sn_num) ) & 3;
+
+//printf("%i %i %i %i %i\n", sn_num, sn, input_buf, elt_num, is_end_of_line);
 
         // Map snp value to c0/c1.
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 #==============================================================================
-# Compare the validation files against the actual metrics files.
-# Compare up a certain floating point tolerance.
+# Do a "soft" (roundoff-insensitive) diff between actual (ascii) metrics files
+# and metrics files computed "manually" from original data.
 # Can use parallel nodes with mpirun to make faster.
 #==============================================================================
 
@@ -40,7 +40,7 @@ function process_files_simple
     local numdiffs
     numdiffs=$(paste $F1 $F2 | awk '$'$C1' - $'$C2' > '$TOL' || $'$C2' - $'$C1' > '$TOL' {print $0 }' | wc -l)
     if [ $numdiffs = 0 ] ; then
-      echo "PASSED." >/dev/null >/dev/null
+      echo "PASSED." # >/dev/null >/dev/null
     else
       echo "FAILED with $numdiffs diffs." >/dev/null
       echo "Checking $F1 ... FAILED with $numdiffs diffs."
