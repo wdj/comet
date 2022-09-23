@@ -964,7 +964,7 @@ do_coords_match
   //COMET_INSIST(NULL != file_ && "Unable to open file.");
   close_();
   if (is_leaving_files_open_()) {
-    open_(); 
+    open_("ab"); 
 
     // Set fpos to end of file.
 
