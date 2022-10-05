@@ -147,7 +147,8 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   size_allocated_ = size_allocated_ ? size_allocated_ : 1;
 # if defined COMET_USE_CUDA
 //#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !env_.is_compute_method_gpu()) {
       // WORKAROUND
       h = malloc(size_allocated_);
     } else {
@@ -203,7 +204,6 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
 
   if (use_linalg_) {
 
-//printf("2 %zu %i\n", size_allocated_, System::proc_num());
     MagmaWrapper::malloc(this, dim0_, dim1_, env_);
 
     env_.cpu_mem_local_inc(size_allocated_);
@@ -272,7 +272,8 @@ void MirroredBuf::deallocate() {
 
 #     if defined COMET_USE_CUDA
 //#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
-        if (System::compute_capability() >= 800) {
+        if (System::compute_capability() >= 800 ||
+            !env_.is_compute_method_gpu()) {
           // WORKAROUND
           free(h);
         } else {

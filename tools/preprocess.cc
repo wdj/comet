@@ -64,7 +64,7 @@ public:
 
     //buffer_ = (buffer_ << 2) | value;
     buffer_ = buffer_ | (value << 2*num_elts_in_buf_);;
-    num_elts_in_buf_++;
+    ++num_elts_in_buf_;
 
     // Flush if full.
 
@@ -146,17 +146,17 @@ int main(int argc, char** argv) {
   const bool is_czek = strcmp(metric_type_prec, "czekanowski_single") == 0 ||
                        strcmp(metric_type_prec, "czekanowski_double") == 0;
   const bool is_single = strcmp(metric_type_prec, "czekanowski_single") == 0;
-  argnum++;
+  ++argnum;
 
   FILE* snptxtfile = fopen(argv[argnum], "r");
   if (!snptxtfile) {
     fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
     return 1;
   }
-  argnum++;
+  ++argnum;
 
   ElementWriter element_writer(argv[argnum]);
-  argnum++;
+  ++argnum;
 
   // Initializations.
 
@@ -201,21 +201,21 @@ int main(int argc, char** argv) {
       clo = 0;
       chi = 0;
 
-      for (int i=0, num_delims=0; i<line_len; ++i) {
+      for (int i=0, num_delim=0; i<line_len; ++i) {
 
         // Get character in line.
         c = line[i];
         if (is_delim(c)) {
           // Found delimiter, go to next token
-          num_delims++;
+          ++num_delim;
           continue;
         }
         // Skip first four tokens ("frontmatter").
-        if (num_delims < num_frontmatter_fields)
+        if (num_delim < num_frontmatter_fields)
           continue;
 
         // Get token number
-        col = num_delims - num_frontmatter_fields;
+        col = num_delim - num_frontmatter_fields;
 
         // Perform check.
         if (col % 2 == 1 && is_ccc) {
@@ -226,17 +226,6 @@ int main(int argc, char** argv) {
             return 1;
           }
         }
-
-//        // Handle Czekanowski case.
-//
-//        if (is_czek) {
-//          // Skip to end of token.
-//          while (i+1 < line_len && !is_delim(line[i+1])) {
-//            ++i;
-//          }
-//
-//          continue;
-//        }
 
         // Record values of the tokens encountered.
 
@@ -273,21 +262,21 @@ int main(int argc, char** argv) {
     // PASS 2: loop to output results.
     //----------
 
-    for (int i=0, num_delims=0; i<line_len; ++i) {
+    for (int i=0, num_delim=0; i<line_len; ++i) {
 
       // Get character in line.
       c = line[i];
       if (is_delim(c)) {
         // Found delimiter, go to next token
-        num_delims++;
+        ++num_delim;
         continue;
       }
       // Skip first four tokens ("frontmatter").
-      if (num_delims < num_frontmatter_fields)
+      if (num_delim < num_frontmatter_fields)
         continue;
 
       // Get token number.
-      col = num_delims - num_frontmatter_fields;
+      col = num_delim - num_frontmatter_fields;
 
       //----------
       // 1. Handle Czekanowski case.

@@ -9,6 +9,10 @@
 #include <string.h>
 #include <assert.h>
 
+#include <string>
+#include <sstream>
+#include <iostream>
+
 enum {NUM_WAY_MAX = 3};
 
 #define ASSERT(condition, command) { if (!(condition)) {command; return 1;} }
@@ -23,16 +27,25 @@ bool is_delim(int c) {
 
 //-----------------------------------------------------------------------------
 
-template<class Field_t>
-int calculate_metric_elt(char* metric_type, int num_way,
+template<class T>
+T min(T x, T y) {
+  return x < y ? x : y;
+}
+
+//-----------------------------------------------------------------------------
+
+template<class Field_t, class Sum_t>
+int calculate_metric_elt(char* metric_type_prec, int num_way,
   int vector_num[NUM_WAY_MAX], int bit_num[NUM_WAY_MAX],
   FILE* snptxtfile, FILE* lifile) {
 
   // Initializations.
 
-  const bool is_ccc = strcmp(metric_type, "ccc") == 0;
-  const bool is_duo = strcmp(metric_type, "duo") == 0;
-  const bool is_czek = strcmp(metric_type, "czekanowski") == 0;
+  const bool is_ccc = strcmp(metric_type_prec, "ccc") == 0;
+  const bool is_duo = strcmp(metric_type_prec, "duo") == 0;
+  const bool is_czek = strcmp(metric_type_prec, "czekanowski_single") == 0 ||
+                       strcmp(metric_type_prec, "czekanowski_double") == 0;
+  const bool is_single = strcmp(metric_type_prec, "czekanowski_single") == 0;
 
   //CHECK
   // Allele labels would be "A", "C", "T", "G", and if none then use "X".
@@ -86,8 +99,9 @@ int calculate_metric_elt(char* metric_type, int num_way,
   // Initial size of snp file line - will be reallocated as needed.
 
   size_t linesize = 1;
-  unsigned char* line = (unsigned char*)malloc(linesize);;
+  unsigned char* line = (unsigned char*)malloc(linesize);
 
+  //----------
   // LOOP over num_way to input the required vectors.
 
   for (int way_num=0; way_num<num_way; ++way_num) {
@@ -113,24 +127,28 @@ int calculate_metric_elt(char* metric_type, int num_way,
 
     const int num_frontmatter_fields = 4;
 
-    // Loop to read the line from snptxtfile - loop up to newline.
+    // Read the line from snptxtfile - read up to newline.
 
-    const size_t num_read_line = getline((char**)&line, &linesize, snptxtfile) - 1;
-    ASSERT(line && num_read_line <= linesize,
-      fprintf(stderr, "Error: memory %zu %zu\n", num_read_line, linesize));
+    const size_t line_len = getline((char**)&line, &linesize, snptxtfile) - 1;
+    ASSERT(line && line_len <= linesize,
+      fprintf(stderr, "Error: memory %zu %zu\n", line_len, linesize));
 
     // Allocate elts[way_num] since now we have an upper bound on size.
-    elts[way_num] = (Field_t*)malloc(num_read_line *
+    elts[way_num] = (Field_t*)malloc(line_len *
       num_allele_labels_per_field * sizeof(Field_t));
 
-    for (size_t i=0, index=0, num_delim=0; i<num_read_line; ++i) {
+    //----------
+    // LOOP over chars in line.
+    //----------
+
+    for (size_t i=0, char_index=0, num_delim=0; i<line_len; ++i) {
 
       c = line[i];
 
       // Skip tab or space (these are separators).
 
       if (is_delim(c)) {
-        num_delim++;
+        ++num_delim;
         continue;
       }
 
@@ -138,47 +156,84 @@ int calculate_metric_elt(char* metric_type, int num_way,
 
       if (num_delim == 1) {
         // Append character to label.
-        line_label[way_num][index++] = c; //check
+        line_label[way_num][char_index++] = c; //check
         continue;
       }
 
-      // If finished with frontmatter then reset char index.
+      // If finished with frontmatter then reset index.
 
       if (num_delim == num_frontmatter_fields - 1)
-        index = 0;
+        char_index = 0;
 
       // Finished processing frontmatter.
 
       if (num_delim < num_frontmatter_fields)
         continue;
 
-      // Store allele bit.
+      //----------
+      // 1. Handle Czekanowski case.
+      //----------
 
-      elts[way_num][index++] = c;
-
-      // If first cycle of num_way loop, then count num_field.
-
-      if (0 == way_num && index % num_allele_labels_per_field == 0)
-        num_field++;
-
-      // Record allele label. Normalize into alphabetical order.
-
-      if (c != '0') {
-        if (allele_labels[way_num][0] == allele_label_null) {
-          // Store first of 2.
-          allele_labels[way_num][0] = c;
-        } else if (allele_labels[way_num][1] == allele_label_null) {
-          // Store second of 2.
-          if (allele_labels[way_num][0] < c) {
-            // No alpha sort.
-            allele_labels[way_num][1] = c;
-          } else if (allele_labels[way_num][0] > c) {
-            // Alpha sort.
-            allele_labels[way_num][1] = allele_labels[way_num][0];
-            allele_labels[way_num][0] = c;
-          }
+      if (is_czek) {
+        // Find end of token.
+        int len = 1;
+        while (i+len < line_len && !is_delim(line[i+len])) {
+          ++len;
         }
-      } // if c
+
+        std::string line_((char*)line);
+
+        // Write token to file in binary format.
+        std::string token_string(line_.substr(i, len));
+        std::stringstream token_stream(token_string);
+        Field_t token;
+        token_stream >> elts[way_num][char_index++];
+        if (0 == way_num)
+          ++num_field;
+
+//printf("%i %i %f\n", way_num, char_index-1, (double) elts[way_num][char_index-1]);
+
+        // Complete the processing of this token.
+        i += len - 1;
+
+//printf("%i %f   %i\n", (int)vector_num[way_num], (float)elts[way_num][char_index-1], (int)(char_index-1));
+
+
+      } else {
+
+      //----------
+      // 2. Handle ccc, duo case.
+      //----------
+
+        // Store allele bit.
+
+        elts[way_num][char_index++] = c;
+
+        // If first cycle of num_way loop, then count num_field.
+
+        if (0 == way_num && char_index % num_allele_labels_per_field == 0)
+          ++num_field;
+
+        // Record allele label. Normalize into alphabetical order.
+
+        if (c != '0') {
+          if (allele_labels[way_num][0] == allele_label_null) {
+            // Store first of 2.
+            allele_labels[way_num][0] = c;
+          } else if (allele_labels[way_num][1] == allele_label_null) {
+            // Store second of 2.
+            if (allele_labels[way_num][0] < c) {
+              // No alpha sort.
+              allele_labels[way_num][1] = c;
+            } else if (allele_labels[way_num][0] > c) {
+              // Alpha sort.
+              allele_labels[way_num][1] = allele_labels[way_num][0];
+              allele_labels[way_num][0] = c;
+            }
+          }
+        } // if c
+
+      } // if (is_czek)
 
     } // for i
 
@@ -186,29 +241,41 @@ int calculate_metric_elt(char* metric_type, int num_way,
 
   free(line);
 
-  // Now we have all 2 (or 3) vectors and their associated data.
+  // We now have all 2 (or 3) vectors and their associated data.
 
-  // We will account for sparsity of the data
+  // Now compute metric value.
 
+  //----------
+  // LOOP over way_num to get sum_i's and count_i's
+  //----------
 
-
-
-
-
-
-  // First get sum_i's and count_i's
-
-  int count1[NUM_WAY_MAX];
-  int sum1[NUM_WAY_MAX];
+  Sum_t count1[NUM_WAY_MAX] = {};
+  Sum_t sum1[NUM_WAY_MAX] = {};
 
   for (int way_num=0; way_num<num_way; ++way_num) {
     count1[way_num] = 0;
     sum1[way_num] = 0;
-    if (is_duo) {
+
+    //----------
+    if (is_czek) {
+    //----------
+
+      count1[way_num] = num_field;
+      sum1[way_num] = 0;
+
+      #pragma omp parallel for reduction(+:sum1[way_num])
+      for (int f=0; f<num_field; ++f) {
+        sum1[way_num] += elts[way_num][f];
+//printf("  %i %i %f %f\n", way_num, f, (float)elts[way_num][f], (float)sum1[way_num]);
+      }
+
+    //----------
+    } else if (is_duo) {
+    //----------
 
       #pragma omp parallel for reduction(+:sum1[way_num]) reduction(+:count1[way_num])
       for (int f=0; f<num_field; ++f) {
-        const int e0 = elts[way_num][f];
+        const Field_t e0 = elts[way_num][f];
 
         if (e0 == '0')
           continue;
@@ -219,11 +286,14 @@ int calculate_metric_elt(char* metric_type, int num_way,
         sum1[way_num] += rho;
       } // for f
 
-    } else { // if (!is_duo)
+    //----------
+    } else { // if (!is_duo && !is_czek) // if (is_ccc)
+    //----------
 
+      #pragma omp parallel for reduction(+:sum1[way_num]) reduction(+:count1[way_num])
       for (int f=0; f<num_field; ++f) {
-        const int e0 = elts[way_num][2*f];
-        const int e1 = elts[way_num][2*f+1];
+        const Field_t e0 = elts[way_num][2*f];
+        const Field_t e1 = elts[way_num][2*f+1];
 
         if (e0 == '0')
           continue;
@@ -237,16 +307,36 @@ int calculate_metric_elt(char* metric_type, int num_way,
         sum1[way_num] += rho;
       } // for f
 
-    } // if (is_duo)
+    //----------
+    } // if (is_czek)
+    //----------
 
   } // for way_num
 
   // Now get sum_{ij}'s (or sum_{ijk}'s if 3-way)
 
-  int countijk = 0;
-  int sumijk = 0;
+  Sum_t countijk = 0;
+  Sum_t sumijk = 0;
 
-  if (is_duo) {
+  //----------
+  if (is_czek) {
+  //----------
+
+    #pragma omp parallel for reduction(+:sumijk)
+    for (int f=0; f<num_field; ++f) {
+
+      const Sum_t e0 = elts[0][f];
+      const Sum_t e1 = elts[1][f];
+      const Sum_t e2 = 3 == num_way ? elts[2][f] : (Sum_t)0;
+
+      sumijk += 2 == num_way ? min(e0, e1) :
+        min(e0, e1) + min(e1, e2) + min(e2, e0) - min(e0, min(e1, e2));;
+
+    } // for f
+
+  //----------
+  } else if (is_duo) {
+  //----------
 
     #pragma omp parallel for reduction(+:sumijk) reduction(+:countijk)
     for (int f=0; f<num_field; ++f) {
@@ -272,8 +362,11 @@ int calculate_metric_elt(char* metric_type, int num_way,
       sumijk += rho0 * rho1 * rho2;
     } // for f
 
-  } else { // if (!is_duo)
+  //----------
+  } else { // if (!is_duo && !is_czek) // if (is_ccc)
+  //----------
 
+    #pragma omp parallel for reduction(+:sumijk) reduction(+:countijk)
     for (int f=0; f<num_field; ++f) {
       const int e00 = elts[0][2*f];
       const int e01 = elts[0][2*f+1];
@@ -303,88 +396,89 @@ int calculate_metric_elt(char* metric_type, int num_way,
       sumijk += rho0 * rho1 * rho2;
     } // for f
 
-  } // if (is_duo)
+  //----------
+  } // if (is_czek)
+  //----------
 
   // substitute into formula
 
-  const int cbpe = is_duo ? 1 : 2; // counted bits per element.
-  const int cbpe_n = 2 == num_way ? cbpe * cbpe : cbpe * cbpe * cbpe;
+  double value = 0;
 
-  double f1[NUM_WAY_MAX];
-  for (int way_num=0; way_num<num_way; ++way_num)
-    f1[way_num] = 0 == count1[way_num] ? 0 :
-      sum1[way_num] * 1. / (double)( cbpe * count1[way_num] );
+  //----------
+  if (is_czek) {
+  //----------
 
-  const double fijk = 0 == countijk ? 0 :
+    value = (2 == num_way ? 2 : 3./2) * sumijk / (sum1[0] + sum1[1] + sum1[2]);
+
+//printf("%i %i %i %f %f %f %f\n", (int)vector_num[0], (int)vector_num[1], (int)vector_num[2], (float)sumijk, (float)sum1[0], (float)sum1[1], (float)sum1[2]);
+
+  } else { // if (!is_czek)
+
+    const int cbpe = is_duo ? 1 : 2; // counted bits per element.
+    const int cbpe_n = 2 == num_way ? cbpe * cbpe : cbpe * cbpe * cbpe;
+
+    double f1[NUM_WAY_MAX];
+    for (int way_num=0; way_num<num_way; ++way_num)
+      f1[way_num] = 0 == count1[way_num] ? 0 :
+        sum1[way_num] * 1. / (double)( cbpe * count1[way_num] );
+
+    const double fijk = 0 == countijk ? 0 :
                      sumijk * 1. / (double)( cbpe_n * countijk );
 
-  // NOTE hard-wired constant here
+    // NOTE hard-wired constant here
 
-  const double multiplier = is_duo ? (double)4. : 9. / (double)2.;
-  const double param = 2. / (double)3.;
+    const double multiplier = is_duo ? (double)4. : 9. / (double)2.;
+    const double param = 2. / (double)3.;
 
-  const double value = 2 == num_way ?
-    multiplier * fijk * (1 - param * f1[0]) *  (1 - param * f1[1]) :
-    multiplier * fijk * (1 - param * f1[0]) *  (1 - param * f1[1])
-                      * (1 - param * f1[2]);
+    value = 2 == num_way ?
+      multiplier * fijk * (1 - param * f1[0]) *  (1 - param * f1[1]) :
+      multiplier * fijk * (1 - param * f1[0]) *  (1 - param * f1[1])
+                        * (1 - param * f1[2]);
 
+  //----------
+  } // if (is_czek)
+  //----------
 
+  // Permute labels to output each result with a uniform order of labels.
+  // By convention assume output line nums increasing, e.g. "0 1" not "1 0".
 
+  struct Perm {
+    Perm(int v0, int v1) : data{v0, v1, 0} {}
+    Perm(int v0, int v1, int v2) : data{v0, v1, v2} {}
+    int& operator[](int i) {return data[i];}
+    int data[NUM_WAY_MAX];
+  };
 
-
-
-
-  // Sort lines to output each result in a uniform order
-
-  int perm[3];
-
-  if (num_way == 2) {
-    if (vector_num[0] > vector_num[1]) {
-      perm[0] = 0;
-      perm[1] = 1;
-    } else {
-      perm[0] = 1;
-      perm[1] = 0;
-    }
-  } else {
-    if (vector_num[0] > vector_num[1] && vector_num[1] > vector_num[2]) {
-      perm[0] = 0;
-      perm[1] = 1;
-      perm[2] = 2;
-    } else if (vector_num[0] > vector_num[2] && vector_num[2] > vector_num[1]) {
-      perm[0] = 0;
-      perm[1] = 2;
-      perm[2] = 1;
-    } else if (vector_num[1] > vector_num[0] && vector_num[0] > vector_num[2]) {
-      perm[0] = 1;
-      perm[1] = 0;
-      perm[2] = 2;
-    } else if (vector_num[1] > vector_num[2] && vector_num[2] > vector_num[0]) {
-      perm[0] = 1;
-      perm[1] = 2;
-      perm[2] = 0;
-    } else if (vector_num[2] > vector_num[0] && vector_num[0] > vector_num[1]) {
-      perm[0] = 2;
-      perm[1] = 0;
-      perm[2] = 1;
-    } else if (vector_num[2] > vector_num[1] && vector_num[1] > vector_num[0]) {
-      perm[0] = 2;
-      perm[1] = 1;
-      perm[2] = 0;
-    }
-  } // if num_way
+  Perm perm = 2 == num_way
+    ? (vector_num[0] > vector_num[1] ?  Perm(0, 1) :
+                                        Perm(1, 0))
+    : (vector_num[0] > vector_num[1] && 
+       vector_num[1] > vector_num[2] ?  Perm(0, 1, 2) :
+       vector_num[0] > vector_num[2] && 
+       vector_num[2] > vector_num[1] ?  Perm(0, 2, 1) :
+       vector_num[1] > vector_num[0] && 
+       vector_num[0] > vector_num[2] ?  Perm(1, 0, 2) :
+       vector_num[1] > vector_num[2] && 
+       vector_num[2] > vector_num[0] ?  Perm(1, 2, 0) :
+       vector_num[2] > vector_num[0] && 
+       vector_num[0] > vector_num[1] ?  Perm(2, 0, 1) :
+                                        Perm(2, 1, 0));
 
   // Do output to stdout
 
   for (int way_num=0; way_num<num_way; ++way_num) {
     int iperm = perm[way_num];
     printf(0 != way_num ? " " : "");
-    printf("%i %i", vector_num[iperm], bit_num[iperm]);
+    printf("%i", vector_num[iperm]);
+    if (!is_czek)
+      printf(" %i", bit_num[iperm]);
   } // for way_num
 
   for (int way_num=0; way_num<num_way; ++way_num) {
     int iperm = perm[way_num];
-    printf(" %s_%c", line_label[iperm], allele_labels[iperm][bit_num[iperm]]);
+    printf(" %s", line_label[iperm]);
+    if (!is_czek)
+      printf("_%c", allele_labels[iperm][bit_num[iperm]]);
   } // for way_num
 
   printf(" %f\n", value);
@@ -401,12 +495,10 @@ int main(int argc, char** argv) {
 
   // Help message.
 
-// TODO metric_type_prec
-
   if (argc < 4) {
     printf("validate: create metrics data for validation of calculations\n");
     printf("Usage: validate "
-           "<metric_type> <num_way> <snptxtfile> <line_index_file>\n");
+           "<metric_type_pre> <num_way> <snptxtfile> <line_index_file>\n");
     printf("Here stdin has the (ascii) metric entries, one per line.\n");
     return 0;
   }
@@ -414,15 +506,20 @@ int main(int argc, char** argv) {
   // Parse arguments.
 
   int argnum = 1;
+  char* metric_type_prec = argv[argnum];
 
-  if (strcmp(argv[argnum], "ccc") != 0 &&
-      strcmp(argv[argnum], "duo") != 0 &&
-      strcmp(argv[argnum], "czekanowski") != 0) {
-    fprintf(stderr, "Error: invalid metric_type. %s\n", argv[argnum]);
+  if (strcmp(metric_type_prec, "ccc") != 0 &&
+      strcmp(metric_type_prec, "duo") != 0 &&
+      strcmp(metric_type_prec, "czekanowski_single") != 0 &&
+      strcmp(metric_type_prec, "czekanowski_double") != 0) {
+    fprintf(stderr, "Error: invalid metric_type_prec\n");
     return 1;
-  }
-  char* metric_type = argv[argnum++];
-  const bool is_czek = strcmp(metric_type, "czekanowski") == 0;
+  } 
+
+  const bool is_czek = strcmp(metric_type_prec, "czekanowski_single") == 0 ||
+                       strcmp(metric_type_prec, "czekanowski_double") == 0;
+  const bool is_single = strcmp(metric_type_prec, "czekanowski_single") == 0;
+  ++argnum;
 
   if (strcmp(argv[argnum], "2") != 0 && strcmp(argv[argnum], "3") != 0) {
     fprintf(stderr, "Error: invalid num_way\n");
@@ -435,14 +532,14 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
     return 1;
   }
-  argnum++;
+  ++argnum;
 
   FILE* lifile = fopen(argv[argnum], "rb");
   if (!lifile) {
     fprintf(stderr, "Error: unable to open file. %s\n", argv[argnum]);
     return 1;
   }
-  argnum++;
+  ++argnum;
 
   // Prepare to read from stdin.
 
@@ -509,12 +606,16 @@ int main(int argc, char** argv) {
     bit_num[2] = num_way==2 ? 0 :
                  is_czek ? 0 : atoi(argv_[6]);
 
-
-
-
-
-    int result = calculate_metric_elt<int>(metric_type, num_way, vector_num, bit_num,
-                                           snptxtfile, lifile);
+    int result = 0;
+    if (is_czek && is_single)
+      result = calculate_metric_elt<float, float>(metric_type_prec, num_way,
+        vector_num, bit_num, snptxtfile, lifile);
+    else if (is_czek) // && is_double
+      result = calculate_metric_elt<double, double>(metric_type_prec, num_way,
+        vector_num, bit_num, snptxtfile, lifile);
+    else
+      result = calculate_metric_elt<int, int>(metric_type_prec, num_way,
+        vector_num, bit_num, snptxtfile, lifile);
 
     if (result != 0) {
       fprintf(stderr, "Error processing metric value.\n");

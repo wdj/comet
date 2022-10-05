@@ -106,15 +106,17 @@ int main(int argc, char** argv) {
   const int line_label_len = i;
   const int allele_label_len = 2;
 
+  //---------
   // LOOP over result values in specified file.
+  //---------
 
-  // while statement reads first coord of metric.
+  // NOTE while statement reads first coord of metric.
 
   while ((num_read = fread(&coord[0], sizeof(int), 1, metricsbinfile)) == 1) {
 
-    // Get (rest of the) coordinates and metric value
+    // Get (rest of the) coordinates.
 
-    for (int i=1; i<num_way; ++i) {
+    for (int i=0+1; i<num_way; ++i) {
       const int num_read = fread(&coord[i], sizeof(int), 1, metricsbinfile);
       if (1 != num_read) {
         fprintf(stderr, "Error: error reading metric coord\n");
@@ -122,19 +124,7 @@ int main(int argc, char** argv) {
       }
     }
 
-//    num_read = fread(&coord[1], sizeof(int), 1, metricsbinfile);
-//    if (1 != num_read) {
-//      fprintf(stderr, "Error: error reading file. 1\n");
-//      return 1;
-//    }
-//
-//    if (3 == num_way) {
-//      num_read = fread(&coord[2], sizeof(int), 1, metricsbinfile);
-//      if (num_read != 1) {
-//        fprintf(stderr, "Error: error reading file. 2\n");
-//        return 1;
-//      }
-//    }
+    // Get the metric value (NOTE always FP32).
 
     float value = 0;
     int num_read = fread(&value, sizeof(float), 1, metricsbinfile);
@@ -143,21 +133,23 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    int lineno[NUM_WAY_MAX];
-    int bitno[NUM_WAY_MAX];
+    int vector_num[NUM_WAY_MAX];
+    int bit_num[NUM_WAY_MAX];
     unsigned char allele_label[NUM_WAY_MAX][allele_label_len];
     unsigned char line_label[NUM_WAY_MAX][line_label_len+1];
 
-    // LOOP over coordinates.
+    //---------
+    // LOOP over coordinates to collect needed information.
+    //---------
 
     for (int way_num=0; way_num<num_way; ++way_num) {
 
       // Decode vector number (line number in file) and whether lo or hi bit.
 
-      const int num_bitno = is_czek ? 1 : 2;
+      const int num_bit_num = is_czek ? 1 : 2;
 
-      lineno[way_num] = coord[way_num] / num_bitno;
-      bitno[way_num] = coord[way_num] % num_bitno;
+      vector_num[way_num] = coord[way_num] / num_bit_num;
+      bit_num[way_num] = coord[way_num] % num_bit_num;
 
       // Get allele labels if needed.
 
@@ -165,7 +157,7 @@ int main(int argc, char** argv) {
       allele_label[way_num][1] == no_allele;
       if (allele_label_file) {
         const int fseek_success = fseek(allele_label_file,
-          (allele_label_len+1)*lineno[way_num], SEEK_SET);
+          (allele_label_len+1)*vector_num[way_num], SEEK_SET);
         if (0 != fseek_success) {
           fprintf(stderr, "Error: error reading file. 4\n");
           return 1;
@@ -175,19 +167,19 @@ int main(int argc, char** argv) {
           sizeof(unsigned char), allele_label_len, allele_label_file);
         if (allele_label_len != num_read) {
           fprintf(stderr, "Error: error reading file. 5 %s  %i\n",
-                  metricsbinfilename, lineno[way_num]);
+                  metricsbinfilename, vector_num[way_num]);
           return 1;
         }
       }
 
-      // If repeated then disregard upper value, replace with "X"
+      // If allele repeated then disregard upper value, replace with "X"
       if (allele_label[way_num][0] == allele_label[way_num][1])
         allele_label[way_num][1] = no_allele;
 
-      // Get line label.
+      // Get corresponding line label.
 
       fseek_success = fseek(line_label_file,
-        (line_label_len+1)*lineno[way_num], SEEK_SET);
+        (line_label_len+1)*vector_num[way_num], SEEK_SET);
       if (0 != fseek_success) {
         fprintf(stderr, "Error: error reading file. 6\n");
         return 1;
@@ -200,65 +192,50 @@ int main(int argc, char** argv) {
         return 1;
       }
 
-      // Remove line label end padding that was added to help with indexing.
+      // Remove line label end padding that was added to simplify indexing.
       for (int j=0; j<line_label_len; ++j) {
-        if (' ' == (int)line_label[way_num][j]) {
+        if (' ' == (int)line_label[way_num][j])
           line_label[way_num][j] = 0;
-        }
       }
       line_label[way_num][line_label_len] = 0;
 
+    //---------
     } // for way_num
+    //---------
 
-    // Permute labels to output each result with a uniform order of labels
-    // By convention let line numbers bein increasing, e.g. "0 1" not "1 0"
+    // Permute labels to output each result with a uniform order of labels.
+    // By convention assume output line nums increasing, e.g. "0 1" not "1 0".
 
-    int perm[3];
+    struct Perm {
+      Perm(int v0, int v1) : data{v0, v1, 0} {}
+      Perm(int v0, int v1, int v2) : data{v0, v1, v2} {}
+      int& operator[](int i) {return data[i];}
+      int data[NUM_WAY_MAX];
+    };
 
-    if (num_way == 2) {
-      if (lineno[0] > lineno[1]) {
-        perm[0] = 0;
-        perm[1] = 1;
-      } else {
-        perm[0] = 1;
-        perm[1] = 0;
-      }
-    } else {
-      if (lineno[0] > lineno[1] && lineno[1] > lineno[2]) {
-        perm[0] = 0;
-        perm[1] = 1;
-        perm[2] = 2;
-      } else if (lineno[0] > lineno[2] && lineno[2] > lineno[1]) {
-        perm[0] = 0;
-        perm[1] = 2;
-        perm[2] = 1;
-      } else if (lineno[1] > lineno[0] && lineno[0] > lineno[2]) {
-        perm[0] = 1;
-        perm[1] = 0;
-        perm[2] = 2;
-      } else if (lineno[1] > lineno[2] && lineno[2] > lineno[0]) {
-        perm[0] = 1;
-        perm[1] = 2;
-        perm[2] = 0;
-      } else if (lineno[2] > lineno[0] && lineno[0] > lineno[1]) {
-        perm[0] = 2;
-        perm[1] = 0;
-        perm[2] = 1;
-      } else if (lineno[2] > lineno[1] && lineno[1] > lineno[0]) {
-        perm[0] = 2;
-        perm[1] = 1;
-        perm[2] = 0;
-      }
-    } // if num_way
+    Perm perm = 2 == num_way
+      ? (vector_num[0] > vector_num[1] ?  Perm(0, 1) :
+                                          Perm(1, 0))
+      : (vector_num[0] > vector_num[1] &&
+         vector_num[1] > vector_num[2] ?  Perm(0, 1, 2) :
+         vector_num[0] > vector_num[2] &&
+         vector_num[2] > vector_num[1] ?  Perm(0, 2, 1) :
+         vector_num[1] > vector_num[0] &&
+         vector_num[0] > vector_num[2] ?  Perm(1, 0, 2) :
+         vector_num[1] > vector_num[2] &&
+         vector_num[2] > vector_num[0] ?  Perm(1, 2, 0) :
+         vector_num[2] > vector_num[0] &&
+         vector_num[0] > vector_num[1] ?  Perm(2, 0, 1) :
+                                          Perm(2, 1, 0));
 
     // Output line and bit numbers
 
     for (int way_num=0; way_num<num_way; ++way_num) {
       int iperm = perm[way_num];
       fprintf(metricstxtfile, 0 != way_num ? " " : "");
-      fprintf(metricstxtfile, "%i", lineno[iperm]);
+      fprintf(metricstxtfile, "%i", vector_num[iperm]);
       if (!is_czek)
-        fprintf(metricstxtfile, " %i", bitno[iperm]);
+        fprintf(metricstxtfile, " %i", bit_num[iperm]);
     } // for way_num
 
     // Output line label
@@ -267,14 +244,16 @@ int main(int argc, char** argv) {
       int iperm = perm[way_num];
       fprintf(metricstxtfile, " %s", line_label[iperm]);
       if (!is_czek)
-        fprintf(metricstxtfile, "_%c", allele_label[iperm][bitno[iperm]]);
+        fprintf(metricstxtfile, "_%c", allele_label[iperm][bit_num[iperm]]);
     } // for i
 
     // Output value
 
     fprintf(metricstxtfile, " %f\n", value);
 
-  } // while
+  //---------
+  } // while fread
+  //---------
 
   fclose(metricsbinfile);
   if (!is_czek)

@@ -140,6 +140,10 @@ public:
     unlock_d();
   }
 
+  bool is_compute_method_gpu() const {
+    return env_.is_compute_method_gpu();
+  }
+
 private:
 
   mutable bool is_locked_h_;

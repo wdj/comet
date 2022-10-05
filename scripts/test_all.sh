@@ -57,7 +57,7 @@ function main
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  # Workaround
+  # Workaround - OLCF Peak system.
 
   if [ $COMET_HOST = peak ] ; then
     export HWLOC_KEEP_NVIDIA_GPU_NUMA_NODES=1
@@ -65,6 +65,8 @@ function main
 
   # Pick up builds directory.
   local BUILDS_DIR="${COMET_BUILDS_DIR:-$PWD}"
+
+  # Parse arguments.
 
   local DO_SINGLE=1
   local DO_DOUBLE=1
@@ -86,6 +88,7 @@ function main
     else
       DIRS+=" $BUILDS_DIR/build_single_test_nompi_$COMET_PLATFORM_STUB"
     fi
+    DIRS+=" $BUILDS_DIR/build_single_test_nompi_$COMET_PLATFORM_STUB/tools"
   fi
 
   if [ $DO_DOUBLE = 1 ] ; then
@@ -94,6 +97,7 @@ function main
     else
       DIRS+=" $BUILDS_DIR/build_test_nompi_$COMET_PLATFORM_STUB"
     fi
+    DIRS+=" $BUILDS_DIR/build_test_nompi_$COMET_PLATFORM_STUB/tools"
   fi
 
   # Do tests.
@@ -117,7 +121,7 @@ function main
   for DIR in $DIRS ; do
     grep -H fail $DIR/out_test.txt
   done
-  OUT_FILES="$(for DIR in $DIRS ; do echo $DIR/out_test.txt ; done)"
+  local OUT_FILES="$(for DIR in $DIRS ; do echo $DIR/out_test.txt ; done)"
   if [ $(awk '/ tests fail/' $OUT_FILES | wc -l) = \
        $(awk '/ 0 tests fail/' $OUT_FILES | wc -l) ] ; then
     echo "!!! All tests PASSED !!!"

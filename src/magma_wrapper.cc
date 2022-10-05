@@ -111,6 +111,9 @@ MagmaWrapper::~MagmaWrapper() {
 
 void MagmaWrapper::initialize_(CEnv& env) {
 
+  if (!env.is_compute_method_gpu())
+    return;
+
   // need magma blasSetKernelStream -- see
   // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
   // page 14
@@ -224,6 +227,9 @@ void MagmaWrapper::initialize_(CEnv& env) {
 /// \brief Magma teardown.
 
 void MagmaWrapper::finalize_(CEnv& env) {
+
+  if (!env.is_compute_method_gpu())
+    return;
 
   // TODO: (maybe) reset kernel stream (probably not really needed)
 
@@ -342,7 +348,8 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     magma_minproduct_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       buf->h = (GMFloat*)::malloc(n*sizeof(GMFloat));
 //#else
@@ -384,7 +391,8 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     magma_mgemm4_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
 //#else
@@ -410,7 +418,8 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     magma_mgemm2_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
 //#else
@@ -436,7 +445,8 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     magma_mgemm3_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
 //#else
@@ -462,7 +472,8 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     magma_mgemm5_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
 //#else
@@ -513,7 +524,8 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
     magma_minproduct_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       ::free(buf->h);
 //#else
@@ -536,7 +548,8 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
     magma_mgemm4_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       ::free(buf->h);
 //#else
@@ -559,7 +572,8 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
     magma_mgemm2_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       ::free(buf->h);
 //#else
@@ -582,7 +596,8 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
     magma_mgemm3_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       ::free(buf->h);
 //#else
@@ -605,7 +620,8 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
     magma_mgemm5_int_t magma_code = 0;
 
 //#ifdef COMET_PLATFORM_CORI_GPU
-    if (System::compute_capability() >= 800) {
+    if (System::compute_capability() >= 800 ||
+        !buf->is_compute_method_gpu()) {
       // WORKAROUND
       ::free(buf->h);
 //#else
