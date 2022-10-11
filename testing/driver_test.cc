@@ -204,7 +204,7 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
 
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  set_vectors_synthetic(vectors, problem_type, verbosity, env);
+  TestProblem::set_vectors_synthetic(vectors, problem_type, verbosity, env);
 
   VectorsIO::write(*vectors, file_path, *env);
 

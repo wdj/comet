@@ -36,10 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdio"
 #include "cstdint"
 #include "string.h"
-//#include "stdlib.h"
-//#include "stddef.h"
-//#include "float.h"
-//#include "errno.h"
 
 #include "env.hh"
 #include "vectors.hh"

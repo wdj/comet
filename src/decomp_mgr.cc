@@ -127,7 +127,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // All vectors active on every proc.
     dm->num_vector_active_local = dm->num_vector_local;
     dm->num_vector_active = dm->num_vector_active_local *
-                            env->num_proc_vector();
+                            (size_t)env->num_proc_vector();
     dm->num_vector = dm->num_vector_local * env->num_proc_vector();
     dm->vector_base = dm->num_vector_local * env->proc_num_vector();
   } else { // ! vectors_by_local
@@ -226,7 +226,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   if (fields_by_local) {
     dm->num_field_active_local = num_field_specifier;
     dm->num_field_local = dm->num_field_active_local;
-    dm->num_field = dm->num_field_local * env->num_proc_field();
+    dm->num_field = dm->num_field_local * (size_t)env->num_proc_field();
     dm->num_field_active = dm->num_field;
     dm->field_base = dm->num_field_local * env->proc_num_field();
   } else { // ! fields_by_local

@@ -301,21 +301,30 @@ void usage() {
 }
 
 //=============================================================================
+// Return an unique integer identifying the node.
 
 int get_node_id() {
 
-  //int proc_num = 0;
-  //COMET_MPI_SAFE_CALLMPI_Comm_size(MPI_COMM_WORLD, &proc_num));
+  const bool is_node_id_from_mpi = false;
 
-  //char name[MPI_MAX_PROCESSOR_NAME];
-  //int len = MPI_MAX_PROCESSOR_NAME;
-  //COMET_MPI_SAFE_CALLMPI_Get_processor_name(name, &len));
-
-  const size_t len = 256;
+  const size_t len = is_node_id_from_mpi ? MPI_MAX_PROCESSOR_NAME : 256;
   char name[len];
-  gethostname(name, len);
 
-  // Ignore trailing nonnumeric chars
+  if (is_node_id_from_mpi) {
+    // Get info from MPI.
+    int len_int = len;
+    COMET_MPI_SAFE_CALL(MPI_Get_processor_name(name, &len_int));
+    //int proc_num = 0;
+    //COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &proc_num));
+    //return proc_num;
+  } else {
+    // Get info from gethostname.
+    gethostname(name, len);
+  }
+
+  // Now extract a unique integer from the string.
+
+  // First ignore trailing nonnumeric chars
 
   for (size_t i=len-1; i>=0; --i) {
     int c = name[i];
@@ -324,29 +333,29 @@ int get_node_id() {
     name[i] = 0;
   }
 
+  // Loop over chars.
+
   int node_id = 0;
   for (size_t i=0; i<len; ++i) {
-    if (! name[i])
-      break;
     int c = name[i];
-#ifdef COMET_PLATFORM_JUWELS_BOOSTER
-    if (!(c >= '0' && c <= '9'))
-      continue;
-#endif
+    if (!c)
+      break;
+    // Parse digit or letter.
+#   ifdef COMET_PLATFORM_JUWELS_BOOSTER
+      if (!(c >= '0' && c <= '9'))
+        continue;
+#   endif
     if (c >= '0' && c <= '9')
       node_id = node_id * 10 + (c - '0');
     if (c >= 'a' && c <= 'z')
       node_id = node_id * 26 + (c - 'a');
   }
-//printf("%i %s\n", node_id, name);
 
   return node_id;
 }
 
-
-
-
 //=============================================================================
+// Weight some nodes to tilt toward non-use (functionality, performance).
 
 double bad_node_penalty() {
   const size_t len = 256;
@@ -422,6 +431,7 @@ double bad_node_penalty() {
 }
 
 //=============================================================================
+// Helpers for sort function.
 
 typedef struct {
   double time;
@@ -436,10 +446,11 @@ int pfelt_cmp(const void* e1, const void* e2) {
 }
 
 //=============================================================================
+// Attempt to create a communicator containing fastest nodes.
 
-void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
+void get_fastnodes_comm(int argc, char** argv, MPI_Comm* fast_comm) {
 
-  // Create an env just to extract run options
+  // Create an env in order to extract run options.
 
   CEnv env_val(MPI_COMM_WORLD, argc, (char**)argv);
   CEnv* env = &env_val;
@@ -456,7 +467,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   const int metric_type = env->metric_type();
 
-  // Identify nodes for which can't open output file (if needed), mark down.
+  // Identify nodes for which can't open output file (if needed); mark down.
 
   bool outfile_can_open = true;
 
@@ -464,12 +475,6 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     if (strcmp(argv[i], "--output_file_stub") == 0) {
       if (i < argc-1) {
         outfile_can_open = MetricsIO::can_write_file(argv[i+1], *env);
-        //FILE* const outfile = MetricsIO::open(argv[i+1], *env);
-        //if (outfile) {
-        //  fclose(outfile);
-        //} else {
-        //  outfile_can_open= false;
-        //}
         break;
       }
     }
@@ -510,7 +515,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   int node_num = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(rank_in_node_comm, &node_num));
 
-  // Run single node case on every node
+  // Prepare for run of single node case on every node
 
   const char* options_template =
     metric_type == MetricType::CZEK && env->is_double_prec() ?
@@ -543,9 +548,10 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   char options[1024];
   sprintf(options, options_template, ranks_in_node);
 
-  //int num_trial = 3; // ISSUE: how many needed
-  int num_trial = 1;
+  int num_trial = 1; // 3
   double max_time = 0.;
+
+  // Loop over trials, get CoMet timings.
 
   for (int trial=0; trial<num_trial; ++trial) {
     const size_t len = 256;
@@ -561,10 +567,14 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     Driver::perform_run(options, node_comm, env);
     double t2 = env.synced_time();
     double time = t2 - t1;
+    // Penalize if any trial is slow.
     if (!(trial == 0 && num_trial != 1)) {
       max_time = time > max_time ? time : max_time;
     }
   }
+
+  // Print out discovered timing info.
+
   if (rank_in_node == 0) {
     const size_t len = 256;
     char name[len];
@@ -572,14 +582,14 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     printf("Warmup run: node %s time %f\n", name, max_time);
   }
 
-  // Collect all timings to node 0
+  // Collect all timings to node 0.
 
   double* max_times = (double*)malloc(num_node * sizeof(*max_times));
 
   COMET_MPI_SAFE_CALL(MPI_Gather(&max_time, 1, MPI_DOUBLE,
     max_times, 1, MPI_DOUBLE, 0, rank_in_node_comm));
 
-  // Sort
+  // Do sort.
 
   int* node_ranking = (int*)malloc(num_node * sizeof(*node_ranking));
 
@@ -598,17 +608,18 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     free(pf_elt);
   }
 
-  // Broadcast ranking
+  // Broadcast the node ranking.
 
-  COMET_MPI_SAFE_CALL(MPI_Bcast(node_ranking, num_node,
-    MPI_INT, 0, MPI_COMM_WORLD));
+  COMET_MPI_SAFE_CALL(MPI_Bcast(node_ranking, num_node, MPI_INT, 0,
+                                MPI_COMM_WORLD));
 
   int node_ranking_this = 0;
   for (int i=0; i<num_node; ++i) {
-    if (node_ranking[i] == node_num) {
+    if (node_ranking[i] == node_num)
       node_ranking_this = i;
-    }
   }
+
+  // Get proc ranking.
 
 #ifdef COMET_PLATFORM_JUWELS_BOOSTER
   const int num_node_requested = (num_rank_requested + max_ranks_in_node - 1)
@@ -621,17 +632,12 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     max_ranks_in_node * node_ranking_this;
 #endif
 
-  // Create world communicator with this ranking
+  // Create communicator with this ranking.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(MPI_COMM_WORLD, 0, proc_ranking_this,
     fast_comm));
 
-  //int rank_fast = 0;
-  //COMET_MPI_SAFE_CALL(MPI_Comm_rank(*fast_comm, &rank_fast));
-  //printf("node_id %i node_ranking_this %i proc_ranking_this %i rank_fast %i num_node_requested %i\n",
-  //       node_id, node_ranking_this, proc_ranking_this, rank_fast, num_node_requested);
-
-  // Cleanup
+  // Cleanup.
 
   free(node_ranking);
   free(max_times);
@@ -640,11 +646,10 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 }
 
 //=============================================================================
+// Perform short CoMet run to warm up node.
 
 void perform_run_preflight(int argc, char** argv) {
 
-// TODO: make this better.
-//#ifdef COMET_USE_MAGMA
   CEnv env(MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
   if (env.compute_method() == ComputeMethod::GPU &&
@@ -655,6 +660,7 @@ void perform_run_preflight(int argc, char** argv) {
     int num_proc = 0;
     COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
 
+    // ISSUE: may need better-matching settings.
     const char* options_template_1 =
         env.metric_type() == MetricType::CZEK ?
           "--num_field 768 --num_vector_local 768 "
@@ -666,7 +672,6 @@ void perform_run_preflight(int argc, char** argv) {
           "--metric_type duo --sparse yes "
           "--num_field 262144 --num_vector_local 12288 "
 #else
-          //"--num_field 262144 --num_vector_local 12288 "
           "--num_field 768 --num_vector_local 768 "
           "--metric_type ccc "
 #endif
@@ -712,25 +717,24 @@ int main(int argc, char** argv) {
 
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-  //printf("%i %f\n", rank, System::time()-t1);
 
   if (argc == 1) {
-    if (rank == 0) {
+
+    if (rank == 0)
       usage();
-    }
     COMET_MPI_SAFE_CALL(MPI_Finalize());
     return 0;
+
   }
 
-  //install_handler();
+  // install_handler();
 
   if (use_fast_nodes) { 
 
     COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
     const double t2 = System::time();
-    if (rank == 0) {
+    if (rank == 0)
       printf("MPI_Init called, %i seconds.\n", (int)(.5+t2-t1));
-    }
 
     MPI_Comm fast_comm;
 
@@ -739,14 +743,13 @@ int main(int argc, char** argv) {
     if (!no_preflight)
       perform_run_preflight(argc, argv);
 
-    perform_run_preflight_2(argc, argv, &fast_comm);
+    get_fastnodes_comm(argc, argv, &fast_comm);
 
     // Perform actual run.
 
     COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
-    if (rank == 0) {
+    if (rank == 0)
       printf("Commencing run.\n");
-    }
 
     Driver::perform_run(argc, (char**)argv, fast_comm);
 

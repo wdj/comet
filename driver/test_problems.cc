@@ -34,11 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------*/
 
 #include "cstdio"
-//#include "stdlib.h"
-//#include "stddef.h"
-//#include "string.h"
-//#include "float.h"
-//#include "errno.h"
 #include "tuple"
 
 #include "env.hh"
@@ -330,8 +325,8 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
 
 //=============================================================================
 
-void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
-                           CEnv* env) {
+void TestProblem::set_vectors_synthetic(GMVectors* vectors, int problem_type,
+                                        int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (problem_type == ProblemType::RANDOM) {
@@ -694,7 +689,7 @@ static GMFloat metric_value_analytic_(size_t vi,
 // Check correctness of metrics, if possible.
 
 void check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
-                             CEnv* env) {
+                                          CEnv* env) {
   COMET_INSIST(metrics && env);
   COMET_INSIST(ProblemType::ANALYTIC == driver.problem_type);
   COMET_INSIST(NULL == driver.input_file);
@@ -965,16 +960,15 @@ void check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
 //=============================================================================
 
-void check_metrics(GMMetrics* metrics, Driver& driver, CEnv* env) {
+void TestProblem::check_metrics(GMMetrics* metrics, Driver& driver,
+                                CEnv* env) {
   COMET_INSIST(metrics && env);
 
-  if (NULL != driver.input_file) {
+  if (driver.input_file)
     return;
-  }
 
-  if (ProblemType::ANALYTIC == driver.problem_type) {
+  if (ProblemType::ANALYTIC == driver.problem_type)
     check_metrics_analytic_(metrics, driver, env);
-  }
 }
 
 //=============================================================================

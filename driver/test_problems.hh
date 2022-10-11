@@ -58,10 +58,13 @@ struct ProblemType {
 
 //-----------------------------------------------------------------------------
 
-void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
-                           CEnv* env);
+class TestProblem {
+public:
+  static void set_vectors_synthetic(GMVectors* vectors, int problem_type,
+                                    int verbosity, CEnv* env);
 
-void check_metrics(GMMetrics* metrics, Driver& driver, CEnv* env);
+  static void check_metrics(GMMetrics* metrics, Driver& driver, CEnv* env);
+};
 
 //-----------------------------------------------------------------------------
 /// \brief Help[er class with test problem size info.

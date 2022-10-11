@@ -60,13 +60,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-// Initialize driver options.
+// Initialize driver.
 
 Driver::Driver(CEnv& env)
   : num_field_local(0)
   , num_vector_local(0)
-  , num_field(0)
-  , num_vector(0)
   , num_field_active(0)
   , num_vector_active(0)
   , is_inited_num_field_local(false)
@@ -350,7 +348,8 @@ void Driver::set_vectors(GMVectors& vectors) {
   if (this->input_file)
     VectorsIO::read(vectors, this->input_file, env_);
   else
-    set_vectors_synthetic(&vectors, this->problem_type, this->verbosity, &env_);
+    TestProblem::set_vectors_synthetic(&vectors, this->problem_type,
+                                       this->verbosity, &env_);
 
   if (this->verbosity > 2)
     VectorsIO::print(vectors, env_);
@@ -446,7 +445,7 @@ void Driver::print_output(Checksum& cksum) {
 }
 
 //=============================================================================
-// Perform a single metrics computation run.
+// Functions to perform a single metrics computation run.
 
 void Driver::perform_run(int argc, char** argv, MPI_Comm base_comm) {
   COMET_INSIST(argc > 0 && argv);
@@ -460,43 +459,43 @@ void Driver::perform_run(int argc, char** argv, MPI_Comm base_comm) {
 
 //-----------------------------------------------------------------------------
 
-void Driver::perform_run(const char* const options) {
-  COMET_INSIST(options);
+void Driver::perform_run(const char* const options_str) {
+  COMET_INSIST(options_str);
 
   Checksum cksum;
   MPI_Comm base_comm = MPI_COMM_WORLD;
   CEnv* env = NULL;
 
-  perform_run(cksum, options, base_comm, env);
+  perform_run(cksum, options_str, base_comm, env);
 }
 
 //-----------------------------------------------------------------------------
 
-void Driver::perform_run(const char* const options, MPI_Comm base_comm,
+void Driver::perform_run(const char* const options_str, MPI_Comm base_comm,
                          CEnv& env) {
-  COMET_INSIST(options);
+  COMET_INSIST(options_str);
 
   Checksum cksum;
 
-  perform_run(cksum, options, base_comm, &env);
+  perform_run(cksum, options_str, base_comm, &env);
 }
 
 //-----------------------------------------------------------------------------
 
-void Driver::perform_run(Checksum& cksum, const char* const options,
+void Driver::perform_run(Checksum& cksum, const char* const options_str,
                          MPI_Comm base_comm, CEnv* env) {
-  COMET_INSIST(options);
+  COMET_INSIST(options_str);
 
-  // Convert options string to args.
+  // Convert options string to argc/argv.
 
-  size_t len = strlen(options);
+  size_t len = strlen(options_str);
   char argstring[len+1];
   char* argv[len+1];
   int argc = 0;
-  strcpy(argstring, options);
+  strcpy(argstring, options_str);
   CEnv::create_args(argstring, &argc, argv);
 
-  const char* const description = options;
+  const char* const description = options_str;
 
   return perform_run_(cksum, argc, argv, description, base_comm, env);
 }
@@ -528,74 +527,48 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 }
 
 //-----------------------------------------------------------------------------
+// Workhorse function to actually perform run.
 
 void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
                           MPI_Comm base_comm, CEnv& env) {
   COMET_INSIST(argc > 0 && argv);
 
+  if (! env.is_proc_active())
+    return;
+
   Driver::Timer timer_total(env);
-  timer_total.start();
 
   // Parse remaining unprocessed arguments.
 
   Driver driver(env);
   driver.finish_parsing(argc, argv);
 
-  // Set up parallel deomp for vectors, metrics.
+  // Set up parallel decomp for vectors, metrics.
 
   Driver::Timer timer(env);
-  timer.start();
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm,
+  GMDecompMgr dm = GMDecompMgr_null();
+  GMDecompMgr_create(&dm,
     driver.is_inited_num_field_local,
     driver.is_inited_num_vector_local,
     driver.is_inited_num_field_local ? driver.num_field_local
-                                    : driver.num_field_active,
+                                     : driver.num_field_active,
     driver.is_inited_num_vector_local ? driver.num_vector_local
-                                     : driver.num_vector_active,
+                                      : driver.num_vector_active,
     env.data_type_vectors(), &env);
-  driver.vctime += timer.elapsed();
-
-
-
-
-//TODO: possibly replace this with stuff from dm
-  if (driver.is_inited_num_vector_local) {
-    driver.num_vector = driver.num_vector_local *
-      (size_t)env.num_proc_vector();
-    driver.num_vector_active = driver.num_vector;
-  } else {
-    // Pad up so that every proc has same number of vectors.
-    driver.num_vector_local = gm_nvl_size_required(
-      utils::ceil(driver.num_vector_active, (size_t)env.num_proc_vector()), env);
-    driver.num_vector = driver.num_vector_local *
-      (size_t)env.num_proc_vector();
-  }
-
-  if (driver.is_inited_num_field_local) {
-    driver.num_field = driver.num_field_local * (size_t) env.num_proc_field();
-    driver.num_field_active = driver.num_field;
-  } else {
-    // Pad up so that every proc has same number of fields.
-    driver.num_field_local = utils::ceil(
-        driver.num_field_active, (size_t)env.num_proc_field());
-    driver.num_field = driver.num_field_local * (size_t) env.num_proc_field();
-  }
-
-
+  timer.add_elapsed(driver.vctime);
 
   // Allocate vectors.
 
   timer.start();
-  GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
-  GMVectors_create(vectors, env.data_type_vectors(), dm, &env);
-  driver.vctime += timer.elapsed();
+  GMVectors vectors = GMVectors_null();
+  GMVectors_create(&vectors, env.data_type_vectors(), &dm, &env);
+  timer.add_elapsed(driver.vctime);
 
   // Set vectors.
 
   timer.start();
-  driver.set_vectors(*vectors);
-  driver.intime += timer.elapsed();
+  driver.set_vectors(vectors);
+  timer.add_elapsed(driver.intime);
 
   // More initializations.
 
@@ -610,67 +583,75 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
     timer.start();
     MetricsIO metrics_io(driver.output_file_stub, driver.verbosity, env);
-    driver.outtime += timer.elapsed();
 
     Histograms histograms(driver.histograms_file, env);
-    dm->attach_histograms(&histograms);
-
+    dm.attach_histograms(&histograms);
+    timer.add_elapsed(driver.outtime);
 
   { // BEGIN BLOCK initialize metrics mem, compute metrics.
 
+    timer.start();
     MetricsMem metrics_mem(&env);
 
-    ComputeMetrics compute_metrics(*dm, env);
+    ComputeMetrics compute_metrics(dm, env);
+    timer.add_elapsed(driver.mctime);
 
   //--------------------
   // Begin loops over phases, stages.
   //--------------------
 
-  for (int phase_num=driver.phase_min; phase_num<=driver.phase_max; ++phase_num) {
+  for (int phase_num=driver.phase_min; phase_num<=driver.phase_max;
+       ++phase_num) {
       env.phase_num(phase_num);
 
-  for (int stage_num=driver.stage_min; stage_num<=driver.stage_max; ++stage_num) {
+  for (int stage_num=driver.stage_min; stage_num<=driver.stage_max;
+       ++stage_num) {
     env.stage_num(stage_num);
 
     // Set up metrics object to capture results.
 
     timer.start();
-    GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
-    GMMetrics_create(metrics, env.data_type_metrics(), dm, &metrics_mem, &env);
-    driver.mctime += timer.elapsed();
+    GMMetrics metrics = GMMetrics_null();
+    GMMetrics_create(&metrics, env.data_type_metrics(), &dm, &metrics_mem,
+                     &env);
+    timer.add_elapsed(driver.mctime);
 
     // Calculate metrics.
 
-    compute_metrics.compute(*metrics, *vectors);
+    compute_metrics.compute(metrics, vectors);
     driver.num_metric_items_local_computed +=
-      metrics->num_metric_items_local_computed;
-    driver.num_metrics_active_local += metrics->num_metrics_active_local;
+      metrics.num_metric_items_local_computed;
+    driver.num_metrics_active_local += metrics.num_metrics_active_local;
 
     // Output results.
 
     timer.start();
-    metrics_io.write(*metrics);
+    metrics_io.write(metrics);
     if (BuildHas::DEBUG)
-      metrics_io.check_file(*metrics);
-    driver.outtime += timer.elapsed();
+      metrics_io.check_file(metrics);
+    timer.add_elapsed(driver.outtime);
 
     // Check correctness.
 
     timer.start();
     if (driver.checksum)
-      check_metrics(metrics, driver, &env);
-    driver.cktime += timer.elapsed();
+      TestProblem::check_metrics(&metrics, driver, &env);
+    timer.add_elapsed(driver.cktime);
 
     // Compute checksum.
 
     timer.start();
     if (driver.checksum)
-      Checksum::compute(cksum, cksum_local, *metrics, env);
-    driver.cktime += timer.elapsed();
+      Checksum::compute(cksum, cksum_local, metrics, env);
+    timer.add_elapsed(driver.cktime);
+
+    // Delete metrics object.
 
     timer.start();
-    GMMetrics_destroy(metrics, &env);
-    driver.mctime += timer.elapsed();
+    GMMetrics_destroy(&metrics, &env);
+    timer.add_elapsed(driver.mctime);
+
+    // Do output.
 
     if (driver.do_print()) {
       if (env.num_phase() > 1 && env.num_stage() > 1)
@@ -681,6 +662,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
       else if (env.num_stage() > 1)
         printf("Completed stage %i\n", env.stage_num());
     } // do_print
+    driver.fflush_sync_();
 
   } // for stage_num
 
@@ -695,33 +677,23 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
     timer.start();
 
   } // END BLOCK initialize metrics mem, compute metrics.
-    driver.mctime += timer.elapsed();
+    timer.add_elapsed(driver.mctime);
 
     // Finalize output.
 
-    driver.num_local_written += metrics_io.num_written();
     timer.start();
+    driver.num_local_written += metrics_io.num_written();
 
     histograms.finalize();
     histograms.output();
     if (is_all_phase_all_stage)
-      histograms.check(driver.num_vector_active);
+      histograms.check(dm.num_vector_active);
 
   } // END BLOCK initialize outputs
 
-  driver.outtime += timer.elapsed();
-
-  // Deallocate vectors.
-
-  timer.start();
-  GMVectors_destroy(vectors, &env);
-  GMDecompMgr_destroy(dm, &env);
-  driver.vctime += timer.elapsed();
+  timer.add_elapsed(driver.outtime);
 
   // Perform some checks.
-
-  COMET_INSIST(env.cpu_mem_local() == 0 && "Memory leak detected.");
-  COMET_INSIST(env.gpu_mem_local() == 0 && "Memory leak detected.");
 
   if (env.is_proc_active()) {
 
@@ -733,16 +705,17 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
       &driver.num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
       env.comm_repl_vector()));
 
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&driver.num_local_written, &driver.num_written, 1,
-      MPI_UNSIGNED_LONG_LONG, MPI_SUM, env.comm_repl_vector()));
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&driver.num_local_written,
+                        &driver.num_written, 1, MPI_UNSIGNED_LONG_LONG,
+                        MPI_SUM, env.comm_repl_vector()));
 
     if (env.all2all() && is_all_phase_all_stage) {
 
       const size_t num_metrics_expected =
-        utils::nchoosek(dm->num_vector, env.num_way());
+        utils::nchoosek(dm.num_vector, env.num_way());
 
       const size_t num_metrics_active_expected =
-        utils::nchoosek(dm->num_vector_active, env.num_way());
+        utils::nchoosek(dm.num_vector_active, env.num_way());
 
       COMET_INSIST(driver.num_metrics_active == num_metrics_active_expected &&
                    "Inconsistent metrics count.");
@@ -754,25 +727,37 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   } // if is_proc_active
 
+  // Deallocate vectors.
+
+  timer.start();
+  GMVectors_destroy(&vectors, &env);
+  GMDecompMgr_destroy(&dm, &env);
+  timer.add_elapsed(driver.vctime);
+
+  COMET_INSIST(env.cpu_mem_local() == 0 && "Memory leak detected.");
+  COMET_INSIST(env.gpu_mem_local() == 0 && "Memory leak detected.");
+
+  // Record total time.
+
   driver.tottime = timer_total.elapsed();
 
   // Output run information.
 
   driver.print_output(cksum);
+  driver.fflush_sync_();
 
-  // Output a local checksum, for testing purposes.
+  // Output a local checksum, if needed for testing purposes.
 
   const bool do_output_local_checksum = false;
 
   if (do_output_local_checksum) {
-    driver.fflush_();
     if (driver.checksum && env.is_proc_active() && driver.verbosity > 0) {
       printf("local checksum: ");
       cksum_local.print(env);
       printf("\n");
     }
+    driver.fflush_sync_();
   }
-  driver.fflush_();
 
   // Validation: check for any wrong answers.
 
@@ -787,9 +772,9 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
            "max_incorrect_diff  %e  hostname  %s  rank  %i\n",
            driver.num_incorrect, driver.max_incorrect_diff, hn, rank);
   }
-  driver.fflush_();
+  driver.fflush_sync_();
 
-  COMET_INSIST(driver.num_incorrect == 0 && "Incorrect results found.");
+  COMET_INSIST(0 == driver.num_incorrect && "Incorrect results found.");
 
   // Finalize.
 

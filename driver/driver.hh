@@ -52,8 +52,6 @@ class Driver {
 public:
   int num_field_local;
   int num_vector_local;
-  size_t num_field;
-  size_t num_vector;
   size_t num_field_active;
   size_t num_vector_active;
   bool is_inited_num_field_local;
@@ -109,7 +107,6 @@ public:
   static void perform_run(Checksum& cksum, const char* const description,
                           MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
-
 private:
 
   CEnv& env_;
@@ -125,22 +122,31 @@ private:
   static void perform_run_(Checksum& cksum, int argc, char** argv,
                            MPI_Comm base_comm, CEnv& env);
 
-  void fflush_() {
+  // Helper function to flush output on all ranks.
+
+  void fflush_sync_() {
     env_.synced_time();
     fflush(NULL);
     env_.synced_time();
   }
 
+  // Local class to manage timings.
+
   class Timer {
   public:
     Timer(CEnv& env) : env_(env), time_begin_(0) {
+      start();
     }
     void start() {
       time_begin_ = env_.synced_time();
     }
-    double elapsed() {
+    double elapsed() const {
       return env_.synced_time() - time_begin_;
     }
+    void add_elapsed(double timeval) const {
+      timeval += env_.synced_time() - time_begin_;
+    }
+
   private:
     CEnv& env_;
     double time_begin_;
