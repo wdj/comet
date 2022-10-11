@@ -63,6 +63,12 @@ namespace comet {
 // Initialize driver.
 
 Driver::Driver(CEnv& env)
+  : options_(env)
+  , counters_()
+  , env_(env) {
+}
+
+Driver::Options::Options(CEnv& env)
   : num_field_local(0)
   , num_vector_local(0)
   , num_field_active(0)
@@ -80,22 +86,24 @@ Driver::Driver(CEnv& env)
   , histograms_file(NULL)
   , output_file_stub(NULL)
   , problem_type(ProblemType::DEFAULT)
-  , num_incorrect(0)
-  , max_incorrect_diff(0.)
-  , checksum(true)
+  , checksum(true) {
+}
+
+Driver::Counters::Counters()
+  : num_incorrect(0)
+  , max_incorrect_diff(0)
   , num_metric_items_computed(0)
   , num_metrics_active(0)
   , num_written(0)
-  , vctime(0.)
-  , mctime(0.)
-  , cktime(0.)
-  , intime(0.)
-  , outtime(0.)
-  , tottime(0.)
+  , vctime(0)
+  , mctime(0)
+  , cktime(0)
+  , intime(0)
+  , outtime(0)
+  , tottime(0)
   , num_metric_items_local_computed(0)
   , num_metrics_active_local(0)
-  , num_local_written(0)
-  , env_(env) {
+  , num_local_written(0) {
 }
 
 //-----------------------------------------------------------------------------
@@ -113,48 +121,51 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
                              && "Invalid setting for num_field.");
-      this->num_field_active = safe_cast<int>(value);
-      this->is_inited_num_field_active = true;
-      this->is_inited_num_field_local = false;
+      options_.num_field_active = safe_cast<int>(value);
+      options_.is_inited_num_field_active = true;
+      options_.is_inited_num_field_local = false;
 
     //--------------------
 
     } else if (strcmp(argv[i], "--num_field_local") == 0) {
 
       ++i;
-      COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for num_field_local.");
+      COMET_INSIST_INTERFACE(&env_,
+                             i < argc && "Missing value for num_field_local.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0 &&
                     "Invalid setting for num_field_local.");
-      this->num_field_local = safe_cast<int>(value);
-      this->is_inited_num_field_local = true;
-      this->is_inited_num_field_active = false;
+      options_.num_field_local = safe_cast<int>(value);
+      options_.is_inited_num_field_local = true;
+      options_.is_inited_num_field_active = false;
 
     //--------------------
 
     } else if (strcmp(argv[i], "--num_vector") == 0) {
 
       ++i;
-      COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for num_vector.");
+      COMET_INSIST_INTERFACE(&env_,
+                             i < argc && "Missing value for num_vector.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
                     && "Invalid setting for num_vector.");
-      this->num_vector_active = safe_cast<int>(value);
-      this->is_inited_num_vector_active = true;
-      this->is_inited_num_vector_local = false;
+      options_.num_vector_active = safe_cast<int>(value);
+      options_.is_inited_num_vector_active = true;
+      options_.is_inited_num_vector_local = false;
 
     //--------------------
 
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
 
       ++i;
-      COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for num_vector_local.");
+      COMET_INSIST_INTERFACE(&env_,
+                             i < argc && "Missing value for num_vector_local.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0 &&
                     "Invalid setting for num_vector_local.");
-      this->num_vector_local = safe_cast<int>(value);
-      this->is_inited_num_vector_local = true;
-      this->is_inited_num_vector_active = false;
+      options_.num_vector_local = safe_cast<int>(value);
+      options_.is_inited_num_vector_local = true;
+      options_.is_inited_num_vector_active = false;
 
     //--------------------
 
@@ -165,7 +176,7 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0 &&
                     "Invalid setting for verbosity.");
-      this->verbosity = safe_cast<int>(value);
+      options_.verbosity = safe_cast<int>(value);
 
     //--------------------
 
@@ -174,9 +185,9 @@ void Driver::finish_parsing(int argc, char** argv) {
       ++i;
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for checksum.");
       if (strcmp(argv[i], "yes") == 0)
-        this->checksum = true;
+        options_.checksum = true;
       else if (strcmp(argv[i], "no") == 0)
-        this->checksum = false;
+        options_.checksum = false;
       else
         COMET_INSIST_INTERFACE(&env_, false && "Invalid setting for checksum.");
 
@@ -190,8 +201,8 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 1
                     && "Invalid setting for num_stage.");
       env_.num_stage(safe_cast<int>(value));
-      this->stage_min = 0;
-      this->stage_max = env_.num_stage() - 1;
+      options_.stage_min = 0;
+      options_.stage_max = env_.num_stage() - 1;
 
     //--------------------
 
@@ -202,7 +213,7 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
                     && "Invalid setting for stage_min.");
-      this->stage_min = safe_cast<int>(value);
+      options_.stage_min = safe_cast<int>(value);
 
     //--------------------
 
@@ -213,7 +224,7 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value < env_.num_stage()
                     && "Invalid setting for stage_max.");
-      this->stage_max = safe_cast<int>(value);
+      options_.stage_max = safe_cast<int>(value);
 
     //--------------------
 
@@ -225,8 +236,8 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 1
                     && "Invalid setting for num_phase.");
       env_.num_phase(safe_cast<int>(value));
-      this->phase_min = 0;
-      this->phase_max = env_.num_phase() - 1;
+      options_.phase_min = 0;
+      options_.phase_max = env_.num_phase() - 1;
 
     //--------------------
 
@@ -237,7 +248,7 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
                     && "Invalid setting for phase_min.");
-      this->phase_min = safe_cast<int>(value);
+      options_.phase_min = safe_cast<int>(value);
 
     //--------------------
 
@@ -248,44 +259,49 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value < env_.num_phase()
                     && "Invalid setting for phase_max.");
-      this->phase_max = safe_cast<int>(value);
+      options_.phase_max = safe_cast<int>(value);
 
     //--------------------
 
     } else if (strcmp(argv[i], "--input_file") == 0) {
 
       ++i;
-      COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for input_file.");
-      this->input_file = argv[i];
+      COMET_INSIST_INTERFACE(&env_,
+                             i < argc && "Missing value for input_file.");
+      options_.input_file = argv[i];
 
     //--------------------
 
     } else if (strcmp(argv[i], "--histograms_file") == 0) {
 
       ++i;
-      COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for histograms_file.");
-      this->histograms_file = argv[i];
+      COMET_INSIST_INTERFACE(&env_,
+                             i < argc && "Missing value for histograms_file.");
+      options_.histograms_file = argv[i];
 
     //--------------------
 
     } else if (strcmp(argv[i], "--output_file_stub") == 0) {
 
       ++i;
-      COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for output_file_stub.");
-      this->output_file_stub = argv[i];
+      COMET_INSIST_INTERFACE(&env_,
+                             i < argc && "Missing value for output_file_stub.");
+      options_.output_file_stub = argv[i];
 
     //--------------------
 
     } else if (strcmp(argv[i], "--problem_type") == 0) {
 
       ++i;
-      COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for problem_type.");
+      COMET_INSIST_INTERFACE(&env_,
+                             i < argc && "Missing value for problem_type.");
       if (strcmp(argv[i], "random") == 0)
-        this->problem_type = ProblemType::RANDOM;
+        options_.problem_type = ProblemType::RANDOM;
       else if (strcmp(argv[i], "analytic") == 0)
-        this->problem_type = ProblemType::ANALYTIC;
+        options_.problem_type = ProblemType::ANALYTIC;
       else
-        COMET_INSIST_INTERFACE(&env_, false && "Invalid setting for problem_type.");
+        COMET_INSIST_INTERFACE(&env_,
+                               false && "Invalid setting for problem_type.");
 
     } else if (strcmp(argv[i], "--threshold") == 0) {
       ++i; // processed by CEnv.
@@ -323,9 +339,8 @@ void Driver::finish_parsing(int argc, char** argv) {
       // processed by main.
     } else {
     //----------
-      if (env_.proc_num() == 0) {
+      if (env_.proc_num() == 0)
         fprintf(stderr, "Invalid argument \"%s\". ", argv[i]);
-      }
       COMET_INSIST_INTERFACE(&env_, false && "Error: argument not recognized.");
     //----------
     } // if/else
@@ -334,32 +349,31 @@ void Driver::finish_parsing(int argc, char** argv) {
 
   // Checks.
 
-  COMET_INSIST_INTERFACE(&env_, (this->is_inited_num_field_local ||
-                this->is_inited_num_field_active)
+  COMET_INSIST_INTERFACE(&env_, (options_.is_inited_num_field_local ||
+                                 options_.is_inited_num_field_active)
                 && "Error: must set either num_field_local or num_field.");
-  COMET_INSIST_INTERFACE(&env_, (this->is_inited_num_vector_local ||
-                this->is_inited_num_vector_active)
+  COMET_INSIST_INTERFACE(&env_, (options_.is_inited_num_vector_local ||
+                                 options_.is_inited_num_vector_active)
                 && "Error: must set either num_vector_local or num_vector.");
 }
 
 //-----------------------------------------------------------------------------
 
 void Driver::set_vectors(GMVectors& vectors) {
-  if (this->input_file)
-    VectorsIO::read(vectors, this->input_file, env_);
+  if (options_.input_file)
+    VectorsIO::read(vectors, options_.input_file, env_);
   else
-    TestProblem::set_vectors_synthetic(&vectors, this->problem_type,
-                                       this->verbosity, &env_);
+    TestProblem::set_vectors_synthetic(&vectors, options_.problem_type,
+                                       options_.verbosity, &env_);
 
-  if (this->verbosity > 2)
+  if (options_.verbosity > 2)
     VectorsIO::print(vectors, env_);
-
 }
 
 //-----------------------------------------------------------------------------
 // Print a line of output to summarize result of run.
 
-void Driver::print_output(Checksum& cksum) {
+void Driver::print_output_sync(Checksum& cksum) {
 
   // Perform operations that may include allreduce.
 
@@ -391,8 +405,8 @@ void Driver::print_output(Checksum& cksum) {
 
   printf(" vcmp %e", env_.vec_compares());
   printf(" vacmp %e", env_.vec_active_compares());
-  if (output_file_stub)
-    printf(" vcmpout %e", (double)num_written);
+  if (options_.output_file_stub)
+    printf(" vcmpout %e", (double)counters_.num_written);
 
   printf(" cmp %e", env_.entry_compares());
   printf(" acmp %e", env_.entry_active_compares());
@@ -419,17 +433,17 @@ void Driver::print_output(Checksum& cksum) {
   if (env_.is_shrink())
     printf(" shrink %e", env_.shrink_achieved());
 
-  printf(" vctime %.6f", this->vctime);
-  printf(" mctime %.6f", this->mctime);
+  printf(" vctime %.6f", counters_.vctime);
+  printf(" mctime %.6f", counters_.mctime);
   if (cksum.computing_checksum())
-    printf(" cktime %.6f", this->cktime);
-  printf(" intime %.6f", this->intime);
-  printf(" outtime %.6f", this->outtime);
+    printf(" cktime %.6f", counters_.cktime);
+  printf(" intime %.6f", counters_.intime);
+  printf(" outtime %.6f", counters_.outtime);
 
   printf(" cpumem %e", (double)cpu_mem_max);
   printf(" gpumem %e", (double)gpu_mem_max);
 
-  printf(" tottime %.6f", this->tottime);
+  printf(" tottime %.6f", counters_.tottime);
 
   printf(" prec %s", env_.is_double_prec() ? "double" : "single");
 
@@ -542,51 +556,53 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   Driver driver(env);
   driver.finish_parsing(argc, argv);
+  Driver::Options& options_ = driver.options_;
+  Driver::Counters& counters_ = driver.counters_;
 
   // Set up parallel decomp for vectors, metrics.
 
   Driver::Timer timer(env);
   GMDecompMgr dm = GMDecompMgr_null();
   GMDecompMgr_create(&dm,
-    driver.is_inited_num_field_local,
-    driver.is_inited_num_vector_local,
-    driver.is_inited_num_field_local ? driver.num_field_local
-                                     : driver.num_field_active,
-    driver.is_inited_num_vector_local ? driver.num_vector_local
-                                      : driver.num_vector_active,
+    options_.is_inited_num_field_local,
+    options_.is_inited_num_vector_local,
+    options_.is_inited_num_field_local ? options_.num_field_local
+                                       : options_.num_field_active,
+    options_.is_inited_num_vector_local ? options_.num_vector_local
+                                        : options_.num_vector_active,
     env.data_type_vectors(), &env);
-  timer.add_elapsed(driver.vctime);
+  timer.add_elapsed(counters_.vctime);
 
   // Allocate vectors.
 
   timer.start();
   GMVectors vectors = GMVectors_null();
   GMVectors_create(&vectors, env.data_type_vectors(), &dm, &env);
-  timer.add_elapsed(driver.vctime);
+  timer.add_elapsed(counters_.vctime);
 
   // Set vectors.
 
   timer.start();
   driver.set_vectors(vectors);
-  timer.add_elapsed(driver.intime);
+  timer.add_elapsed(counters_.intime);
 
   // More initializations.
 
-  Checksum cksum(driver.checksum);
-  Checksum cksum_local(driver.checksum);
+  Checksum cksum(options_.checksum);
+  Checksum cksum_local(options_.checksum);
 
   const bool is_all_phase_all_stage =
-    0 == driver.phase_min && env.num_phase() - 1 == driver.phase_max &&
-    0 == driver.stage_min && env.num_stage() - 1 == driver.stage_max;
+    0 == options_.phase_min && env.num_phase() - 1 == options_.phase_max &&
+    0 == options_.stage_min && env.num_stage() - 1 == options_.stage_max;
 
   { // BEGIN BLOCK initialize output.
 
     timer.start();
-    MetricsIO metrics_io(driver.output_file_stub, driver.verbosity, env);
+    MetricsIO metrics_io(options_.output_file_stub, options_.verbosity, env);
 
-    Histograms histograms(driver.histograms_file, env);
+    Histograms histograms(options_.histograms_file, env);
     dm.attach_histograms(&histograms);
-    timer.add_elapsed(driver.outtime);
+    timer.add_elapsed(counters_.outtime);
 
   { // BEGIN BLOCK initialize metrics mem, compute metrics.
 
@@ -594,17 +610,17 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
     MetricsMem metrics_mem(&env);
 
     ComputeMetrics compute_metrics(dm, env);
-    timer.add_elapsed(driver.mctime);
+    timer.add_elapsed(counters_.mctime);
 
   //--------------------
   // Begin loops over phases, stages.
   //--------------------
 
-  for (int phase_num=driver.phase_min; phase_num<=driver.phase_max;
+  for (int phase_num=options_.phase_min; phase_num<=options_.phase_max;
        ++phase_num) {
       env.phase_num(phase_num);
 
-  for (int stage_num=driver.stage_min; stage_num<=driver.stage_max;
+  for (int stage_num=options_.stage_min; stage_num<=options_.stage_max;
        ++stage_num) {
     env.stage_num(stage_num);
 
@@ -614,14 +630,14 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
     GMMetrics metrics = GMMetrics_null();
     GMMetrics_create(&metrics, env.data_type_metrics(), &dm, &metrics_mem,
                      &env);
-    timer.add_elapsed(driver.mctime);
+    timer.add_elapsed(counters_.mctime);
 
     // Calculate metrics.
 
     compute_metrics.compute(metrics, vectors);
-    driver.num_metric_items_local_computed +=
+    counters_.num_metric_items_local_computed +=
       metrics.num_metric_items_local_computed;
-    driver.num_metrics_active_local += metrics.num_metrics_active_local;
+    counters_.num_metrics_active_local += metrics.num_metrics_active_local;
 
     // Output results.
 
@@ -629,27 +645,27 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
     metrics_io.write(metrics);
     if (BuildHas::DEBUG)
       metrics_io.check_file(metrics);
-    timer.add_elapsed(driver.outtime);
+    timer.add_elapsed(counters_.outtime);
 
     // Check correctness.
 
     timer.start();
-    if (driver.checksum)
+    if (options_.checksum)
       TestProblem::check_metrics(&metrics, driver, &env);
-    timer.add_elapsed(driver.cktime);
+    timer.add_elapsed(counters_.cktime);
 
     // Compute checksum.
 
     timer.start();
-    if (driver.checksum)
+    if (options_.checksum)
       Checksum::compute(cksum, cksum_local, metrics, env);
-    timer.add_elapsed(driver.cktime);
+    timer.add_elapsed(counters_.cktime);
 
     // Delete metrics object.
 
     timer.start();
     GMMetrics_destroy(&metrics, &env);
-    timer.add_elapsed(driver.mctime);
+    timer.add_elapsed(counters_.mctime);
 
     // Do output.
 
@@ -677,12 +693,12 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
     timer.start();
 
   } // END BLOCK initialize metrics mem, compute metrics.
-    timer.add_elapsed(driver.mctime);
+    timer.add_elapsed(counters_.mctime);
 
     // Finalize output.
 
     timer.start();
-    driver.num_local_written += metrics_io.num_written();
+    counters_.num_local_written += metrics_io.num_written();
 
     histograms.finalize();
     histograms.output();
@@ -691,22 +707,22 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   } // END BLOCK initialize outputs
 
-  timer.add_elapsed(driver.outtime);
+  timer.add_elapsed(counters_.outtime);
 
   // Perform some checks.
 
   if (env.is_proc_active()) {
 
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&driver.num_metric_items_local_computed,
-      &driver.num_metric_items_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_metric_items_local_computed,
+      &counters_.num_metric_items_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
       env.comm_repl_vector()));
 
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&driver.num_metrics_active_local,
-      &driver.num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_metrics_active_local,
+      &counters_.num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
       env.comm_repl_vector()));
 
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&driver.num_local_written,
-                        &driver.num_written, 1, MPI_UNSIGNED_LONG_LONG,
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_local_written,
+                        &counters_.num_written, 1, MPI_UNSIGNED_LONG_LONG,
                         MPI_SUM, env.comm_repl_vector()));
 
     if (env.all2all() && is_all_phase_all_stage) {
@@ -717,11 +733,11 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
       const size_t num_metrics_active_expected =
         utils::nchoosek(dm.num_vector_active, env.num_way());
 
-      COMET_INSIST(driver.num_metrics_active == num_metrics_active_expected &&
+      COMET_INSIST(counters_.num_metrics_active == num_metrics_active_expected &&
                    "Inconsistent metrics count.");
 
       COMET_INSIST((env.num_metric_items_per_metric() * num_metrics_expected ==
-                    driver.num_metric_items_computed || env.is_shrink()) &&
+                    counters_.num_metric_items_computed || env.is_shrink()) &&
                    "Inconsistent metrics count.");
     }
 
@@ -732,18 +748,18 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   timer.start();
   GMVectors_destroy(&vectors, &env);
   GMDecompMgr_destroy(&dm, &env);
-  timer.add_elapsed(driver.vctime);
+  timer.add_elapsed(counters_.vctime);
 
   COMET_INSIST(env.cpu_mem_local() == 0 && "Memory leak detected.");
   COMET_INSIST(env.gpu_mem_local() == 0 && "Memory leak detected.");
 
   // Record total time.
 
-  driver.tottime = timer_total.elapsed();
+  counters_.tottime = timer_total.elapsed();
 
   // Output run information.
 
-  driver.print_output(cksum);
+  driver.print_output_sync(cksum);
   driver.fflush_sync_();
 
   // Output a local checksum, if needed for testing purposes.
@@ -751,7 +767,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   const bool do_output_local_checksum = false;
 
   if (do_output_local_checksum) {
-    if (driver.checksum && env.is_proc_active() && driver.verbosity > 0) {
+    if (options_.checksum && env.is_proc_active() && options_.verbosity > 0) {
       printf("local checksum: ");
       cksum_local.print(env);
       printf("\n");
@@ -761,7 +777,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   // Validation: check for any wrong answers.
 
-  if (driver.num_incorrect) {
+  if (counters_.num_incorrect) {
     const size_t hnlen = 256;
     char hn[hnlen];
     gethostname(hn, hnlen);
@@ -770,11 +786,11 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
     fprintf(stderr, "Error: incorrect results found.  num_incorrect  %zu  "
            "max_incorrect_diff  %e  hostname  %s  rank  %i\n",
-           driver.num_incorrect, driver.max_incorrect_diff, hn, rank);
+           counters_.num_incorrect, counters_.max_incorrect_diff, hn, rank);
   }
   driver.fflush_sync_();
 
-  COMET_INSIST(0 == driver.num_incorrect && "Incorrect results found.");
+  COMET_INSIST(0 == counters_.num_incorrect && "Incorrect results found.");
 
   // Finalize.
 

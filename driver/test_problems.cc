@@ -269,11 +269,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
 
         } // field_local
       }   // vector_local
-      // Print.
-//TODO: move this
-      //if (verbosity > 2) {
-      //  VectorsIO::print(*vectors, *env);
-      //}
     } break;
     //--------------------
     case GM_DATA_TYPE_BITS2: {
@@ -311,10 +306,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
 
         } // field_local
       }   // vector_local
-//TODO: move this
-      //if (verbosity > 2) {
-      //  VectorsIO::print(*vectors, *env);
-      //}
     } break;
     //--------------------
     default:
@@ -381,13 +372,6 @@ static GMFloat metric_value_analytic_(size_t vi,
   const GMFloat multiplier = (GMFloat)2;
 
   const GMFloat value = (multiplier * float_n) / float_d;
-  //const bool is_zero_denom = d == 0;
-
-//if (vi==0 && vj==4)
-//printf("2 %.20e %.20e %.20e\n",
-//(double)float_n,
-//(double)float_d,
-//(double)value);
 
   return value;
 }
@@ -446,7 +430,6 @@ static GMFloat metric_value_analytic_(size_t vi,
   const GMFloat multiplier = (GMFloat)1.5;
 
   const GMFloat value = (multiplier * float_n) / float_d;
-  //const bool is_zero_denom = d == 0;
 
   return value;
 }
@@ -675,11 +658,6 @@ static GMFloat metric_value_analytic_(size_t vi,
         ccc_duo_value<CBPE::DUO>(rijk, si, sj, sk,
                  recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
 
-//FIX
-//if (iG==959557 && jG==567161 && kG==14914 && iE==1 && jE==1 && kE==0)
-//printf("%f %f %f %f %f %f %f %f\n",
-//(double)rijk, (double)si, (double)sj, (double)sk, (double)recip_ci, (double)recip_cj, (double)recip_ck, (double)recip_sumcijk);
-
     } // is_zero_denom
 
   return value;
@@ -688,11 +666,11 @@ static GMFloat metric_value_analytic_(size_t vi,
 //=============================================================================
 // Check correctness of metrics, if possible.
 
-void check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
+void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
                                           CEnv* env) {
   COMET_INSIST(metrics && env);
-  COMET_INSIST(ProblemType::ANALYTIC == driver.problem_type);
-  COMET_INSIST(NULL == driver.input_file);
+  COMET_INSIST(ProblemType::ANALYTIC == driver.options_.problem_type);
+  COMET_INSIST(NULL == driver.options_.input_file);
 
   if (! env->is_proc_active())
     return;
@@ -953,9 +931,9 @@ void check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
     default:
       COMET_INSIST(false && "Invalid data type.");
   } // switch
-  driver.num_incorrect += num_incorrect;
-  driver.max_incorrect_diff = utils::max(max_incorrect_diff,
-                                       driver.max_incorrect_diff);
+  driver.counters_.num_incorrect += num_incorrect;
+  driver.counters_.max_incorrect_diff = utils::max(max_incorrect_diff,
+                                       driver.counters_.max_incorrect_diff);
 }
 
 //=============================================================================
@@ -964,10 +942,10 @@ void TestProblem::check_metrics(GMMetrics* metrics, Driver& driver,
                                 CEnv* env) {
   COMET_INSIST(metrics && env);
 
-  if (driver.input_file)
+  if (driver.options_.input_file)
     return;
 
-  if (ProblemType::ANALYTIC == driver.problem_type)
+  if (ProblemType::ANALYTIC == driver.options_.problem_type)
     check_metrics_analytic_(metrics, driver, env);
 }
 

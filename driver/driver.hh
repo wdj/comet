@@ -49,40 +49,52 @@ namespace comet {
 
 class Driver {
 
-public:
-  int num_field_local;
-  int num_vector_local;
-  size_t num_field_active;
-  size_t num_vector_active;
-  bool is_inited_num_field_local;
-  bool is_inited_num_field_active;
-  bool is_inited_num_vector_local;
-  bool is_inited_num_vector_active;
-  int verbosity;
-  int stage_min;
-  int stage_max;
-  int phase_min;
-  int phase_max;
-  char* input_file;
-  char* histograms_file;
-  char* output_file_stub;
-  int problem_type;
-  size_t num_incorrect;
-  double max_incorrect_diff;
-  bool checksum;
+  struct Options {
+    int num_field_local;
+    int num_vector_local;
+    size_t num_field_active;
+    size_t num_vector_active;
+    bool is_inited_num_field_local;
+    bool is_inited_num_field_active;
+    bool is_inited_num_vector_local;
+    bool is_inited_num_vector_active;
+    int verbosity;
+    int stage_min;
+    int stage_max;
+    int phase_min;
+    int phase_max;
+    char* input_file;
+    char* histograms_file;
+    char* output_file_stub;
+    int problem_type;
+    bool checksum;
 
-  size_t num_metric_items_computed;
-  size_t num_metrics_active;
-  size_t num_written;
-  double vctime;
-  double mctime;
-  double cktime;
-  double intime;
-  double outtime;
-  double tottime;
-  size_t num_metric_items_local_computed;
-  size_t num_metrics_active_local;
-  size_t num_local_written;
+    Options(CEnv& env);
+  };
+
+  struct Counters {
+    size_t num_incorrect;
+    double max_incorrect_diff;
+    size_t num_metric_items_computed;
+    size_t num_metrics_active;
+    size_t num_written;
+    double vctime;
+    double mctime;
+    double cktime;
+    double intime;
+    double outtime;
+    double tottime;
+    size_t num_metric_items_local_computed;
+    size_t num_metrics_active_local;
+    size_t num_local_written;
+
+    Counters();
+  };
+
+  Options options_;
+  Counters counters_;
+
+public:
 
   Driver(CEnv& env);
 
@@ -90,11 +102,11 @@ public:
 
   void set_vectors(GMVectors& vectors);
 
-  void print_output(Checksum& cksum);
+  void print_output_sync(Checksum& cksum);
 
-  static void print_output(Checksum& cksum, CEnv& env) {
+  static void print_output_sync(Checksum& cksum, CEnv& env) {
     Driver driver(env);
-    driver.print_output(cksum);
+    driver.print_output_sync(cksum);
   }
 
   static void perform_run(int argc, char** argv, MPI_Comm base_comm);
@@ -109,10 +121,12 @@ public:
 
 private:
 
+  friend class TestProblem;
+
   CEnv& env_;
 
   bool do_print() const {
-    return env_.is_proc_active() && env_.proc_num() == 0 && verbosity > 0;
+    return env_.is_proc_active() && env_.proc_num() == 0 && options_.verbosity > 0;
   }
 
   static void perform_run_(Checksum& cksum, int argc, char** argv,

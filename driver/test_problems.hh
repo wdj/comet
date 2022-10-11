@@ -64,6 +64,12 @@ public:
                                     int verbosity, CEnv* env);
 
   static void check_metrics(GMMetrics* metrics, Driver& driver, CEnv* env);
+
+private:
+  static void check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
+                                      CEnv* env);
+
+
 };
 
 //-----------------------------------------------------------------------------
