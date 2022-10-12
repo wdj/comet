@@ -46,6 +46,7 @@ namespace comet {
 
 Histograms::Histograms(const char* histograms_file, CEnv& env)
   : env_(env)
+  , is_active_(false)
   , is_computing_histograms_(histograms_file && env_.is_metric_type_bitwise())
   , histograms_file_str_(histograms_file ? histograms_file : "")
   , range_(is_computing_histograms_ ? env_.ccc_duo_multiplier() : 0)
@@ -63,6 +64,8 @@ Histograms::Histograms(const char* histograms_file, CEnv& env)
 
   buf_.set_zero_h();
   buf_.to_accel();
+
+  is_active_ = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -75,6 +78,8 @@ void Histograms::finalize() {
 
   if (is_finalized_)
     return;
+
+  COMET_INSIST(is_active_);
 
   // Retrieve from accelerator if necessary.
 
@@ -99,6 +104,7 @@ void Histograms::output() {
   if (!is_computing_histograms() || !env_.is_proc_active())
     return;
 
+  COMET_INSIST(is_active_);
   COMET_INSIST(is_finalized_);
 
   if (env_.proc_num() != 0)
@@ -133,6 +139,7 @@ void Histograms::check(size_t num_vector_active) {
   if (!is_computing_histograms() || !env_.is_proc_active())
     return;
 
+  COMET_INSIST(is_active_);
   COMET_INSIST(is_finalized_);
 
   if (env_.proc_num() != 0)
@@ -159,7 +166,10 @@ void Histograms::check(size_t num_vector_active) {
 /// \brief Compute sum of all (finalized) histogram elements.
 
 Histograms::Elt_t Histograms::sum_() const {
+
+  COMET_INSIST(is_active_);
   COMET_INSIST(is_finalized_);
+
   Elt_t result = 0;
   for (int col = 0; col < num_histograms_; ++col) {
     const int multiplier = env_.num_way() + 1 == col ? 0 : 1;

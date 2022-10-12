@@ -108,6 +108,9 @@ public:
   enum {RECIP_BUCKET_WIDTH = 1000};
 
   Histograms(const char* histograms_file, CEnv& env);
+  ~Histograms() {
+    terminate();
+  }
 
   void finalize();
 
@@ -165,6 +168,7 @@ public:
   template<typename T>
   void add(T value, int histogram_id) {
     COMET_ASSERT(!is_computing_on_accel());
+    COMET_ASSERT(is_active_);
     Histograms::add((Elt_t*)buf_.h, num_buckets_, value, histogram_id);
   }
 
@@ -176,6 +180,7 @@ public:
            GMTally1 ci, GMTally1 cj, int nfa) {
     if (!is_computing_histograms_)
       return;
+    COMET_ASSERT(is_active_);
 
     const int cbpe = env_.counted_bits_per_elt();
 
@@ -208,6 +213,7 @@ public:
            GMTally1 ci, GMTally1 cj, GMTally1 ck, int nfa) {
     if (!is_computing_histograms_)
       return;
+    COMET_ASSERT(is_active_);
 
     const int cbpe = env_.counted_bits_per_elt();
 
@@ -241,6 +247,7 @@ public:
 
   // accessor for element of histogram
   Elt_t& elt(int bucket_num, int histogram_num) {
+    COMET_ASSERT(is_active_);
     return Histograms::elt((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
   }
 
@@ -248,6 +255,7 @@ public:
 
   // accessor for element of histogram (const)
   Elt_t elt_const(int bucket_num, int histogram_num) const {
+    COMET_ASSERT(is_active_);
     return Histograms::elt_const((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
   }
 
@@ -255,6 +263,7 @@ public:
 
   // accessor for element of finalized histogram
   Elt_t& elt_finalized(int bucket_num, int histogram_num) {
+    COMET_ASSERT(is_active_);
     return Histograms::elt((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
                            histogram_num);
   }
@@ -264,6 +273,7 @@ public:
   // accessor for element of finalized histogram (const)
   Elt_t elt_finalized_const(int bucket_num, int histogram_num) const {
     COMET_ASSERT(is_finalized_);
+    COMET_ASSERT(is_active_);
     return Histograms::elt_const((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
                            histogram_num);
   }
@@ -271,15 +281,26 @@ public:
 
   // Return the lowest real-number value assigned to specified bucket.
   Elt_t bucket_min(int bucket_num) const {
+    COMET_ASSERT(is_active_);
     return (Elt_t)(bucket_num) / RECIP_BUCKET_WIDTH;}
 
   //----------
 
   void check(size_t num_vector);
 
+  //----------
+
+  void terminate() {
+    buf_.terminate();
+    buf_finalized_.terminate();
+    is_active_ = false;
+  }
+
 private:
 
   CEnv& env_;
+
+  bool is_active_;
 
   const bool is_computing_histograms_;
 

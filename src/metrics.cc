@@ -51,23 +51,33 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Helper class for memory.
 
-MetricsMem::MetricsMem(CEnv* env) :
-  env_(env),
-  data_(NULL),
-  data_S_(NULL),
-  data_C_(NULL),
-  coords_(NULL),
-  data_size_(0),
-  data_S_size_(0),
-  data_C_size_(0),
-  coords_size_(0) {
+MetricsMem::MetricsMem(CEnv* env)
+  : env_(env)
+  , is_active_(false)
+  , data_(NULL)
+  , data_S_(NULL)
+  , data_C_(NULL)
+  , coords_(NULL)
+  , data_size_(0)
+  , data_S_size_(0)
+  , data_C_size_(0)
+  , coords_size_(0) {
+  is_active_ = true;
 }
 
 //-----------------------------------------------------------------------------
 
 MetricsMem::~MetricsMem() {
+  terminate();
+}
 
+//-----------------------------------------------------------------------------
+
+void MetricsMem::terminate() {
   if (! env_->is_proc_active())
+    return;
+
+  if (!is_active_)
     return;
 
   if (data_)
@@ -81,6 +91,13 @@ MetricsMem::~MetricsMem() {
 
   if (coords_)
     gm_free(coords_, coords_size_, env_);
+
+  data_ = NULL;
+  data_S_ = NULL;
+  data_C_ = NULL;
+  coords_ = NULL;
+
+  is_active_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -89,6 +106,8 @@ void* MetricsMem::malloc_data(size_t data_size) {
 
   if (! env_->is_proc_active())
     return NULL;
+
+  COMET_INSIST(is_active_);
 
   if (!data_ || data_size > data_size_) {
     if (data_) {
@@ -108,6 +127,8 @@ void* MetricsMem::malloc_data_S(size_t data_S_size) {
   if (! env_->is_proc_active())
     return NULL;
 
+  COMET_INSIST(is_active_);
+
   if (!data_S_ || data_S_size > data_S_size_) {
     if (data_S_) {
       gm_free(data_S_, data_S_size_, env_);
@@ -125,6 +146,8 @@ void* MetricsMem::malloc_data_C(size_t data_C_size) {
 
   if (! env_->is_proc_active())
     return NULL;
+
+  COMET_INSIST(is_active_);
 
   if (!data_C_ || data_C_size > data_C_size_) {
     if (data_C_) {
@@ -144,6 +167,8 @@ MetricItemCoords_t* MetricsMem::malloc_coords(
 
   if (! env_->is_proc_active())
     return NULL;
+
+  COMET_INSIST(is_active_);
 
   if (!coords_ ||
       coords_size > coords_size_) {

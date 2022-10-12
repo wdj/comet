@@ -598,7 +598,8 @@ MetricsIO::MetricsIO(const char* path_stub, int verbosity, CEnv& env)
   , file_(NULL)
   , verbosity_(verbosity)
   , num_written_(0)
-  , num_written_last_write_(0) {
+  , num_written_last_write_(0)
+  , is_active_(false) {
 
   if (! env_.is_proc_active())
     return;
@@ -608,18 +609,28 @@ MetricsIO::MetricsIO(const char* path_stub, int verbosity, CEnv& env)
     open_();
     COMET_INSIST(NULL != file_ && "Unable to open file.");
   }
+
+  is_active_ = true;
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Destructor for MetricsIO class.
 
 MetricsIO::~MetricsIO() {
+  terminate();
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Termination function called by MetricsIO destructor.
+
+void MetricsIO::terminate() {
+  if (!is_active_)
+    return;
 
   if (is_path_stub_() && is_leaving_files_open_())
     close_();
 
-//  if (file_)
-//    fclose(file_);
+  is_active_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -629,6 +640,8 @@ void MetricsIO::write(GMMetrics& metrics) {
 
   if (! env_.is_proc_active())
     return;
+
+  COMET_INSIST(is_active_);
 
   // Due to redundancy, only results from some processors are needed.
   if (env_.proc_num_field() != 0)
@@ -662,6 +675,8 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   if (! env_.is_proc_active())
     return;
+
+  COMET_INSIST(is_active_);
 
   // Due to redundancy, only results from some processors are needed.
   if (env_.proc_num_field() != 0)
@@ -1099,6 +1114,7 @@ void MetricsIO::close_() {
   if (! env_.is_proc_active())
     return;
 
+  COMET_INSIST(is_active_);
   COMET_INSIST(file_);
 
   fclose(file_);

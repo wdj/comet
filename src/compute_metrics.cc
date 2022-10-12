@@ -49,6 +49,7 @@ namespace comet {
 
 ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
   : env_(env)
+  , is_active_(false)
   , compute_metrics_2way_(NULL)
   , compute_metrics_3way_(NULL) {
 
@@ -57,25 +58,36 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
 
   CodeBlockTimer timer(env_);
 
-  if (env_.num_way() == NumWay::_2) {
+  if (env_.num_way() == NumWay::_2)
     compute_metrics_2way_ = new ComputeMetrics2Way(dm, env_);
-  } else {
+  else
     compute_metrics_3way_ = new ComputeMetrics3Way(dm, env);
-  }
+
+  is_active_ = true;
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Destructor for ComputeMetrics class.
 
 ComputeMetrics::~ComputeMetrics() {
+  terminate();
+}
 
+//-----------------------------------------------------------------------------
+
+void ComputeMetrics::terminate() {
   if (! can_run_())
+    return;
+
+  if (!is_active_)
     return;
 
   CodeBlockTimer timer(env_);
 
   delete compute_metrics_2way_;
   delete compute_metrics_3way_;
+
+  is_active_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -86,15 +98,15 @@ void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors) {
   if (! can_run_())
     return;
 
+  COMET_INSIST(is_active_);
+
   {
     CodeBlockTimer timer(env_);
 
-    if (env_.num_way() == 2) {
-    compute_metrics_2way_->compute(metrics, vectors);
-    } else { // (env_.num_way() == NumWay::_3)
+    if (env_.num_way() == 2)
+      compute_metrics_2way_->compute(metrics, vectors);
+    else // (env_.num_way() == NumWay::_3)
       compute_metrics_3way_->compute(metrics, vectors);
-    }
-
   }
 
   compute_stats_(metrics);

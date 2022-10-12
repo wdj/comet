@@ -86,7 +86,8 @@ Driver::Options::Options(CEnv& env)
   , histograms_file(NULL)
   , output_file_stub(NULL)
   , problem_type(ProblemType::DEFAULT)
-  , checksum(true) {
+  , checksum(true)
+  , env_(env) {
 }
 
 Driver::Counters::Counters()
@@ -591,26 +592,20 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   Checksum cksum(options_.checksum);
   Checksum cksum_local(options_.checksum);
 
-  const bool is_all_phase_all_stage =
-    0 == options_.phase_min && env.num_phase() - 1 == options_.phase_max &&
-    0 == options_.stage_min && env.num_stage() - 1 == options_.stage_max;
+  // Initialize output.
 
-  { // BEGIN BLOCK initialize output.
+  timer.start();
+  MetricsIO metrics_io(options_.output_file_stub, options_.verbosity, env);
+  Histograms histograms(options_.histograms_file, env);
+  dm.attach_histograms(&histograms);
+  timer.add_elapsed(counters_.outtime);
 
-    timer.start();
-    MetricsIO metrics_io(options_.output_file_stub, options_.verbosity, env);
+  // Initialize metrics mem, compute metrics.
 
-    Histograms histograms(options_.histograms_file, env);
-    dm.attach_histograms(&histograms);
-    timer.add_elapsed(counters_.outtime);
-
-  { // BEGIN BLOCK initialize metrics mem, compute metrics.
-
-    timer.start();
-    MetricsMem metrics_mem(&env);
-
-    ComputeMetrics compute_metrics(dm, env);
-    timer.add_elapsed(counters_.mctime);
+  timer.start();
+  MetricsMem metrics_mem(&env);
+  ComputeMetrics compute_metrics(dm, env);
+  timer.add_elapsed(counters_.mctime);
 
   //--------------------
   // Begin loops over phases, stages.
@@ -626,7 +621,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
     // Set up metrics object to capture results.
 
-    timer.start();
+    timer.start(); // 
     GMMetrics metrics = GMMetrics_null();
     GMMetrics_create(&metrics, env.data_type_metrics(), &dm, &metrics_mem,
                      &env);
@@ -688,25 +683,23 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // End loops over phases, stages.
   //--------------------
 
-    // Finalize metrics mem.
+  // Finalize metrics mem.
 
-    timer.start();
+  timer.start();
+  metrics_mem.terminate();
+  compute_metrics.terminate();
+  timer.add_elapsed(counters_.mctime);
 
-  } // END BLOCK initialize metrics mem, compute metrics.
-    timer.add_elapsed(counters_.mctime);
+  // Finalize output.
 
-    // Finalize output.
-
-    timer.start();
-    counters_.num_local_written += metrics_io.num_written();
-
-    histograms.finalize();
-    histograms.output();
-    if (is_all_phase_all_stage)
-      histograms.check(dm.num_vector_active);
-
-  } // END BLOCK initialize outputs
-
+  timer.start();
+  counters_.num_local_written += metrics_io.num_written();
+  metrics_io.terminate();
+  histograms.finalize();
+  histograms.output();
+  if (options_.is_all_phase_all_stage())
+    histograms.check(dm.num_vector_active);
+  histograms.terminate();
   timer.add_elapsed(counters_.outtime);
 
   // Perform some checks.
@@ -725,8 +718,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
                       &counters_.num_written, 1, MPI_UNSIGNED_LONG_LONG,
                       MPI_SUM, env.comm_repl_vector()));
 
-  if (env.all2all() && is_all_phase_all_stage) {
-
+  if (env.all2all() && options_.is_all_phase_all_stage()) {
     const size_t num_metrics_expected =
       utils::nchoosek(dm.num_vector, env.num_way());
 
@@ -751,7 +743,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   COMET_INSIST(env.cpu_mem_local() == 0 && "Memory leak detected.");
   COMET_INSIST(env.gpu_mem_local() == 0 && "Memory leak detected.");
 
-  // Record total time.
+  // Record the total time.
 
   counters_.tottime = timer_total.elapsed();
 

@@ -60,6 +60,7 @@ class MetricsMem {
 public:
   MetricsMem(CEnv* env);
   ~MetricsMem();
+  void terminate();
 
   void* malloc_data(size_t data_size);
   void* malloc_data_S(size_t data_size_S);
@@ -69,6 +70,7 @@ public:
 private:
 
   CEnv* env_;
+  bool is_active_;
   void* __restrict__ data_;
   void* __restrict__ data_S_;
   void* __restrict__ data_C_;

@@ -70,6 +70,14 @@ class Driver {
     bool checksum;
 
     Options(CEnv& env);
+
+    bool is_all_phase_all_stage() const {
+      return 0 == phase_min && env_.num_phase() - 1 == phase_max &&
+             0 == stage_min && env_.num_stage() - 1 == stage_max;
+    }
+
+  private:
+    CEnv& env_;
   };
 
   struct Counters {
