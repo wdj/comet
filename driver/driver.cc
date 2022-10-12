@@ -711,37 +711,35 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   // Perform some checks.
 
-  if (env.is_proc_active()) {
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(
+    &counters_.num_metric_items_local_computed,
+    &counters_.num_metric_items_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+    env.comm_repl_vector()));
 
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_metric_items_local_computed,
-      &counters_.num_metric_items_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-      env.comm_repl_vector()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(
+    &counters_.num_metrics_active_local,
+    &counters_.num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+    env.comm_repl_vector()));
 
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_metrics_active_local,
-      &counters_.num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-      env.comm_repl_vector()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_local_written,
+                      &counters_.num_written, 1, MPI_UNSIGNED_LONG_LONG,
+                      MPI_SUM, env.comm_repl_vector()));
 
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_local_written,
-                        &counters_.num_written, 1, MPI_UNSIGNED_LONG_LONG,
-                        MPI_SUM, env.comm_repl_vector()));
+  if (env.all2all() && is_all_phase_all_stage) {
 
-    if (env.all2all() && is_all_phase_all_stage) {
+    const size_t num_metrics_expected =
+      utils::nchoosek(dm.num_vector, env.num_way());
 
-      const size_t num_metrics_expected =
-        utils::nchoosek(dm.num_vector, env.num_way());
+    const size_t num_metrics_active_expected =
+      utils::nchoosek(dm.num_vector_active, env.num_way());
 
-      const size_t num_metrics_active_expected =
-        utils::nchoosek(dm.num_vector_active, env.num_way());
+    COMET_INSIST(counters_.num_metrics_active == num_metrics_active_expected &&
+                 "Inconsistent metrics count.");
 
-      COMET_INSIST(counters_.num_metrics_active == num_metrics_active_expected &&
-                   "Inconsistent metrics count.");
-
-      COMET_INSIST((env.num_metric_items_per_metric() * num_metrics_expected ==
-                    counters_.num_metric_items_computed || env.is_shrink()) &&
-                   "Inconsistent metrics count.");
-    }
-
-  } // if is_proc_active
+    COMET_INSIST((env.num_metric_items_per_metric() * num_metrics_expected ==
+                  counters_.num_metric_items_computed || env.is_shrink()) &&
+                 "Inconsistent metrics count.");
+  }
 
   // Deallocate vectors.
 
