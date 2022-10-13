@@ -56,13 +56,13 @@ namespace comet {
 
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   : env_(env) 
-  , vectors_01_{}
+  , vectors_0_()
+  , vectors_1_()
+  , vectors_01_{&vectors_0_, &vectors_1_}
   , vectors_left_alt_{}
   , metrics_buf_0_(env)
   , metrics_buf_1_(env)
   , metrics_buf_01_{&metrics_buf_0_, &metrics_buf_1_}
-  //, vectors_left_buf_(env)
-  , vectors_left_alt_buf_(NULL)
   , metrics_tmp_buf_(env)
   , vector_sums_onproc_(dm.num_vector_local, env)
   , vector_sums_offproc_0_(env.all2all() ? dm.num_vector_local : 0, env)
@@ -74,15 +74,16 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
     return;
 
   for (int i = 0; i < NUM_BUF; ++i) {
-    GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
-      &dm, &env_);
+    vectors_01_[i]->create_with_buf(env_.data_type_vectors(), dm, env_);
     metrics_buf_01_[i]->allocate(dm.num_vector_local, dm.num_vector_local);
   }
 
-  GMVectors_create_with_buf(&vectors_left_alt_, env_.data_type_vectors(),
-    &dm, &env_);
-  vectors_left_alt_buf_ = vectors_left_alt_.buf();
-  //vectors_left_buf_.allocate(dm.num_packedfield_local, dm.num_vector_local);
+//Vectors v(1);
+//v.add(2);
+//Vectors v2(1, Vectors::WITH_BUF);
+//v2.add(2);
+
+  vectors_left_alt_.create_with_buf(env_.data_type_vectors(), dm, env_);
 
   if (env_.do_reduce())
     metrics_tmp_buf_.allocate(dm.num_vector_local, dm.num_vector_local);
@@ -98,7 +99,7 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
     return;
 
   for (int i = 0; i < NUM_BUF; ++i) {
-    GMVectors_destroy(&vectors_01_[i], &env_);
+    GMVectors_destroy(vectors_01_[i], &env_);
   }
   GMVectors_destroy(&vectors_left_alt_, &env_);
 }
@@ -391,12 +392,12 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     GMVectors* vectors_left = &vectors;
     vars_next.vectors_right = vars_next.is_right_aliased ?
-      vectors_left : &vectors_01_[vars_next.index_01];
+      vectors_left : vectors_01_[vars_next.index_01];
 
     //MirroredBuf* vectors_left_buf = &vectors_left_buf_;
-    MirroredBuf* vectors_left_alt_buf = vectors_left_alt_buf_;
+    MirroredBuf* vectors_left_alt_buf = vectors_left_alt_.buf();
     vars_next.vectors_right_buf = vars_next.is_right_aliased ?
-      vectors_left_alt_buf : vectors_01_[vars_next.index_01].buf();
+      vectors_left_alt_buf : vectors_01_[vars_next.index_01]->buf();
 
     VectorSums* vector_sums_left = &vector_sums_onproc_;
     vars_next.vector_sums_right = vars_next.is_right_aliased ?
@@ -438,7 +439,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                "Next step should always compute off-diag block.");
 
       GMVectors* vectors_send = env_.is_comm_ring() && ! is_first_comm_step ?
-        &vectors_01_[1-vars_next.index_01] :
+        vectors_01_[1-vars_next.index_01] :
         env_.is_comm_gpu() ? &vectors_left_alt_ :
         vectors_left;
 

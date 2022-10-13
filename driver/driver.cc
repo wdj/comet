@@ -577,8 +577,8 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Allocate vectors.
 
   timer.start();
-  GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors, env.data_type_vectors(), &dm, &env);
+  GMVectors vectors;
+  vectors.create(env.data_type_vectors(), dm, env);
   timer.add_elapsed(counters_.vctime);
 
   // Set vectors.

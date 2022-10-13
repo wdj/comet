@@ -48,24 +48,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//-----------------------------------------------------------------------------
-// Null object.
-
-GMVectors GMVectors_null() {
-  GMVectors result;
-  memset((void*)&result, 0, sizeof(GMVectors));
-  return result;
-}
-
 //=============================================================================
 // Set vector entries to zero.
 
 void GMVectors_initialize(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
 
-  if (! env->is_proc_active()) {
+  if (!env->is_proc_active())
     return;
-  }
 
   const size_t pfl_min = 0;
   const size_t pfl_max = vectors->dm->num_packedfield_local;
@@ -163,10 +153,10 @@ void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
 //=============================================================================
 // Vectors pseudo-constructor.
 
-void GMVectors_create_imp_(GMVectors* vectors,
-                           int data_type_id,
-                           GMDecompMgr* dm,
-                           CEnv* env) {
+static void GMVectors_create_imp_(GMVectors* vectors,
+                                  int data_type_id,
+                                  GMDecompMgr* dm,
+                                  CEnv* env) {
   COMET_INSIST(vectors && dm && env);
 
   vectors->data_type_id = data_type_id;
@@ -208,41 +198,28 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
 //-----------------------------------------------------------------------------
 
-void GMVectors_create(GMVectors* vectors,
-                      int data_type_id,
-                      GMDecompMgr* dm,
-                      CEnv* env) {
-  COMET_INSIST(vectors && dm && env);
-
-  *vectors = GMVectors_null();
-
-  if (! env->is_proc_active()) {
+void GMVectors::create(int data_type_id,
+                       GMDecompMgr& dm,
+                       CEnv& env) {
+  if (!env.is_proc_active())
     return;
-  }
 
-  vectors->has_buf_ = false;
+  has_buf_ = false;
 
-  GMVectors_create_imp_(vectors, data_type_id, dm, env);
+  GMVectors_create_imp_(this, data_type_id, &dm, &env);
 }
 
 //-----------------------------------------------------------------------------
 
-void GMVectors_create_with_buf(GMVectors* vectors,
-                               int data_type_id,
-                               GMDecompMgr* dm,
-                               CEnv* env) {
-  COMET_INSIST(vectors && dm && env);
-
-  *vectors = GMVectors_null();
-
-  if (! env->is_proc_active()) {
+void GMVectors::create_with_buf(int data_type_id,
+                                GMDecompMgr& dm,
+                                CEnv& env) {
+  if (!env.is_proc_active())
     return;
-  }
 
-  //vectors->has_buf_ = env->is_using_linalg();
-  vectors->has_buf_ = true;
+  has_buf_ = true;
 
-  GMVectors_create_imp_(vectors, data_type_id, dm, env);
+  GMVectors_create_imp_(this, data_type_id, &dm, &env);
 }
 
 //=============================================================================
@@ -252,17 +229,13 @@ void GMVectors_destroy(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
   COMET_INSIST(vectors->data || ! env->is_proc_active());
 
-  if (! env->is_proc_active()) {
+  if (! env->is_proc_active())
     return;
-  }
 
-  if (!vectors->has_buf_) {
+  if (!vectors->has_buf_)
     gm_free(vectors->data, vectors->data_size, env);
-  }
 
   delete vectors->buf_;
-
-  *vectors = GMVectors_null();
 }
 
 

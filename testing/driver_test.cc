@@ -202,13 +202,13 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   GMDecompMgr_create(dm, false, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  TestProblem::set_vectors_synthetic(vectors, problem_type, verbosity, env);
+  GMVectors vectors;
+  vectors.create(env->data_type_vectors(), *dm, *env);
+  TestProblem::set_vectors_synthetic(&vectors, problem_type, verbosity, env);
 
-  VectorsIO::write(*vectors, file_path, *env);
+  VectorsIO::write(vectors, file_path, *env);
 
-  GMVectors_destroy(vectors, env);
+  GMVectors_destroy(&vectors, env);
   GMDecompMgr_destroy(dm, env);
 }
 
@@ -710,10 +710,9 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  GMVectors_initialize(vectors, env);
+  GMVectors vectors;
+  vectors.create(env->data_type_vectors(), *dm, *env);
+  GMVectors_initialize(&vectors, env);
 
   if (env->is_proc_active()) {
     {
@@ -721,22 +720,22 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
       const int T = 1;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * G + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * T + 1 * T, env);
     }
     {
       const int G = 0;
       const int A = 1;
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * G + 1 * G, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * G, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * G + 1 * G, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * G + 1 * G, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * G + 1 * A, env);
     }
   }
 
@@ -749,7 +748,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
@@ -788,7 +787,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
+  GMVectors_destroy(&vectors, env);
   GMDecompMgr_destroy(dm, env);
 } // DriverTest_ccc2_simple_compute_method
 
@@ -826,10 +825,9 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  GMVectors_initialize(vectors, env);
+  GMVectors vectors;
+  vectors.create(env->data_type_vectors(), *dm, *env);
+  GMVectors_initialize(&vectors, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -842,11 +840,11 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
       const int TT =  2 * T + 1 * T;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, GT, env);
-      GMVectors_bits2_set(vectors, f++, i, TT, env);
-      GMVectors_bits2_set(vectors, f++, i, TT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, GT, env);
+      GMVectors_bits2_set(&vectors, f++, i, TT, env);
+      GMVectors_bits2_set(&vectors, f++, i, TT, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
     }
     {
       const int G = 0;
@@ -857,11 +855,11 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
     //const int AA =  2 * Q + 1 * A
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, GG, env);
-      GMVectors_bits2_set(vectors, f++, i, AG, env);
-      GMVectors_bits2_set(vectors, f++, i, GG, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, GA, env);
+      GMVectors_bits2_set(&vectors, f++, i, GG, env);
+      GMVectors_bits2_set(&vectors, f++, i, AG, env);
+      GMVectors_bits2_set(&vectors, f++, i, GG, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, GA, env);
     }
   }
 
@@ -874,7 +872,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
@@ -961,7 +959,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
+  GMVectors_destroy(&vectors, env);
   GMDecompMgr_destroy(dm, env);
 } // DriverTest_ccc2_simple_sparse_compute_method
 
@@ -1002,10 +1000,9 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  GMVectors_initialize(vectors, env);
+  GMVectors vectors;
+  vectors.create(env->data_type_vectors(), *dm, *env);
+  GMVectors_initialize(&vectors, env);
 
   if (env->is_proc_active()) {
     // vector entry choices, binary representation
@@ -1016,21 +1013,21 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
     {
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, MIN, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, MIN, env);
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+      GMVectors_bits2_set(&vectors, f++, i, MIN, env);
+      GMVectors_bits2_set(&vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(&vectors, f++, i, MIN, env);
+      GMVectors_bits2_set(&vectors, f++, i, UNK, env);
+      GMVectors_bits2_set(&vectors, f++, i, UNK, env);
     }
     // define second vector
     {
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+      GMVectors_bits2_set(&vectors, f++, i, UNK, env);
+      GMVectors_bits2_set(&vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(&vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(&vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(&vectors, f++, i, UNK, env);
     }
   }
 
@@ -1043,7 +1040,7 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
@@ -1145,7 +1142,7 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
+  GMVectors_destroy(&vectors, env);
   GMDecompMgr_destroy(dm, env);
 } // DriverTest_duo2_simple_sparse_
 
@@ -1212,10 +1209,9 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  GMVectors_initialize(vectors, env);
+  GMVectors vectors;
+  vectors.create(env->data_type_vectors(), *dm, *env);
+  GMVectors_initialize(&vectors, env);
 
   if (env->is_proc_active()) {
     {
@@ -1223,48 +1219,48 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
       const int T = 1;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
     }
     {
       const int A = 0;
       const int T = 1;
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
     }
     {
       const int A = 0;
       const int T = 1;
       int f = 0;
       const int i = 2;
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(&vectors, f++, i, 2 * A + 1 * A, env);
     }
   }
 
@@ -1277,7 +1273,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
@@ -1337,7 +1333,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
+  GMVectors_destroy(&vectors, env);
   GMDecompMgr_destroy(dm, env);
 } // DriverTest_ccc3_simple_compute_method
 
@@ -1376,10 +1372,9 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  GMVectors_initialize(vectors, env);
+  GMVectors vectors;
+  vectors.create(env->data_type_vectors(), *dm, *env);
+  GMVectors_initialize(&vectors, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -1392,16 +1387,16 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
       const int TT =  2 * T + 1 * T;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, TT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, TT, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
     }
     {
       const int A = 0;
@@ -1412,16 +1407,16 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     //const int TT =  2 * T + 1 * T
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
     }
     {
       const int A = 0;
@@ -1432,16 +1427,16 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     //const int TT =  2 * T + 1 * T
       int f = 0;
       const int i = 2;
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, AT, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, AA, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
     }
   }
 
@@ -1454,7 +1449,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
@@ -1617,7 +1612,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
+  GMVectors_destroy(&vectors, env);
   GMDecompMgr_destroy(dm, env);
 } // DriverTest_ccc3_simple_sparse_compute_method
 
@@ -1663,10 +1658,9 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  GMVectors_initialize(vectors, env);
+  GMVectors vectors;
+  vectors.create(env->data_type_vectors(), *dm, *env);
+  GMVectors_initialize(&vectors, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -1675,48 +1669,48 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
       const int _T = 1;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
     }
     {
       const int _A = 0;
       const int _T = 1;
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
     }
     {
       const int _A = 0;
       const int _T = 1;
       int f = 0;
       const int i = 2;
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, _T, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, _A, env);
+      GMVectors_bits2_set(&vectors, f++, i, UN, env);
     }
   }
 
@@ -1729,7 +1723,7 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
@@ -1919,7 +1913,7 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
+  GMVectors_destroy(&vectors, env);
   GMDecompMgr_destroy(dm, env);
 } // DriverTest_ccc3_simple_sparse_compute_method
 

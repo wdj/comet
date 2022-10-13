@@ -44,10 +44,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+#if 0
+class Vectors {
+public:
+
+  enum {WITH_BUF = true};
+
+  Vectors(int i) {}
+  Vectors(int i, bool is_with_buf) {}
+
+  void add(int i) {}
+
+};
+#endif
+
 //-----------------------------------------------------------------------------
 // Struct declaration.
 
 struct GMVectors {
+
   // Logical sizes.
   int num_field;
   int num_field_local;
@@ -63,36 +78,39 @@ struct GMVectors {
   void* __restrict__ data;
   size_t data_size;
   bool has_buf_;
-  bool has_buf() const {return has_buf_;}
   MirroredBuf* buf_;
+  GMDecompMgr* dm;
+
+  GMVectors()
+  : num_field(0)
+  , num_field_local(0)
+  , num_field_active(0)
+  ,  num_vector(0)
+  , num_vector_local(0)
+  , num_packedfield_local(0)
+  , num_packedfield_vector_local(0)
+  , data_type_id(0)
+  , pad1(0)
+  , data(NULL)
+  , data_size(0)
+  , has_buf_(false)
+  , buf_(NULL)
+  , dm(NULL) {
+  }
+
+  void create(int data_type_id, GMDecompMgr& dm, CEnv& env);
+  void create_with_buf(int data_type_id, GMDecompMgr& dm, CEnv& env);
+
+  bool has_buf() const {return has_buf_;}
+
   MirroredBuf* buf() const {
     COMET_INSIST(has_buf_);
     return buf_;
   };
-  GMDecompMgr* dm;
 };
 
 //=============================================================================
-// Null object.
-
-GMVectors GMVectors_null(void);
-
-//=============================================================================
 // Vectors pseudo-constructor.
-
-void GMVectors_create(GMVectors* vectors,
-                      int data_type_id,
-                      GMDecompMgr* dm,
-                      CEnv* env);
-
-//-----------------------------------------------------------------------------
-
-void GMVectors_create_with_buf(GMVectors* vectors,
-                               int data_type_id,
-                               GMDecompMgr* dm,
-                               CEnv* env);
-
-//-----------------------------------------------------------------------------
 
 void GMVectors_initialize(GMVectors* vectors, CEnv* env);
 

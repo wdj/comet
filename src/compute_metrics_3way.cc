@@ -187,11 +187,11 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_j_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
 
-  GMVectors vectors_j_value_0 = GMVectors_null();
-  GMVectors vectors_j_value_1 = GMVectors_null();
+  GMVectors vectors_j_value_0;
+  GMVectors vectors_j_value_1;
   GMVectors* const vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
-  GMVectors_create(vectors_j[0], data_type, vectors.dm, env);
-  GMVectors_create(vectors_j[1], data_type, vectors.dm, env);
+  vectors_j[0]->create(data_type, *vectors.dm, env_);
+  vectors_j[1]->create(data_type, *vectors.dm, env_);
 
   MirroredBuf vectors_j_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
@@ -203,11 +203,11 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_k_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
 
-  GMVectors vectors_k_value_0 = GMVectors_null();
-  GMVectors vectors_k_value_1 = GMVectors_null();
+  GMVectors vectors_k_value_0;
+  GMVectors vectors_k_value_1;
   GMVectors* const vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
-  GMVectors_create(vectors_k[0], data_type, vectors.dm, env);
-  GMVectors_create(vectors_k[1], data_type, vectors.dm, env);
+  vectors_k[0]->create(data_type, *vectors.dm, env_);
+  vectors_k[1]->create(data_type, *vectors.dm, env_);
 
   MirroredBuf vectors_k_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
