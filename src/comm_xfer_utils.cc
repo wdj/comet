@@ -116,9 +116,7 @@ void comm_send_vectors_start(const GMVectors& vectors,
     0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &request.mpi_request()));
 
   if (BuildHas::DEBUG) {
-  //printf("s1 %i\n", 1+2*mpi_tag);
-    request.cksum_ = GMVectors_cksum(&vectors, &env);
-    //fprintf(stderr, "%zu\n", request.cksum_);
+    request.cksum_ = vectors.cksum();
     COMET_MPI_SAFE_CALL(MPI_Isend(
       (void*)&request.cksum_,
       sizeof(request.cksum_), MPI_BYTE, proc_num,

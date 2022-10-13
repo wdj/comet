@@ -172,7 +172,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
       Float_t sum = 0;
       if (need_counts_()) {
         Float_t count = 0;
-        for (int f = 0; f < (int)vectors.dm->num_field_active_local; ++f) {
+        for (int f = 0; f < (int)vectors.dm()->num_field_active_local; ++f) {
           // Slow way: sum each seminibble individually
           const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
           if (GM_2BIT_UNKNOWN != v){
@@ -181,7 +181,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
             count++;
           } // for f
         }
-        COMET_ASSERT(count >= 0 && count <= vectors.dm->num_field_active_local);
+        COMET_ASSERT(count >= 0 && count <= vectors.dm()->num_field_active_local);
         COMET_ASSERT(sum >= 0 && sum <= cbpe * count);
         elt_ref_(sums_local, i) = sum;
         elt_ref_(counts_local, i) = count;
@@ -194,7 +194,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
                            : ((v & 1) != 0);
         } // for f
         COMET_ASSERT(sum >= 0 &&
-                     sum <= cbpe * vectors.dm->num_field_active_local);
+                     sum <= cbpe * vectors.dm()->num_field_active_local);
         elt_ref_(sums_local, i) = sum;
       } // if need_counts_()
     } // for i
@@ -203,7 +203,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
   } else { // env_.compute_method() != ComputeMethod::REF
     //----------
 
-    const int num_pad_field_local = vectors.dm->num_pad_field_local;
+    const int num_pad_field_local = vectors.dm()->num_pad_field_local;
 
 #   pragma omp parallel for schedule(dynamic,1000)
     for (int i = 0; i < num_vector_local_; ++i) {
@@ -233,7 +233,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         // Adjust for end pad
         count -= num_pad_field_local;
         // Finish
-        COMET_ASSERT(count >= 0 && count <= vectors.dm->num_field_active_local);
+        COMET_ASSERT(count >= 0 && count <= vectors.dm()->num_field_active_local);
         COMET_ASSERT(sum >= 0 && sum <= cbpe * count);
         elt_ref_(sums_local, i) = sum;
         elt_ref_(counts_local, i) = count;
@@ -250,7 +250,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
           // NOTE: for this case pad entries of vec all zero so no effect on sum
         } // for f
         COMET_ASSERT(sum >= 0 &&
-                     sum <= cbpe * vectors.dm->num_field_active_local);
+                     sum <= cbpe * vectors.dm()->num_field_active_local);
         elt_ref_(sums_local, i) = sum;
       } // if need_counts_()
     } // for i
@@ -531,7 +531,7 @@ void VectorSums::compute_bits2_accel_(const GMVectors& vectors,
 
   const int cbpe = env_.counted_bits_per_elt();
 
-  const int num_pad_field_local = vectors.dm->num_pad_field_local;
+  const int num_pad_field_local = vectors.dm()->num_pad_field_local;
   const bool need_counts = need_counts_();
 
   const int nvl_thread = num_vector_local_;

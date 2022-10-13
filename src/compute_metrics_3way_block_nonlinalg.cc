@@ -263,7 +263,7 @@ static void compute_nonlinalg_ccc_duo_(
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
-    const int nfal = vectors_i->dm->num_field_active_local;
+    const int nfal = vectors_i->dm()->num_field_active_local;
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;

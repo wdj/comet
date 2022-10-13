@@ -281,12 +281,12 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
   switch (vectors_data_type_id) {
     //--------------------
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
       dm->num_bit_per_field = bits_per_byte * sizeof(GMFloat);
       dm->num_bit_per_packedfield = bits_per_byte * sizeof(GMFloat);
     } break;
     //--------------------
-    case GM_DATA_TYPE_BITS2: {
+    case DataTypeId::BITS2: {
       dm->num_bit_per_field = GM_BITS2_MAX_VALUE_BITS;
       dm->num_bit_per_packedfield = bits_per_byte * sizeof(GMBits2x64);
       // By design can only store this number of fields for this metric

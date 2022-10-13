@@ -56,10 +56,10 @@ namespace comet {
 
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   : env_(env) 
-  , vectors_0_()
-  , vectors_1_()
+  , vectors_0_(env)
+  , vectors_1_(env)
   , vectors_01_{&vectors_0_, &vectors_1_}
-  , vectors_left_alt_{}
+  , vectors_left_alt_(env)
   , metrics_buf_0_(env)
   , metrics_buf_1_(env)
   , metrics_buf_01_{&metrics_buf_0_, &metrics_buf_1_}
@@ -74,7 +74,7 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
     return;
 
   for (int i = 0; i < NUM_BUF; ++i) {
-    vectors_01_[i]->create_with_buf(env_.data_type_vectors(), dm, env_);
+    vectors_01_[i]->allocate_with_buf(env_.data_type_vectors(), dm);
     metrics_buf_01_[i]->allocate(dm.num_vector_local, dm.num_vector_local);
   }
 
@@ -83,7 +83,7 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
 //Vectors v2(1, Vectors::WITH_BUF);
 //v2.add(2);
 
-  vectors_left_alt_.create_with_buf(env_.data_type_vectors(), dm, env_);
+  vectors_left_alt_.allocate_with_buf(env_.data_type_vectors(), dm);
 
   if (env_.do_reduce())
     metrics_tmp_buf_.allocate(dm.num_vector_local, dm.num_vector_local);
@@ -99,9 +99,9 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
     return;
 
   for (int i = 0; i < NUM_BUF; ++i) {
-    GMVectors_destroy(vectors_01_[i], &env_);
+    vectors_01_[i]->deallocate();
   }
-  GMVectors_destroy(&vectors_left_alt_, &env_);
+  vectors_left_alt_.deallocate();
 }
 
 //-----------------------------------------------------------------------------
@@ -158,7 +158,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Copy in vectors
 
-  gm_vectors_to_buf(&vectors_buf, &vectors, &env_);
+  vectors.to_buf(vectors_buf);
 
   // Send vectors to GPU
 
@@ -410,7 +410,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //========== Send left matrix to GPU on first step - is_comm_gpu.
 
     if (vars_next.is_first_compute_step && env_.is_comm_gpu()) {
-      gm_vectors_to_buf(vectors_left_alt_buf, vectors_left, &env_);
+      vectors_left->to_buf(*vectors_left_alt_buf);
       vectors_left_alt_buf->to_accel_start();
       vectors_left_alt_buf->to_accel_wait();
     }
@@ -467,7 +467,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //========== Send left matrix to GPU on first step - ! is_comm_gpu.
 
     if (vars_next.is_first_compute_step && !env_.is_comm_gpu()) {
-      gm_vectors_to_buf(vectors_left_alt_buf, vectors_left, &env_);
+      vectors_left->to_buf(*vectors_left_alt_buf);
       vectors_left_alt_buf->to_accel_start();
       // TODO: examine whether overlap possible.
       // May not be possible for general repl and phase (??).

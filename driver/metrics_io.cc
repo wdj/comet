@@ -148,7 +148,7 @@ template<int COUNTED_BITS_PER_ELT>
 static void MetricsIO_write_tally2x2_bin_impl_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
-  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
+  COMET_INSIST(env->data_type_metrics() == DataTypeId::TALLY2X2);
   COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(stdout != file);
 
@@ -261,7 +261,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 static void MetricsIO_write_tally2x2_bin_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
-  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
+  COMET_INSIST(env->data_type_metrics() == DataTypeId::TALLY2X2);
   COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(stdout != file);
 
@@ -281,7 +281,7 @@ template<int COUNTED_BITS_PER_ELT>
 static void MetricsIO_write_tally4x2_bin_impl_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
-  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
+  COMET_INSIST(env->data_type_metrics() == DataTypeId::TALLY4X2);
   COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(stdout != file);
   COMET_INSIST(env->is_metric_type_bitwise());
@@ -398,7 +398,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
 static void MetricsIO_write_tally4x2_bin_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
-  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
+  COMET_INSIST(env->data_type_metrics() == DataTypeId::TALLY4X2);
   COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(stdout != file);
 
@@ -426,7 +426,7 @@ static void MetricsIO_write_(
   //  return;
 
   //--------------------
-  if (env->data_type_metrics() == GM_DATA_TYPE_FLOAT &&
+  if (env->data_type_metrics() == DataTypeId::FLOAT &&
       env->num_way() == NumWay::_2) {
   //--------------------
 
@@ -458,7 +458,7 @@ static void MetricsIO_write_(
     num_written_ += writer.num_written();
 
   //--------------------
-  } else if (env->data_type_metrics() == GM_DATA_TYPE_FLOAT) {
+  } else if (env->data_type_metrics() == DataTypeId::FLOAT) {
   //--------------------
     COMET_INSIST(env->num_way() == NumWay::_3);
 
@@ -492,7 +492,7 @@ static void MetricsIO_write_(
     num_written_ += writer.num_written();
 
   //--------------------
-  } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2) {
+  } else if (env->data_type_metrics() == DataTypeId::TALLY2X2) {
   //--------------------
     COMET_INSIST(env->num_way() == NumWay::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
@@ -536,9 +536,9 @@ static void MetricsIO_write_(
     num_written_ += writer.num_written();
 
   //--------------------
-  } else { // if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2)
+  } else { // if (env->data_type_metrics() == DataTypeId::TALLY4X2)
   //--------------------
-    COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
+    COMET_INSIST(env->data_type_metrics() == DataTypeId::TALLY4X2);
     COMET_INSIST(env->num_way() == NumWay::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
 

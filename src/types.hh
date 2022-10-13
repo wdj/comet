@@ -49,13 +49,15 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Type ids
 
-enum {
-  GM_DATA_TYPE_FLOAT = 1,
-  GM_DATA_TYPE_BITS1 = 2, // Not implemented
-  GM_DATA_TYPE_UINT64 = 3,  //---(design of this selection is not complete)
-  GM_DATA_TYPE_BITS2 = 4,
-  GM_DATA_TYPE_TALLY2X2 = 5,
-  GM_DATA_TYPE_TALLY4X2 = 6
+struct DataTypeId {
+  enum {
+    FLOAT = 1,
+    BITS1 = 2, // Not implemented
+    UINT64 = 3,  //---(design of this selection is not complete)
+    BITS2 = 4,
+    TALLY2X2 = 5,
+    TALLY4X2 = 6
+  };
 };
 
 //=============================================================================

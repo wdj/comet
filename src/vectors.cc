@@ -49,31 +49,112 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //=============================================================================
+// Vectors constructor.
+
+GMVectors::GMVectors(CEnv& env)
+  : num_field(0)
+  , num_field_local(0)
+  , num_field_active(0)
+  , num_vector(0)
+  , num_vector_local(0)
+  , num_packedfield_local(0)
+  , num_packedfield_vector_local(0)
+  , data_type_id(0)
+  , pad1(0)
+  , data(NULL)
+  , data_size(0)
+  , has_buf_(false)
+  , buf_(NULL)
+  , env_(env)
+  , dm_(NULL) 
+  , is_allocated_(false) {
+  }
+
+//-----------------------------------------------------------------------------
+
+void GMVectors::allocate(int data_type_id, GMDecompMgr& dm) {
+  allocate_impl_(data_type_id, dm, HAS_BUF_FALSE);
+}
+
+//-----------------------------------------------------------------------------
+
+void GMVectors::allocate_with_buf(int data_type_id, GMDecompMgr& dm) {
+  allocate_impl_(data_type_id, dm, HAS_BUF_TRUE);
+}
+
+//-----------------------------------------------------------------------------
+
+void GMVectors::allocate_impl_(int data_type_id,
+                               GMDecompMgr& dm,
+                               bool has_buf) {
+  if (!env_.is_proc_active())
+    return;
+
+  this->data_type_id = data_type_id;
+  dm_ = &dm;
+  has_buf_ = has_buf;
+  num_field = dm_->num_field;
+  num_field_active = dm_->num_field_active;
+  num_field_local = dm_->num_field_local;
+  num_vector = dm_->num_vector;
+  num_vector_local = dm_->num_vector_local;
+
+  const int bits_per_byte = 8;
+
+  // Allocation size for vector storage
+
+  num_packedfield_local = dm_->num_packedfield_local;
+
+  num_packedfield_vector_local =
+      num_packedfield_local * dm_->num_vector_local;
+
+  data_size = num_packedfield_vector_local *
+              (dm_->num_bit_per_packedfield / bits_per_byte);
+
+  // Set up vector storage, mirrored buffer
+
+  buf_ = new MirroredBuf(env_);
+
+  if (has_buf_) {
+    buf_->allocate(num_packedfield_local,
+                   num_vector_local);
+    data = buf_->h; // alias vector storage to buf
+  } else {
+    data = gm_malloc(data_size, &env_);
+  }
+
+  // Set pad entries to zero
+
+  initialize_pad();
+
+  is_allocated_ = true;
+}
+
+//=============================================================================
 // Set vector entries to zero.
 
-void GMVectors_initialize(GMVectors* vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
+void GMVectors::initialize() {
 
-  if (!env->is_proc_active())
+  if (!env_.is_proc_active())
     return;
 
   const size_t pfl_min = 0;
-  const size_t pfl_max = vectors->dm->num_packedfield_local;
+  const size_t pfl_max = dm_->num_packedfield_local;
 
-  switch (vectors->data_type_id) {
-    case GM_DATA_TYPE_FLOAT: {
+  switch (data_type_id) {
+    case DataTypeId::FLOAT: {
       GMFloat zero = 0;
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          GMVectors_float_set(vectors, pfl, vl, zero, env);
+          GMVectors_float_set(this, pfl, vl, zero, &env_);
         }
       }
     } break;
-    case GM_DATA_TYPE_BITS2: {
+    case DataTypeId::BITS2: {
       const GMBits2x64 zero = GMBits2x64_null();
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          GMVectors_bits2x64_set(vectors, pfl, vl, zero, env);
+          GMVectors_bits2x64_set(this, pfl, vl, zero, &env_);
         } // for pfl
       }
     } break;
@@ -89,57 +170,56 @@ void GMVectors_initialize(GMVectors* vectors, CEnv* env) {
 
 // TODO: consider check to make sure user has set all vector entries (?).
 
-void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
+void GMVectors::initialize_pad() {
 
   /*---Ensure final pad words/bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
 
-  if (! env->is_proc_active()) {
+  if (!env_.is_proc_active()) {
     return;
   }
 
-  const size_t nfal = vectors->dm->num_field_active_local;
+  const size_t nfal = dm_->num_field_active_local;
 
-  const size_t pfl_min = nfal / vectors->dm->num_field_per_packedfield;
-  const size_t pfl_max = vectors->dm->num_packedfield_local;
+  const size_t pfl_min = nfal / dm_->num_field_per_packedfield;
+  const size_t pfl_max = dm_->num_packedfield_local;
 
-  switch (vectors->data_type_id) {
-    case GM_DATA_TYPE_FLOAT: {
+  switch (data_type_id) {
+    case DataTypeId::FLOAT: {
       GMFloat zero = 0;
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          GMVectors_float_set(vectors, pfl, vl, zero, env);
+          GMVectors_float_set(this, pfl, vl, zero, &env_);
         }
       }
     } break;
-    case GM_DATA_TYPE_BITS2: {
+    case DataTypeId::BITS2: {
       const GMBits2x64 zero = GMBits2x64_null();
       const uint64_t allbits = 0xffffffffffffffff;
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           const size_t fl = 64 * pfl;
 
           if (fl >= nfal) {
 
-            GMVectors_bits2x64_set(vectors, pfl, vl, zero, env);
+            GMVectors_bits2x64_set(this, pfl, vl, zero, &env_);
 
           } else if (fl + 32 >= nfal) {
 
-            GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
+            GMBits2x64 val = GMVectors_bits2x64_get(this, pfl, vl, &env_);
             const int shift_dist = 64 - 2*(nfal-fl);
             COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
             val.data[0] &= allbits >> shift_dist;
             val.data[1] = 0;
-            GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
+            GMVectors_bits2x64_set(this, pfl, vl, val, &env_);
 
           } else if (fl + 64 >= nfal) {
 
-            GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
+            GMBits2x64 val = GMVectors_bits2x64_get(this, pfl, vl, &env_);
             const int shift_dist = 64 - 2*(nfal-fl-32);
             COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
             val.data[1] &= allbits >> shift_dist;
-            GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
+            GMVectors_bits2x64_set(this, pfl, vl, val, &env_);
 
           } // if
         } // for pfl
@@ -151,116 +231,52 @@ void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
 }
 
 //=============================================================================
-// Vectors pseudo-constructor.
+// Vectors destructor.
 
-static void GMVectors_create_imp_(GMVectors* vectors,
-                                  int data_type_id,
-                                  GMDecompMgr* dm,
-                                  CEnv* env) {
-  COMET_INSIST(vectors && dm && env);
+void GMVectors::deallocate() {
+  if (!is_allocated_)
+    return;
 
-  vectors->data_type_id = data_type_id;
-  vectors->dm = dm;
-  vectors->num_field = dm->num_field;
-  vectors->num_field_active = dm->num_field_active;
-  vectors->num_field_local = dm->num_field_local;
-  vectors->num_vector = dm->num_vector;
-  vectors->num_vector_local = dm->num_vector_local;
+  COMET_INSIST(data || ! env_.is_proc_active());
 
-  const int bits_per_byte = 8;
+  if (!env_.is_proc_active())
+    return;
 
-  // Allocation size for vector storage
-
-  vectors->num_packedfield_local = dm->num_packedfield_local;
-
-  vectors->num_packedfield_vector_local =
-      vectors->num_packedfield_local * dm->num_vector_local;
-
-  vectors->data_size = vectors->num_packedfield_vector_local *
-                       (dm->num_bit_per_packedfield / bits_per_byte);
-
-  // Set up vector storage, mirrored buffer
-
-  vectors->buf_ = new MirroredBuf(*env);
-
-  if (vectors->has_buf_) {
-    vectors->buf_->allocate(vectors->num_packedfield_local,
-                            vectors->num_vector_local);
-    vectors->data = vectors->buf_->h; // alias vector storage to buf
-  } else {
-    vectors->data = gm_malloc(vectors->data_size, env);
+  if (!has_buf_) {
+    gm_free(data, data_size, &env_);
+    data = NULL;
   }
 
-  // Set pad entries to zero
+  delete buf_;
 
-  GMVectors_initialize_pad(vectors, env);
+  is_allocated_ = false;
 }
 
 //-----------------------------------------------------------------------------
 
-void GMVectors::create(int data_type_id,
-                       GMDecompMgr& dm,
-                       CEnv& env) {
-  if (!env.is_proc_active())
-    return;
-
-  has_buf_ = false;
-
-  GMVectors_create_imp_(this, data_type_id, &dm, &env);
+GMVectors::~GMVectors() {
+  deallocate();
 }
-
-//-----------------------------------------------------------------------------
-
-void GMVectors::create_with_buf(int data_type_id,
-                                GMDecompMgr& dm,
-                                CEnv& env) {
-  if (!env.is_proc_active())
-    return;
-
-  has_buf_ = true;
-
-  GMVectors_create_imp_(this, data_type_id, &dm, &env);
-}
-
-//=============================================================================
-// Vectors pseudo-destructor.
-
-void GMVectors_destroy(GMVectors* vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
-  COMET_INSIST(vectors->data || ! env->is_proc_active());
-
-  if (! env->is_proc_active())
-    return;
-
-  if (!vectors->has_buf_)
-    gm_free(vectors->data, vectors->data_size, env);
-
-  delete vectors->buf_;
-}
-
 
 //=============================================================================
 // Copy vectors to mirrored buffer
 
-void gm_vectors_to_buf(MirroredBuf* vectors_buf,
-                       GMVectors* vectors,
-                       CEnv* env) {
-  COMET_INSIST(vectors && vectors_buf && env);
+void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
 
-  if (!env->is_using_linalg())
+  if (!env_.is_using_linalg())
     return;
 
   // Copy vectors into GPU buffers if needed.
 
-  switch (env->metric_type()) {
+  switch (env_.metric_type()) {
     case MetricType::CZEK: {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
-          vectors_buf->elt<GMFloat>(fl, i) =
-            GMVectors_float_get(vectors, fl, i, env);
+      for (int i = 0; i < num_vector_local; ++i) {
+        for (int fl = 0; fl < num_field_local; ++fl) {
+          vectors_buf.elt<GMFloat>(fl, i) =
+            GMVectors_float_get(this, fl, i, &env_);
         }
       }
     } break;
@@ -268,10 +284,10 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_packedfield_local; ++fl) {
-          vectors_buf->elt<GMBits2x64>(fl, i) =
-            GMVectors_bits2x64_get(vectors, fl, i, env);
+      for (int i = 0; i < num_vector_local; ++i) {
+        for (int fl = 0; fl < num_packedfield_local; ++fl) {
+          vectors_buf.elt<GMBits2x64>(fl, i) =
+            GMVectors_bits2x64_get(this, fl, i, &env_);
         }
       }
     } break;
@@ -279,28 +295,27 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_packedfield_local; ++fl) {
-          vectors_buf->elt<GMBits2x64>(fl, i) =
-            GMVectors_bits2x64_get(vectors, fl, i, env);
+      for (int i = 0; i < num_vector_local; ++i) {
+        for (int fl = 0; fl < num_packedfield_local; ++fl) {
+          vectors_buf.elt<GMBits2x64>(fl, i) =
+            GMVectors_bits2x64_get(this, fl, i, &env_);
         }
       }
     } break;
     default:
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented metric_type.");
+      COMET_INSIST_INTERFACE(&env_, false && "Unimplemented metric_type.");
   } // switch
 }
+
 //=============================================================================
 // checksum of vector entries.
 
-size_t GMVectors_cksum(const GMVectors* const vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
+size_t GMVectors::cksum() const {
 
-  if (! env->is_proc_active()) {
+  if (!env_.is_proc_active())
     return 0;
-  }
 
-  return gm_array_cksum((unsigned char*)(vectors->data), vectors->data_size);
+  return gm_array_cksum((unsigned char*)data, data_size);
 }
 
 //=============================================================================

@@ -210,7 +210,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors,
   CEnv& env) {
 
-  ComputeMetrics compute_metrics(*vectors.dm, env);
+  ComputeMetrics compute_metrics(*vectors.dm(), env);
   compute_metrics.compute(metrics, vectors);
 }
 

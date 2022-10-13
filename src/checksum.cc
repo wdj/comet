@@ -173,12 +173,12 @@ double Checksum::metrics_elt(
   bool do_set_zero = false;
   switch (metrics.data_type_id) {
     // --------------
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
       value = Metrics_elt_const<GMFloat>(metrics, index, env);
       // TODO: consider thresholding out here.
     } break;
     // --------------
-    case GM_DATA_TYPE_TALLY2X2: {
+    case DataTypeId::TALLY2X2: {
       value = Metrics_ccc_duo_get_2(metrics, index, entry_num, env);
 //printf("cksum    %i %i %f\n", (int)index, (int)entry_num, (double)value);
       // ensure result independent of is_threshold_tc
@@ -199,7 +199,7 @@ double Checksum::metrics_elt(
 
     } break;
     // --------------
-    case GM_DATA_TYPE_TALLY4X2: {
+    case DataTypeId::TALLY4X2: {
       value = Metrics_ccc_duo_get_3(metrics, index, entry_num, env);
       // ensure result independent of is_threshold_tc
       if (!env.is_double_prec())
@@ -298,7 +298,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   // TODO: put this in metrics class - a heavyweight validity check function
   switch (metrics.data_type_id) {
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
       GMFloat_check((GMFloat*)(metrics.data), metrics.num_metrics_local);
     } break;
   }

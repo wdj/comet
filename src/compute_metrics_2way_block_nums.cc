@@ -148,7 +148,7 @@ static void compute_nums_nonlinalg_ccc_start_(
 
     // Perform pseudo GEMM.
 
-    const int nfal = vectors_left->dm->num_field_active_local;
+    const int nfal = vectors_left->dm()->num_field_active_local;
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
@@ -387,7 +387,7 @@ static void compute_nums_nonlinalg_duo_start_(
 
     // Perform pseudo GEMM.
 
-    const int nfal = vectors_left->dm->num_field_active_local;
+    const int nfal = vectors_left->dm()->num_field_active_local;
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
@@ -668,9 +668,9 @@ void ComputeMetrics2WayBlock::compute_nums_start(
   if (env->is_using_linalg()) {
 
     //GemmShape2Way gemm_shape(do_compute_triang_only,
-    //  metrics->dm->num_vector_local, metrics->dm->num_vector_active,
+    //  metrics->dm()->num_vector_local, metrics->dm()->num_vector_active,
     //  env->proc_num_vector(), j_block);
-//printf("%i  %i %i\n", System::proc_num(), (int)metrics->dm->num_vector_active_local, do_compute_triang_only);
+//printf("%i  %i %i\n", System::proc_num(), (int)metrics->dm()->num_vector_active_local, do_compute_triang_only);
     ////GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
     //GemmShapes gemm_shapes(&gemm_shape);
 
@@ -683,7 +683,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      *(vectors_left->dm), magma_wrapper, gemm_shapes, *env);
+      *(vectors_left->dm()), magma_wrapper, gemm_shapes, *env);
 
   } else if(env->metric_type() == MetricType::CZEK) {
 
@@ -738,7 +738,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
   if (env->is_using_linalg()) {
 
     //GemmShape2Way gemm_shape(do_compute_triang_only,
-    //  metrics->dm->num_vector_local, metrics->dm->num_vector_active,
+    //  metrics->dm()->num_vector_local, metrics->dm()->num_vector_active,
     //  env->proc_num_vector(), j_block);
     ////GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
     //GemmShapes gemm_shapes(&gemm_shape);
@@ -752,7 +752,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      *(vectors_left->dm), gemm_shapes, *env);
+      *(vectors_left->dm()), gemm_shapes, *env);
 
   } // if
 }

@@ -58,12 +58,12 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
     return;
   }
 
-  const size_t nva = vectors->dm->num_vector_active;
-  const size_t nfa = vectors->dm->num_field_active;
+  const size_t nva = vectors->dm()->num_vector_active;
+  const size_t nfa = vectors->dm()->num_field_active;
 
   switch (env->data_type_vectors()) {
     //--------------------
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
     //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
@@ -118,7 +118,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
       //}
     } break;
     //--------------------
-    case GM_DATA_TYPE_BITS2: {
+    case DataTypeId::BITS2: {
     //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
@@ -220,7 +220,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
     return;
 
   const size_t nfa = vectors->num_field_active;
-  const size_t nva = vectors->dm->num_vector_active;
+  const size_t nva = vectors->dm()->num_vector_active;
 
   const auto tpi = TestProblemInfo(nva, nfa, *env);
 
@@ -234,7 +234,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
 
   switch (env->data_type_vectors()) {
     //--------------------
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
     //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
@@ -271,7 +271,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
       }   // vector_local
     } break;
     //--------------------
-    case GM_DATA_TYPE_BITS2: {
+    case DataTypeId::BITS2: {
     //--------------------
 
 #pragma omp parallel for
@@ -692,7 +692,7 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
   switch (env->data_type_metrics()) {
     //--------------------
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
     //--------------------
       if (env->num_way() == NumWay::_2) {
 
@@ -753,7 +753,7 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
     } break;
     //--------------------
-    case GM_DATA_TYPE_TALLY2X2: {
+    case DataTypeId::TALLY2X2: {
     //--------------------
 
 #     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
@@ -834,7 +834,7 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
     } break;
     //--------------------
-    case GM_DATA_TYPE_TALLY4X2: {
+    case DataTypeId::TALLY4X2: {
     //--------------------
 
 #     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)

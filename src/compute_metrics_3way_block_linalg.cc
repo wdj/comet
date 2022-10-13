@@ -751,7 +751,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const bool need_mat_jk = env_.does_3way_need_2way() && ! si->is_part1;
   const bool need_mat_kik = env_.does_3way_need_2way() && si->is_part3;
 
-  GMDecompMgr* const dm = vdata_i.vectors->dm;
+  GMDecompMgr* const dm = vdata_i.vectors->dm();
 
   //----------------------------------------
   // First get the required 2-way ij, jk, ik metrics.

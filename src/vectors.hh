@@ -44,25 +44,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-#if 0
-class Vectors {
-public:
-
-  enum {WITH_BUF = true};
-
-  Vectors(int i) {}
-  Vectors(int i, bool is_with_buf) {}
-
-  void add(int i) {}
-
-};
-#endif
-
 //-----------------------------------------------------------------------------
 // Struct declaration.
 
-struct GMVectors {
+class GMVectors {
 
+public:
   // Logical sizes.
   int num_field;
   int num_field_local;
@@ -79,58 +66,40 @@ struct GMVectors {
   size_t data_size;
   bool has_buf_;
   MirroredBuf* buf_;
-  GMDecompMgr* dm;
 
-  GMVectors()
-  : num_field(0)
-  , num_field_local(0)
-  , num_field_active(0)
-  ,  num_vector(0)
-  , num_vector_local(0)
-  , num_packedfield_local(0)
-  , num_packedfield_vector_local(0)
-  , data_type_id(0)
-  , pad1(0)
-  , data(NULL)
-  , data_size(0)
-  , has_buf_(false)
-  , buf_(NULL)
-  , dm(NULL) {
+  GMVectors(CEnv& env);
+  ~GMVectors();
+
+  GMDecompMgr* dm() const {
+    return dm_;
   }
 
-  void create(int data_type_id, GMDecompMgr& dm, CEnv& env);
-  void create_with_buf(int data_type_id, GMDecompMgr& dm, CEnv& env);
+  void allocate(int data_type_id, GMDecompMgr& dm);
+  void allocate_with_buf(int data_type_id, GMDecompMgr& dm);
+  void deallocate();
+  void initialize();
+  void initialize_pad();
+  size_t cksum() const;
+  void to_buf(MirroredBuf& vectors_buf) const;
 
   bool has_buf() const {return has_buf_;}
 
   MirroredBuf* buf() const {
     COMET_INSIST(has_buf_);
     return buf_;
-  };
+  }
+
+private:
+
+  CEnv& env_;
+  GMDecompMgr* dm_;
+  bool is_allocated_;
+
+  enum {HAS_BUF_TRUE = true,
+        HAS_BUF_FALSE = false};
+
+  void allocate_impl_(int data_type_id, GMDecompMgr& dm, bool has_buf);
 };
-
-//=============================================================================
-// Vectors pseudo-constructor.
-
-void GMVectors_initialize(GMVectors* vectors, CEnv* env);
-
-void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env);
-
-//=============================================================================
-// Vectors pseudo-destructor.
-
-void GMVectors_destroy(GMVectors* vectors, CEnv* env);
-
-//=============================================================================
-
-size_t GMVectors_cksum(const GMVectors* const vectors, CEnv* env);
-
-//=============================================================================
-// Copy vectors to mirrored buffer
-
-void gm_vectors_to_buf(MirroredBuf* vectors_buf,
-                       GMVectors* vectors,
-                       CEnv* env);
 
 //=============================================================================
 // Accessors: Float.
@@ -145,7 +114,7 @@ static GMFloat* GMVectors_float_ptr(GMVectors* const vectors,
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
   COMET_ASSERT(env);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::FLOAT);
 
   return ((GMFloat*)(vectors->data)) + (field_local +
                         vectors->num_field_local*(size_t)vector_local);
@@ -163,7 +132,7 @@ static void GMVectors_float_set(GMVectors* vectors,
   COMET_ASSERT(field_local < vectors->num_field_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::FLOAT);
 
   *(GMVectors_float_ptr(vectors, field_local, vector_local, env)) = value;
 }
@@ -177,7 +146,7 @@ static GMFloat GMVectors_float_get_from_index(const GMVectors* const vectors,
   //COMET_ASSERT(index >= 0);
   COMET_ASSERT(index < vectors->num_vector_local*(size_t)vectors->num_field_local);
   COMET_ASSERT(env);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::FLOAT);
 
   return ((GMFloat*)(vectors->data))[index];
 }
@@ -194,7 +163,7 @@ static GMFloat GMVectors_float_get(const GMVectors* const vectors,
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
   COMET_ASSERT(env);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::FLOAT);
 
   return GMVectors_float_get_from_index(vectors,
     field_local + vectors->num_field_local*(size_t)vector_local, env);
@@ -213,7 +182,7 @@ static GMBits2 GMVectors_bits2_get(const GMVectors* vectors,
   COMET_ASSERT(field_local < vectors->num_field_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::BITS2);
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
@@ -252,7 +221,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
   COMET_ASSERT(value+1 >= 1 && value < (1 << GM_BITS2_MAX_VALUE_BITS));
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::BITS2);
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
@@ -293,7 +262,7 @@ static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
   COMET_ASSERT(packedfield_local < vectors->num_packedfield_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::BITS2);
 
   const size_t index = packedfield_local +
     vectors->num_packedfield_local*(size_t)vector_local;
@@ -328,7 +297,7 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
   COMET_ASSERT(packedfield_local < vectors->num_packedfield_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::BITS2);
 
   const size_t index = packedfield_local +
     vectors->num_packedfield_local*(size_t)vector_local;
@@ -349,7 +318,7 @@ static GMBits2x64 GMVectors_bits2x64_get(const GMVectors* vectors,
   COMET_ASSERT(packedfield_local < vectors->num_packedfield_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
-  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(env->data_type_vectors() == DataTypeId::BITS2);
 
   const size_t index = packedfield_local +
     vectors->num_packedfield_local*(size_t)vector_local;

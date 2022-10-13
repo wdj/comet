@@ -110,7 +110,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   // Copy in vectors
 
-  gm_vectors_to_buf(&vectors_buf, &vectors, env);
+  vectors.to_buf(vectors_buf);
 
   // Send vectors to GPU
 
@@ -187,11 +187,11 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_j_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
 
-  GMVectors vectors_j_value_0;
-  GMVectors vectors_j_value_1;
+  GMVectors vectors_j_value_0(env_);
+  GMVectors vectors_j_value_1(env_);
   GMVectors* const vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
-  vectors_j[0]->create(data_type, *vectors.dm, env_);
-  vectors_j[1]->create(data_type, *vectors.dm, env_);
+  vectors_j[0]->allocate(data_type, *vectors.dm());
+  vectors_j[1]->allocate(data_type, *vectors.dm());
 
   MirroredBuf vectors_j_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
@@ -203,11 +203,11 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_k_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
 
-  GMVectors vectors_k_value_0;
-  GMVectors vectors_k_value_1;
+  GMVectors vectors_k_value_0(env_);
+  GMVectors vectors_k_value_1(env_);
   GMVectors* const vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
-  vectors_k[0]->create(data_type, *vectors.dm, env_);
-  vectors_k[1]->create(data_type, *vectors.dm, env_);
+  vectors_k[0]->allocate(data_type, *vectors.dm());
+  vectors_k[1]->allocate(data_type, *vectors.dm());
 
   MirroredBuf vectors_k_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
@@ -260,7 +260,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
     vector_sums_i->to_accel();
 
   // Copy in vectors.
-  gm_vectors_to_buf(vectors_i_buf, vectors_i, env);
+  vectors_i->to_buf(*vectors_i_buf);
 
   // Send vectors to GPU.
   vectors_i_buf->to_accel();
@@ -358,13 +358,12 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           // Communicate vectors wait.
           comm_request_send_j.wait();
           comm_request_recv_j.wait();
-          //fprintf(stderr, "%zu %zu\n", comm_request_recv_j.cksum_, GMVectors_cksum(vectors_j_recv, env));
-          COMET_ASSERT(comm_request_recv_j.cksum_ == GMVectors_cksum(vectors_j_recv, env));
+          COMET_ASSERT(comm_request_recv_j.cksum_ == vectors_j_recv->cksum());
           //gm_send_vectors_wait(&req_send_j, env);
           //gm_recv_vectors_wait(&req_recv_j, env);
 
           // Copy in vectors.
-          gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
+          vectors_j_this->to_buf(*vectors_j_buf);
 
           // Send vectors to GPU start.
           vectors_j_buf->to_accel_start();
@@ -489,13 +488,13 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
               comm_request_send_k.wait();
               comm_request_recv_k.wait();
               
-              COMET_ASSERT(comm_request_recv_k.cksum_ == GMVectors_cksum(vectors_k_recv, env));
+              COMET_ASSERT(comm_request_recv_k.cksum_ == vectors_k_recv->cksum());
               //gm_send_vectors_wait(&req_send_k, env);
               //gm_recv_vectors_wait(&req_recv_k, env);
               k_block_currently_resident = k_block;
 
               // Copy in vectors.
-              gm_vectors_to_buf(vectors_k_buf, vectors_k_this, env);
+              vectors_k_this->to_buf(*vectors_k_buf);
 
               // Send vectors to GPU start.
               vectors_k_buf->to_accel_start();
@@ -518,12 +517,12 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
             // Communicate vectors wait.
             comm_request_send_j.wait();
             comm_request_recv_j.wait();
-            COMET_ASSERT(comm_request_recv_j.cksum_ == GMVectors_cksum(vectors_j_recv, env));
+            COMET_ASSERT(comm_request_recv_j.cksum_ == vectors_j_recv->cksum());
             //gm_send_vectors_wait(&req_send_j, env);
             //gm_recv_vectors_wait(&req_recv_j, env);
 
             // Copy in vectors.
-            gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
+            vectors_j_this->to_buf(*vectors_j_buf);
 
             // Send vectors to GPU start.
             vectors_j_buf->to_accel_start();
@@ -570,11 +569,10 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Free memory and finalize.
   // ------------------
 
-  GMVectors_destroy(vectors_k[0], env);
-  GMVectors_destroy(vectors_k[1], env);
-  GMVectors_destroy(vectors_j[0], env);
-  GMVectors_destroy(vectors_j[1], env);
-
+  vectors_k[0]->deallocate();
+  vectors_k[1]->deallocate();
+  vectors_j[0]->deallocate();
+  vectors_j[1]->deallocate();
   }
 }
 

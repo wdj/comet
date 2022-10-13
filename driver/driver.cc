@@ -577,8 +577,8 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Allocate vectors.
 
   timer.start();
-  GMVectors vectors;
-  vectors.create(env.data_type_vectors(), dm, env);
+  GMVectors vectors(env);
+  vectors.allocate(env.data_type_vectors(), dm);
   timer.add_elapsed(counters_.vctime);
 
   // Set vectors.
@@ -736,7 +736,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Deallocate vectors.
 
   timer.start();
-  GMVectors_destroy(&vectors, &env);
+  vectors.deallocate();
   GMDecompMgr_destroy(&dm, &env);
   timer.add_elapsed(counters_.vctime);
 

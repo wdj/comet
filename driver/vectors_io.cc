@@ -59,21 +59,21 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
   FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nva = vectors.dm->num_vector_active;
-  const size_t nfa = vectors.dm->num_field_active;
+  const size_t nva = vectors.dm()->num_vector_active;
+  const size_t nfa = vectors.dm()->num_field_active;
   const size_t nvl = vectors.num_vector_local;
   const size_t nfl = vectors.num_field_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
 
   const int fl_min = 0;
-  const size_t f_min = fl_min + vectors.dm->field_base;
+  const size_t f_min = fl_min + vectors.dm()->field_base;
 
   // Loop to input vectors
 
   for (size_t vl = 0; vl < nvl; ++vl) {
 
     // (global) vector number.
-    const size_t v = vl + vectors.dm->vector_base;
+    const size_t v = vl + vectors.dm()->vector_base;
 
     // Fill pad vectors at end with copies of last active vector.
     const size_t v_file = utils::min(v, nva-1);
@@ -102,7 +102,7 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
   } //---for vl
 
   // Ensure any end pad of each vector is set to zero
-  GMVectors_initialize_pad(&vectors, &env);
+  vectors.initialize_pad();
 
   fclose(file);
 }
@@ -118,20 +118,20 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   if (! env.is_proc_active())
     return;
 
-  if (0 == vectors.dm->num_field_active_local)
+  if (0 == vectors.dm()->num_field_active_local)
     return;
 
   FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nva = vectors.dm->num_vector_active;
-  const size_t nfa = vectors.dm->num_field_active;
+  const size_t nva = vectors.dm()->num_vector_active;
+  const size_t nfa = vectors.dm()->num_field_active;
   const size_t nvl = vectors.num_vector_local;
-  const size_t npfl = vectors.dm->num_packedfield_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
-  const size_t bit_per_f = vectors.dm->num_bit_per_field; // = 2
+  const size_t npfl = vectors.dm()->num_packedfield_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
+  const size_t bit_per_f = vectors.dm()->num_bit_per_field; // = 2
 
-  const size_t bit_per_pf = vectors.dm->num_bit_per_packedfield;
+  const size_t bit_per_pf = vectors.dm()->num_bit_per_packedfield;
   const size_t bit_per_byte = 8;
   const size_t f_per_byte = bit_per_byte / bit_per_f;
   const size_t byte_per_pf = bit_per_pf / bit_per_byte;
@@ -144,7 +144,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   const size_t byte_per_v_file = utils::ceil(nfa, f_per_byte);
 
   const size_t fl_min = 0;
-  const size_t f_min = fl_min + vectors.dm->field_base;
+  const size_t f_min = fl_min + vectors.dm()->field_base;
   const size_t f_max = f_min + nfal;
 
   // Buffer to capture read-in data that is possibly not correctly bit-aligned.
@@ -157,7 +157,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   for (size_t vl = 0; vl < nvl; ++vl) {
 
     // (global) vector number.
-    const size_t v = vl + vectors.dm->vector_base;
+    const size_t v = vl + vectors.dm()->vector_base;
 
     // Fill pad vectors at end with copies of last active vector.
     const size_t v_file = utils::min(v, nva-1);
@@ -241,7 +241,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   } // vl
 
   // Ensure any end of vector pad set to zero
-  GMVectors_initialize_pad(&vectors, &env);
+  vectors.initialize_pad();
 
   free(buf);
   fclose(file);
@@ -255,11 +255,11 @@ void VectorsIO::read(GMVectors& vectors, const char* path, CEnv& env) {
 
   switch (env.data_type_vectors()) {
 
-    case GM_DATA_TYPE_FLOAT:
+    case DataTypeId::FLOAT:
       VectorsIO_read_float(vectors, path, env);
     break;
 
-    case GM_DATA_TYPE_BITS2:
+    case DataTypeId::BITS2:
       VectorsIO_read_bits2(vectors, path, env);
     break;
 
@@ -285,8 +285,8 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
   FILE* file = fopen(path, "wb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nval = vectors.dm->num_vector_active_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
+  const size_t nval = vectors.dm()->num_vector_active_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
 
   size_t num_written = 0;
   const size_t num_written_attempted = nval * nfal;
@@ -326,12 +326,12 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
   FILE* file = fopen(path, "wb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nval = vectors.dm->num_vector_active_local;
-  const size_t npfl = vectors.dm->num_packedfield_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
-  const size_t bit_per_f = vectors.dm->num_bit_per_field; // = 2
+  const size_t nval = vectors.dm()->num_vector_active_local;
+  const size_t npfl = vectors.dm()->num_packedfield_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
+  const size_t bit_per_f = vectors.dm()->num_bit_per_field; // = 2
 
-  const size_t bit_per_pf = vectors.dm->num_bit_per_packedfield;
+  const size_t bit_per_pf = vectors.dm()->num_bit_per_packedfield;
   const size_t bit_per_byte = 8;
   const size_t f_per_byte = bit_per_byte / bit_per_f;
   const size_t byte_per_pf = bit_per_pf / bit_per_byte;
@@ -389,11 +389,11 @@ void VectorsIO::write(GMVectors& vectors, const char* path, CEnv& env) {
 
   switch (env.data_type_vectors()) {
 
-    case GM_DATA_TYPE_FLOAT:
+    case DataTypeId::FLOAT:
       VectorsIO_write_float(vectors, path, env);
     break;
 
-    case GM_DATA_TYPE_BITS2:
+    case DataTypeId::BITS2:
       VectorsIO_write_bits2(vectors, path, env);
     break;
 
@@ -409,12 +409,12 @@ void VectorsIO::print(GMVectors& vectors, CEnv& env) {
   if (! env.is_proc_active())
     return;
 
-  const int nval = vectors.dm->num_vector_active_local;
-  const int nfal = vectors.dm->num_field_active_local;
+  const int nval = vectors.dm()->num_vector_active_local;
+  const int nfal = vectors.dm()->num_field_active_local;
 
   switch (env.data_type_vectors()) {
 
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
 
       for (int vl = 0; vl < nval; ++vl) {
         for (int fl = 0; fl < nfal; ++fl) {
@@ -426,7 +426,7 @@ void VectorsIO::print(GMVectors& vectors, CEnv& env) {
       } // vl
     } break;
 
-    case GM_DATA_TYPE_BITS2: {
+    case DataTypeId::BITS2: {
 
       for (int vl = 0; vl < nval; ++vl) {
         for (int fl = 0; fl < nfal; ++fl) {

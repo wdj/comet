@@ -85,10 +85,10 @@ struct TestProblemInfo {
       // Upper bound on integer representable exactly by floating point type.
       // Account for cast to float in magma Volta version.
     , max_float_(((size_t)1) <<  
-                 (env.data_type_vectors() == GM_DATA_TYPE_FLOAT ?
+                 (env.data_type_vectors() == DataTypeId::FLOAT ?
                  mantissa_digits<float>() : mantissa_digits<GMFloat>()))
       // Czek account for number of terms summed in denom or num
-    , overflow_limit_(env.data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
+    , overflow_limit_(env.data_type_vectors() != DataTypeId::FLOAT ? 1 :
                       env.num_way() == NumWay::_2 ? 2 : 4)
       // Sum nfa times down the vector, is it still exact.
     , value_limit_((max_float_ - 1) / (overflow_limit_ * nfa_))

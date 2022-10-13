@@ -591,10 +591,10 @@ void GMMetrics_create(GMMetrics* metrics,
 
   switch (data_type_id) {
     //----------
-    case GM_DATA_TYPE_FLOAT:
+    case DataTypeId::FLOAT:
       break;
     //----------
-    case GM_DATA_TYPE_TALLY2X2: {
+    case DataTypeId::TALLY2X2: {
 
       if (!env->is_threshold_tc()) {
 
@@ -614,7 +614,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     } break;
     //----------
-    case GM_DATA_TYPE_TALLY4X2: {
+    case DataTypeId::TALLY4X2: {
 
       if (!env->is_threshold_tc()) {
 

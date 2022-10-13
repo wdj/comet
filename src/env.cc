@@ -622,11 +622,11 @@ int CEnv::data_type_vectors() const {
 
   switch (metric_type()) {
     case MetricType::CZEK:
-      return GM_DATA_TYPE_FLOAT;
+      return DataTypeId::FLOAT;
     case MetricType::CCC:
-      return GM_DATA_TYPE_BITS2;
+      return DataTypeId::BITS2;
     case MetricType::DUO:
-      return GM_DATA_TYPE_BITS2;
+      return DataTypeId::BITS2;
   }
   COMET_INSIST(false && "Invalid metric_type.");
   return 0;
@@ -639,13 +639,13 @@ int CEnv::data_type_metrics() const {
 
   switch (metric_type()) {
     case MetricType::CZEK:
-      return GM_DATA_TYPE_FLOAT;
+      return DataTypeId::FLOAT;
     case MetricType::CCC:
-      return num_way() == NumWay::_2 ? GM_DATA_TYPE_TALLY2X2
-                                     : GM_DATA_TYPE_TALLY4X2;
+      return num_way() == NumWay::_2 ? DataTypeId::TALLY2X2
+                                     : DataTypeId::TALLY4X2;
     case MetricType::DUO:
-      return num_way() == NumWay::_2 ? GM_DATA_TYPE_TALLY2X2
-                                     : GM_DATA_TYPE_TALLY4X2;
+      return num_way() == NumWay::_2 ? DataTypeId::TALLY2X2
+                                     : DataTypeId::TALLY4X2;
   }
   COMET_INSIST(false && "Invalid metric_type.");
   return 0;
