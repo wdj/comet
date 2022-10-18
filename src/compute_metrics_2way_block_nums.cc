@@ -80,7 +80,7 @@ static void compute_nums_nonlinalg_czek_start_(
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
       for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (int f = 0; f < vectors_left->num_field_local; ++f) {
+        for (int f = 0; f < (int)vectors_left->dm()->num_field_local; ++f) {
           const GMFloat value1 = vectors_left->elt_float_const(f, i);
           const GMFloat value2 = vectors_right->elt_float_const(f, j);
           metric += value1 < value2 ? value1 : value2;
@@ -103,7 +103,7 @@ static void compute_nums_nonlinalg_czek_start_(
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (int f = 0; f < vectors_left->num_field_local; ++f) {
+        for (int f = 0; f < (int)vectors_left->dm()->num_field_local; ++f) {
           const GMFloat value1 = vectors_left->elt_float_const(f, i);
           const GMFloat value2 = vectors_right->elt_float_const(f, j);
           metric += value1 < value2 ? value1 : value2;
@@ -673,8 +673,8 @@ void ComputeMetrics2WayBlock::compute_nums_start(
     //GemmShapes gemm_shapes(&gemm_shape);
 
     LinAlg::gemm_start(
-      vectors_left->num_vector_local,
-      vectors_left->num_vector_local,
+      vectors_left->num_vector_local(),
+      vectors_left->num_vector_local(),
       vectors_left->num_packedfield_local(),
       vectors_left_buf,
       vectors_right_buf,
@@ -742,8 +742,8 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
     //GemmShapes gemm_shapes(&gemm_shape);
 
     LinAlg::gemm_wait(
-      vectors_left->num_vector_local,
-      vectors_left->num_vector_local,
+      vectors_left->num_vector_local(),
+      vectors_left->num_vector_local(),
       vectors_left->num_packedfield_local(),
       vectors_left_buf,
       vectors_right_buf,

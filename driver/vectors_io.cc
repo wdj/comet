@@ -61,8 +61,8 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
 
   const size_t nva = vectors.dm()->num_vector_active;
   const size_t nfa = vectors.dm()->num_field_active;
-  const size_t nvl = vectors.num_vector_local;
-  const size_t nfl = vectors.num_field_local;
+  const size_t nvl = vectors.dm()->num_vector_local;
+  const size_t nfl = vectors.dm()->num_field_local;
   const size_t nfal = vectors.dm()->num_field_active_local;
 
   const int fl_min = 0;
@@ -126,7 +126,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
 
   const size_t nva = vectors.dm()->num_vector_active;
   const size_t nfa = vectors.dm()->num_field_active;
-  const size_t nvl = vectors.num_vector_local;
+  const size_t nvl = vectors.num_vector_local();
   const size_t npfl = vectors.dm()->num_packedfield_local;
   const size_t nfal = vectors.dm()->num_field_active_local;
   const size_t bit_per_f = vectors.dm()->num_bit_per_field; // = 2

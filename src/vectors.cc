@@ -52,9 +52,8 @@ namespace comet {
 // Vectors constructor.
 
 GMVectors::GMVectors(CEnv& env)
-  : num_field_local(0)
-  , num_field_active(0)
-  , num_vector_local(0)
+  : num_field_local_(0)
+  , num_vector_local_(0)
   , num_packedfield_local_(0)
   , num_packedfield_vector_local_(0)
   , data_(NULL)
@@ -90,9 +89,8 @@ void GMVectors::allocate_impl_(int data_type_id,
   this->data_type_id_ = data_type_id;
   dm_ = &dm;
   has_buf_ = has_buf;
-  num_field_active = dm_->num_field_active;
-  num_field_local = dm_->num_field_local;
-  num_vector_local = dm_->num_vector_local;
+  num_field_local_ = dm_->num_field_local;
+  num_vector_local_ = dm_->num_vector_local;
 
   const int bits_per_byte = 8;
 
@@ -112,7 +110,7 @@ void GMVectors::allocate_impl_(int data_type_id,
 
   if (has_buf_) {
     buf_->allocate(num_packedfield_local_,
-                   num_vector_local);
+                   num_vector_local_);
     data_ = buf_->h; // alias vector storage to buf
   } else {
     data_ = gm_malloc(data_size_, &env_);
@@ -139,7 +137,7 @@ void GMVectors::initialize() {
   switch (data_type_id_) {
     case DataTypeId::FLOAT: {
       GMFloat zero = 0;
-      for (int vl = 0; vl < num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           elt_float(pfl, vl) = zero;
         }
@@ -147,7 +145,7 @@ void GMVectors::initialize() {
     } break;
     case DataTypeId::BITS2: {
       const GMBits2x64 zero = GMBits2x64_null();
-      for (int vl = 0; vl < num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           elt_bits2x64(pfl, vl) = zero;
         } // for pfl
@@ -182,7 +180,7 @@ void GMVectors::initialize_pad() {
   switch (data_type_id_) {
     case DataTypeId::FLOAT: {
       GMFloat zero = 0;
-      for (int vl = 0; vl < num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           elt_float(pfl, vl) = zero;
         }
@@ -191,7 +189,7 @@ void GMVectors::initialize_pad() {
     case DataTypeId::BITS2: {
       const GMBits2x64 zero = GMBits2x64_null();
       const uint64_t allbits = 0xffffffffffffffff;
-      for (int vl = 0; vl < num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           const size_t fl = 64 * pfl;
 
@@ -268,8 +266,8 @@ void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int vl = 0; vl < num_vector_local; ++vl) {
-        for (int fl = 0; fl < num_field_local; ++fl) {
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
+        for (int fl = 0; fl < num_field_local_; ++fl) {
           vectors_buf.elt<GMFloat>(fl, vl) =
             elt_float_const(fl, vl);
         }
@@ -279,7 +277,7 @@ void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int vl = 0; vl < num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (int fl = 0; fl < num_packedfield_local_; ++fl) {
           vectors_buf.elt<GMBits2x64>(fl, vl) =
             elt_bits2x64_const(fl, vl);
@@ -290,7 +288,7 @@ void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int vl = 0; vl < num_vector_local; ++vl) {
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (int fl = 0; fl < num_packedfield_local_; ++fl) {
           vectors_buf.elt<GMBits2x64>(fl, vl) =
             elt_bits2x64_const(fl, vl);

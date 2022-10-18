@@ -61,7 +61,7 @@ VectorSums::VectorSums(size_t num_vector_local, CEnv& env)
 
 VectorSums::VectorSums(const GMVectors& vectors, CEnv& env)
   : env_(env)
-  , num_vector_local_(vectors.num_vector_local)
+  , num_vector_local_(vectors.num_vector_local())
   , sums_(env)
   , sums_tmp_(env)
   , counts_(env)
@@ -92,7 +92,7 @@ void VectorSums::allocate_() {
 //-----------------------------------------------------------------------------
 
 void VectorSums::compute(const GMVectors& vectors) {
-  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   // Compute the vector sums.
 
@@ -107,7 +107,7 @@ void VectorSums::compute(const GMVectors& vectors) {
 
 void VectorSums::compute_accel(const GMVectors& vectors,
   AccelStream_t accel_stream) {
-  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   if (!env_.is_compute_method_gpu())
     return;
@@ -124,7 +124,7 @@ void VectorSums::compute_accel(const GMVectors& vectors,
 //-----------------------------------------------------------------------------
 
 void VectorSums::compute_float_(const GMVectors& vectors) {
-  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
 
@@ -134,7 +134,7 @@ void VectorSums::compute_float_(const GMVectors& vectors) {
   for (int i = 0; i < num_vector_local_; ++i) {
     GMFloat sum = 0;
     //#pragma omp parallel for reduction(+:sum)
-    for (int f = 0; f < vectors.num_field_local; ++f) {
+    for (int f = 0; f < (int)vectors.dm()->num_field_local; ++f) {
       const Float_t value = vectors.elt_float_const(f, i);
       sum += value;
     }
@@ -147,13 +147,14 @@ void VectorSums::compute_float_(const GMVectors& vectors) {
     COMET_MPI_SAFE_CALL(MPI_Allreduce(sums_local.h, sums_.h,
       num_vector_local_, COMET_MPI_FLOAT, MPI_SUM, env_.comm_field()));
 
-  env_.ops_local_inc(2 * num_vector_local_ * (double)vectors.num_field_local);
+  env_.ops_local_inc(2 * num_vector_local_ *
+                     (double)vectors.dm()->num_field_local);
 }
 
 //-----------------------------------------------------------------------------
 
 void VectorSums::compute_bits2_(const GMVectors& vectors) {
-  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
   MirroredBuf& counts_local = env_.do_reduce() ? counts_tmp_ : counts_;
@@ -188,7 +189,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         elt_ref_(counts_local, i) = count;
       } else { // ! need_counts_()
         //#pragma omp parallel for reduction(+:sum)
-        for (int f = 0; f < vectors.num_field_local; ++f) {
+        for (int f = 0; f < (int)vectors.dm()->num_field_local; ++f) {
           // Slow way: sum each seminibble individually
           const GMBits2 v = vectors.bits2_get(f, i, env_);
           //const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
@@ -472,7 +473,7 @@ static void VectorSums_compute_bits2_accel_kernel_(
 
 void VectorSums::compute_float_accel_(const GMVectors& vectors,
   AccelStream_t accel_stream) {
-  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   COMET_INSIST(env_.is_compute_method_gpu());
 
@@ -520,7 +521,7 @@ void VectorSums::compute_float_accel_(const GMVectors& vectors,
 
 void VectorSums::compute_bits2_accel_(const GMVectors& vectors,
   AccelStream_t accel_stream) {
-  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   COMET_INSIST(env_.is_compute_method_gpu());
 

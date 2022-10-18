@@ -101,7 +101,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   {
 
-  const int nvl = vectors.num_vector_local;
+  const int nvl = vectors.num_vector_local();
   const int npfl = vectors.num_packedfield_local();
 
   // Allocate magma CPU memory for vectors and for result
@@ -172,7 +172,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Allocations: Part 1.
   // ------------------
 
-  VectorSums vector_sums_i_value(vectors.num_vector_local, env_);
+  VectorSums vector_sums_i_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_i = &vector_sums_i_value;
 
   GMVectors* const vectors_i = &vectors;
@@ -184,7 +184,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Allocations: Part 2.
   // ------------------
 
-  VectorSums vector_sums_j_value(vectors.num_vector_local, env_);
+  VectorSums vector_sums_j_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
 
   GMVectors vectors_j_value_0(env_);
@@ -200,7 +200,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Allocations: Part 3.
   // ------------------
 
-  VectorSums vector_sums_k_value(vectors.num_vector_local, env_);
+  VectorSums vector_sums_k_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
 
   GMVectors vectors_k_value_0(env_);

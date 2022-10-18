@@ -60,23 +60,23 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
 
   const size_t nva = vectors->dm()->num_vector_active;
   const size_t nfa = vectors->dm()->num_field_active;
+  const size_t nfl = vectors->dm()->num_field_local;
 
   switch (env->data_type_vectors()) {
     //--------------------
     case DataTypeId::FLOAT: {
     //--------------------
 #pragma omp parallel for
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)env->proc_num_vector();
+            vectors->num_vector_local() * (size_t)env->proc_num_vector();
         // Fill pad vectors with copies of the last vector.
         // By construction, active vectors are packed for lower procs.
         const size_t vector_capped = utils::min(vector, nva);
-        int fl = 0;
-        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+        for (size_t fl = 0; fl < nfl; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)env->proc_num_field();
-          if (field >= vectors->num_field_active) {
+              nfl * (size_t)env->proc_num_field();
+          if (field >= nfa) {
             continue; // These vector entries will be padded to zero elsewhere.
           }
           // Compute element unique id.
@@ -106,7 +106,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           // Store.
           GMFloat float_value = (GMFloat)rand_value;
           COMET_INSIST((size_t)float_value == rand_value);
-          COMET_INSIST(float_value * vectors->num_field_active <
+          COMET_INSIST(float_value * nfa <
                          ((size_t)1)<<mantissa_digits<GMFloat>());
           vectors->elt_float(fl, vl) = float_value;
         } // field_local
@@ -116,21 +116,21 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
     case DataTypeId::BITS2: {
     //--------------------
 #pragma omp parallel for
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
 
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)env->proc_num_vector();
+            vectors->num_vector_local() * (size_t)env->proc_num_vector();
         // Fill pad vectors with copies of the last vector.
         const size_t vector_capped = utils::min(vector, nva);
 
-        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
+        for (size_t fl = 0; fl < nfl; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)env->proc_num_field();
-          if (field >= vectors->num_field_active) {
+              nfl * (size_t)env->proc_num_field();
+          if (field >= nfa) {
             continue; // These vector entries will be padded to zero elsewhere.
           }
           // Compute element unique id.
-          const size_t uid = field + vectors->num_field_active * vector_capped;
+          const size_t uid = field + nfa * vector_capped;
           size_t index = uid;
           // Randomize.
           index = utils::randomize(index);
@@ -210,8 +210,9 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   if (! env->is_proc_active())
     return;
 
-  const size_t nfa = vectors->num_field_active;
+  const size_t nfa = vectors->dm()->num_field_active;
   const size_t nva = vectors->dm()->num_vector_active;
+  const size_t nfl = vectors->dm()->num_field_local;
 
   const auto tpi = TestProblemInfo(nva, nfa, *env);
 
@@ -228,14 +229,14 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
     case DataTypeId::FLOAT: {
     //--------------------
 #pragma omp parallel for
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)env->proc_num_vector();
+            vectors->num_vector_local() * (size_t)env->proc_num_vector();
         // Fill pad vectors with copies of the last vector.
         const size_t vector_capped = utils::min(vector, nva-1);
-        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
+        for (size_t fl = 0; fl < nfl; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)env->proc_num_field();
+              nfl * (size_t)env->proc_num_field();
           if (field >= nfa) {
             continue; // These vector entries will be padded to zero elsewhere.
           }
@@ -266,14 +267,14 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
     //--------------------
 
 #pragma omp parallel for
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+      for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)env->proc_num_vector();
+            vectors->num_vector_local() * (size_t)env->proc_num_vector();
         // Fill pad vectors with copies of the last vector.
         const size_t vector_capped = utils::min(vector, nva-1);
-        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
+        for (size_t fl = 0; fl < nfl; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)env->proc_num_field();
+              nfl * (size_t)env->proc_num_field();
           if (field >= nfa) {
             continue; // These vector entries will be padded to zero elsewhere.
           }

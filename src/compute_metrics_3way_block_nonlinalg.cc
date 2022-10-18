@@ -84,7 +84,7 @@ static void compute_nonlinalg_czek_(
   // Initializations.
 
   const int nvl = metrics->num_vector_local;
-  const int nfl = vectors_i->num_field_local;
+  const int nfl = vectors_i->dm()->num_field_local;
 
   const int i_block = env->proc_num_vector();
 
