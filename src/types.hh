@@ -46,20 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//-----------------------------------------------------------------------------
-// Type ids
-
-struct DataTypeId {
-  enum {
-    FLOAT = 1,
-    BITS1 = 2, // Not implemented
-    UINT64 = 3,  //---(design of this selection is not complete)
-    BITS2 = 4,
-    TALLY2X2 = 5,
-    TALLY4X2 = 6
-  };
-};
-
 //=============================================================================
 /// \brief Basic types.
 
@@ -162,6 +148,20 @@ typedef struct { PackedDouble data[2]; } GMFloat3;
 // Marker value for a missing or unknown 2-bit vector entry for sparse case
 
 enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
+
+//-----------------------------------------------------------------------------
+// Type ids
+
+struct DataTypeId {
+  enum {
+    FLOAT = 1,
+    BITS1 = 2, // Not implemented
+    UINT64 = 3,  //---(design of this selection is not complete)
+    BITS2 = 4,
+    TALLY2X2 = 5,
+    TALLY4X2 = 6
+  };
+};
 
 //=============================================================================
 // Templatized types for CCC and DUO metrics

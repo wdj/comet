@@ -59,7 +59,6 @@ GMVectors::GMVectors(CEnv& env)
   , num_vector_local(0)
   , num_packedfield_local(0)
   , num_packedfield_vector_local(0)
-  , data_type_id(0)
   , pad1(0)
   , data(NULL)
   , data_size(0)
@@ -67,7 +66,8 @@ GMVectors::GMVectors(CEnv& env)
   , buf_(NULL)
   , env_(env)
   , dm_(NULL) 
-  , is_allocated_(false) {
+  , is_allocated_(false)
+  , data_type_id_(0) {
   }
 
 //-----------------------------------------------------------------------------
@@ -90,7 +90,7 @@ void GMVectors::allocate_impl_(int data_type_id,
   if (!env_.is_proc_active())
     return;
 
-  this->data_type_id = data_type_id;
+  this->data_type_id_ = data_type_id;
   dm_ = &dm;
   has_buf_ = has_buf;
   num_field = dm_->num_field;
@@ -141,12 +141,12 @@ void GMVectors::initialize() {
   const size_t pfl_min = 0;
   const size_t pfl_max = dm_->num_packedfield_local;
 
-  switch (data_type_id) {
+  switch (data_type_id_) {
     case DataTypeId::FLOAT: {
       GMFloat zero = 0;
       for (int vl = 0; vl < num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          GMVectors_float_set(this, pfl, vl, zero, &env_);
+          elt_float(pfl, vl) = zero;
         }
       }
     } break;
@@ -154,7 +154,7 @@ void GMVectors::initialize() {
       const GMBits2x64 zero = GMBits2x64_null();
       for (int vl = 0; vl < num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          GMVectors_bits2x64_set(this, pfl, vl, zero, &env_);
+          elt_bits2x64(pfl, vl) = zero;
         } // for pfl
       }
     } break;
@@ -184,12 +184,12 @@ void GMVectors::initialize_pad() {
   const size_t pfl_min = nfal / dm_->num_field_per_packedfield;
   const size_t pfl_max = dm_->num_packedfield_local;
 
-  switch (data_type_id) {
+  switch (data_type_id_) {
     case DataTypeId::FLOAT: {
       GMFloat zero = 0;
       for (int vl = 0; vl < num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          GMVectors_float_set(this, pfl, vl, zero, &env_);
+          elt_float(pfl, vl) = zero;
         }
       }
     } break;
@@ -202,24 +202,24 @@ void GMVectors::initialize_pad() {
 
           if (fl >= nfal) {
 
-            GMVectors_bits2x64_set(this, pfl, vl, zero, &env_);
+            elt_bits2x64(pfl, vl) = zero;
 
           } else if (fl + 32 >= nfal) {
 
-            GMBits2x64 val = GMVectors_bits2x64_get(this, pfl, vl, &env_);
+            GMBits2x64 val = elt_bits2x64_const(pfl, vl);
             const int shift_dist = 64 - 2*(nfal-fl);
             COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
             val.data[0] &= allbits >> shift_dist;
             val.data[1] = 0;
-            GMVectors_bits2x64_set(this, pfl, vl, val, &env_);
+            elt_bits2x64(pfl, vl) = val;
 
           } else if (fl + 64 >= nfal) {
 
-            GMBits2x64 val = GMVectors_bits2x64_get(this, pfl, vl, &env_);
+            GMBits2x64 val = elt_bits2x64_const(pfl, vl);
             const int shift_dist = 64 - 2*(nfal-fl-32);
             COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
             val.data[1] &= allbits >> shift_dist;
-            GMVectors_bits2x64_set(this, pfl, vl, val, &env_);
+            elt_bits2x64(pfl, vl) = val;
 
           } // if
         } // for pfl
@@ -273,10 +273,10 @@ void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < num_vector_local; ++i) {
+      for (int vl = 0; vl < num_vector_local; ++vl) {
         for (int fl = 0; fl < num_field_local; ++fl) {
-          vectors_buf.elt<GMFloat>(fl, i) =
-            GMVectors_float_get(this, fl, i, &env_);
+          vectors_buf.elt<GMFloat>(fl, vl) =
+            elt_float_const(fl, vl);
         }
       }
     } break;
@@ -284,10 +284,10 @@ void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < num_vector_local; ++i) {
+      for (int vl = 0; vl < num_vector_local; ++vl) {
         for (int fl = 0; fl < num_packedfield_local; ++fl) {
-          vectors_buf.elt<GMBits2x64>(fl, i) =
-            GMVectors_bits2x64_get(this, fl, i, &env_);
+          vectors_buf.elt<GMBits2x64>(fl, vl) =
+            elt_bits2x64_const(fl, vl);
         }
       }
     } break;
@@ -295,10 +295,10 @@ void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < num_vector_local; ++i) {
+      for (int vl = 0; vl < num_vector_local; ++vl) {
         for (int fl = 0; fl < num_packedfield_local; ++fl) {
-          vectors_buf.elt<GMBits2x64>(fl, i) =
-            GMVectors_bits2x64_get(this, fl, i, &env_);
+          vectors_buf.elt<GMBits2x64>(fl, vl) =
+            elt_bits2x64_const(fl, vl);
         }
       }
     } break;

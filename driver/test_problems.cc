@@ -108,14 +108,9 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           COMET_INSIST((size_t)float_value == rand_value);
           COMET_INSIST(float_value * vectors->num_field_active <
                          ((size_t)1)<<mantissa_digits<GMFloat>());
-          GMVectors_float_set(vectors, fl, vl, float_value, env);
+          vectors->elt_float(fl, vl) = float_value;
         } // field_local
       }   // vector_local
-      // Print.
-//TODO: move this
-      //if (verbosity > 2) {
-      //  VectorsIO::print(*vectors, *env);
-      //}
     } break;
     //--------------------
     case DataTypeId::BITS2: {
@@ -148,11 +143,6 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           GMVectors_bits2_set(vectors, fl, vl, value, env);
         } // fl
       }   // vl
-      // Print.
-//TODO: move this
-      //if (verbosity > 2) {
-      //  VectorsIO::print(*vectors, *env);
-      //}
     } break;
     //--------------------
     default:
@@ -265,7 +255,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           // Store.
           COMET_INSIST(float_value * nfa >= 1);
           COMET_INSIST(float_value * nfa < tpi.max_float_);
-          GMVectors_float_set(vectors, fl, vl, float_value, env);
+          vectors->elt_float(fl, vl) = float_value;
 
         } // field_local
       }   // vector_local

@@ -81,8 +81,8 @@ static void compute_nums_nonlinalg_czek_start_(
       for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
         for (int f = 0; f < vectors_left->num_field_local; ++f) {
-          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
-          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
+          const GMFloat value1 = vectors_left->elt_float_const(f, i);
+          const GMFloat value2 = vectors_right->elt_float_const(f, j);
           metric += value1 < value2 ? value1 : value2;
         } // for k
         // Update metrics array.
@@ -104,8 +104,8 @@ static void compute_nums_nonlinalg_czek_start_(
       for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
         for (int f = 0; f < vectors_left->num_field_local; ++f) {
-          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
-          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
+          const GMFloat value1 = vectors_left->elt_float_const(f, i);
+          const GMFloat value2 = vectors_right->elt_float_const(f, j);
           metric += value1 < value2 ? value1 : value2;
         } // for k
         // Update metrics array.
@@ -242,10 +242,8 @@ static void compute_nums_nonlinalg_ccc_start_(
 
           // Extract input values to process.
 
-          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pfl, i,
-                                                       env);
-          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pfl, j,
-                                                       env);
+          const GMBits2x64 vi = vectors_left->elt_bits2x64_const(pfl, i);
+          const GMBits2x64 vj = vectors_right->elt_bits2x64_const(pfl, j);
           const uint64_t vi0 = vi.data[0];
           const uint64_t vi1 = vi.data[1];
           const uint64_t vj0 = vj.data[0];
@@ -455,10 +453,8 @@ static void compute_nums_nonlinalg_duo_start_(
 
           // Extract input values to process.
 
-          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pfl, i,
-                                                       env);
-          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pfl, j,
-                                                       env);
+          const GMBits2x64 vi = vectors_left->elt_bits2x64_const(pfl, i);
+          const GMBits2x64 vj = vectors_right->elt_bits2x64_const(pfl, j);
           const uint64_t vi0 = vi.data[0];
           const uint64_t vi1 = vi.data[1];
           const uint64_t vj0 = vj.data[0];
@@ -558,10 +554,8 @@ static void compute_nums_nonlinalg_duo_start_(
 
           // Extract input values to process.
 
-          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pfl, i,
-                                                       env);
-          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pfl, j,
-                                                       env);
+          const GMBits2x64 vi = vectors_left->elt_bits2x64_const(pfl, i);
+          const GMBits2x64 vj = vectors_right->elt_bits2x64_const(pfl, j);
           const uint64_t vi0 = vi.data[0];
           const uint64_t vi1 = vi.data[1];
           const uint64_t vj0 = vj.data[0];

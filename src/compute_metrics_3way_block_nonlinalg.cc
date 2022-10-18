@@ -120,9 +120,9 @@ static void compute_nonlinalg_czek_(
           const GMFloat denom = smin + smid + smax;
           GMFloat numer = 0;
           for (int f = 0; f < nfl; ++f) {
-            const GMFloat val1 = GMVectors_float_get(vectors_i, f, i, env);
-            const GMFloat val2 = GMVectors_float_get(vectors_i, f, j, env);
-            const GMFloat val3 = GMVectors_float_get(vectors_i, f, k, env);
+            const GMFloat val1 = vectors_i->elt_float_const(f, i);
+            const GMFloat val2 = vectors_i->elt_float_const(f, j);
+            const GMFloat val3 = vectors_i->elt_float_const(f, k);
             GMFloat min12 = val1 < val2 ? val1 : val2;
             numer += min12;
             numer += val1 < val3 ? val1 : val3;
@@ -173,9 +173,9 @@ static void compute_nonlinalg_czek_(
           const GMFloat denom = smin + smid + smax;
           GMFloat numer = 0;
           for (int f = 0; f < nfl; ++f) {
-            const GMFloat val1 = GMVectors_float_get(vectors_i, f, i, env);
-            const GMFloat val2 = GMVectors_float_get(vectors_j, f, j, env);
-            const GMFloat val3 = GMVectors_float_get(vectors_k, f, k, env);
+            const GMFloat val1 = vectors_i->elt_float_const(f, i);
+            const GMFloat val2 = vectors_j->elt_float_const(f, j);
+            const GMFloat val3 = vectors_k->elt_float_const(f, k);
             const GMFloat min_ij = val1 < val2 ? val1 : val2;
             const GMFloat min_ik = val1 < val3 ? val1 : val3;
             const GMFloat min_jk = val2 < val3 ? val2 : val3;
@@ -493,12 +493,9 @@ static void compute_nonlinalg_ccc_duo_(
 
             // Extract input values to process.
 
-            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pfl, i,
-                                                         env);
-            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pfl, j,
-                                                          env);
-            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pfl, k,
-                                                          env);
+            const GMBits2x64 vi = vectors_i->elt_bits2x64_const(pfl, i);
+            const GMBits2x64 vj = vectors_j->elt_bits2x64_const(pfl, j);
+            const GMBits2x64 vk = vectors_k->elt_bits2x64_const(pfl, k);
 
             const uint64_t vi0 = vi.data[0];
             const uint64_t vi1 = vi.data[1];
@@ -842,12 +839,9 @@ static void compute_nonlinalg_ccc_duo_(
 
             // Extract input values to process.
 
-            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pfl, i,
-                                                         env);
-            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pfl, j,
-                                                          env);
-            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pfl, k,
-                                                          env);
+            const GMBits2x64 vi = vectors_i->elt_bits2x64_const(pfl, i);
+            const GMBits2x64 vj = vectors_j->elt_bits2x64_const(pfl, j);
+            const GMBits2x64 vk = vectors_k->elt_bits2x64_const(pfl, k);
 
             const uint64_t vi0 = vi.data[0];
             const uint64_t vi1 = vi.data[1];

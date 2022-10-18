@@ -86,12 +86,12 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
     COMET_INSIST(0 == success && "File seek failure.");
 
     // Get first location in memory to store into.
-    IO_t* const loc_min_mem = GMVectors_float_ptr(&vectors, fl_min, vl, &env);
+    IO_t* const loc_min_mem = &vectors.elt_float(fl_min, vl);
 
     // Sanity check on vectors layout in memory.
     // NOTE: the following call is ok since has no side effects
     COMET_INSIST((fl_min+1 >= nfl ||
-        GMVectors_float_ptr(&vectors, fl_min+1, vl, &env) == loc_min_mem + 1)
+        &vectors.elt_float(fl_min+1, vl) == loc_min_mem + 1)
         && "Vector layout is incompatible with operation.");
 
     const size_t num_to_read = nfal;
@@ -232,7 +232,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
       if (is_outval_full || is_end_of_buf) {
         // Flush buffer
         const size_t pfl = i_out / 16;
-        GMVectors_bits2x64_set(&vectors, pfl, vl, outval, &env);
+        vectors.elt_bits2x64(pfl, vl) = outval;
         // Reinitialize outval.
         outval = GMBits2x64_null();
       }
@@ -294,7 +294,7 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
   for (size_t vl = 0 ; vl < nval; ++vl) {
     for (size_t fl = 0 ; fl < nfal; ++fl) {
 
-      const IO_t outv = GMVectors_float_get(&vectors, fl, vl, &env);
+      const IO_t outv = vectors.elt_float_const(fl, vl);
       const size_t num_to_write = 1;
       const size_t num_written_this = fwrite(&outv, sizeof(IO_t), num_to_write,
                                              file);
@@ -342,7 +342,7 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
   for (size_t vl = 0 ; vl < nval; ++vl) {
     for (size_t pfl = 0 ; pfl < npfl; ++pfl) {
 
-      GMBits2x64 val = GMVectors_bits2x64_get(&vectors, pfl, vl, &env);
+      GMBits2x64 val = vectors.elt_bits2x64_const(pfl, vl);
 
       // Calculate begin and end byte numbers of vector to write
 
@@ -418,7 +418,7 @@ void VectorsIO::print(GMVectors& vectors, CEnv& env) {
 
       for (int vl = 0; vl < nval; ++vl) {
         for (int fl = 0; fl < nfal; ++fl) {
-          const GMFloat value = GMVectors_float_get(&vectors, fl, vl, &env);
+          const GMFloat value = vectors.elt_float_const(fl, vl);
             printf("vec_proc %i vec %i field_proc %i field %i value %.16e\n",
                    env.proc_num_vector(), vl,
                    env.proc_num_field(), fl, (double)value);

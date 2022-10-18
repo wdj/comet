@@ -135,7 +135,7 @@ void VectorSums::compute_float_(const GMVectors& vectors) {
     GMFloat sum = 0;
     //#pragma omp parallel for reduction(+:sum)
     for (int f = 0; f < vectors.num_field_local; ++f) {
-      const Float_t value = GMVectors_float_get(&vectors, f, i, &env_);
+      const Float_t value = vectors.elt_float_const(f, i);
       sum += value;
     }
     elt_ref_(sums_local, i) = sum;
@@ -213,7 +213,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         Float_t count = 0;
         for (int f = 0; f < vectors.num_packedfield_local; ++f) {
           // Fast way: sum all 64 bits of each word immediately
-          const GMBits2x64 v = GMVectors_bits2x64_get(&vectors, f, i, &env_);
+          const GMBits2x64 v = vectors.elt_bits2x64_const(f, i);
           const uint64_t data0 = v.data[0];
           const uint64_t data1 = v.data[1];
           const uint64_t v10_oddmask0 = (data0 | ~(data0 >> 1)) & oddbits;
@@ -242,7 +242,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         const uint64_t oddbits = 0x5555555555555555;
         for (int f = 0; f < vectors.num_packedfield_local; ++f) {
           // Fast way: sum all 64 bits of each word immediately
-          const GMBits2x64 v = GMVectors_bits2x64_get(&vectors, f, i, &env_);
+          const GMBits2x64 v = vectors.elt_bits2x64_const(f, i);
           sum += is_cbpe_2 ? utils::popc64(v.data[0])
                             : utils::popc64(v.data[0] & oddbits);
           sum += is_cbpe_2 ? utils::popc64(v.data[1])
@@ -310,7 +310,7 @@ static void VectorSums_compute_float_accel_kernel_(
 
   while (pfl < npfl_thread) {
 
-    const VectorSums::Float_t v = vectors_data[GMVectors_index(pfl, vl, npfl)];
+    const VectorSums::Float_t v = vectors_data[GMVectors::index(pfl, vl, npfl)];
 //printf("%f\n", (double)v);
 
     const Out_t sum = v;
@@ -391,7 +391,7 @@ static void VectorSums_compute_bits2_accel_kernel_(
 
   while (pfl < npfl_thread) {
 
-    const GMBits2x64 v = vectors_data[GMVectors_index(pfl, vl, npfl)];
+    const GMBits2x64 v = vectors_data[GMVectors::index(pfl, vl, npfl)];
 
     if (need_counts) {
 
