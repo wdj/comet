@@ -44,56 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-#if 0
-//-----------------------------------------------------------------------------
-// Start/end MPI send/receive of vectors data
-
-MPI_Request gm_send_vectors_start(const GMVectors* vectors,
-                                  int proc_num,
-                                  int mpi_tag,
-                                  CEnv* env) {
-  COMET_INSIST(vectors && env);
-  COMET_INSIST(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
-  COMET_INSIST(!(env->is_comm_gpu() && !vectors->has_buf()));
-
-  MPI_Request mpi_request;
-//fprintf(stderr, "HEY1 %i %i %i\n", env->is_comm_gpu(), !!(void*)vectors->buf()->d, (int)vectors->num_packedfield_vector_local);
-//fprintf(stderr, "HEY1 %e\n", (double)(((float*)vectors->data)[0]));
-
-  COMET_MPI_SAFE_CALL(MPI_Isend(
-    env->is_comm_gpu() ?
-      (void*)vectors->buf()->d :
-      (void*)vectors->data,
-    vectors->num_packedfield_vector_local, env->metrics_mpi_type(), proc_num,
-    mpi_tag, env->comm_repl_vector(), &mpi_request));
-
-  return mpi_request;
-}
-
-//-----------------------------------------------------------------------------
-
-MPI_Request gm_recv_vectors_start(GMVectors* vectors,
-                                  int proc_num,
-                                  int mpi_tag,
-                                  CEnv* env) {
-  COMET_INSIST(vectors && env);
-  COMET_INSIST(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
-  COMET_INSIST(!(env->is_comm_gpu() && !vectors->has_buf()));
-
-  MPI_Request mpi_request;
-
-//fprintf(stderr, "HEY2 %i %i %i\n", env->is_comm_gpu(), !!(void*)vectors->buf()->d, (int)vectors->num_packedfield_vector_local);
-  COMET_MPI_SAFE_CALL(MPI_Irecv(
-    env->is_comm_gpu() ?
-      (void*)vectors->buf()->d :
-      (void*)vectors->data,
-    vectors->num_packedfield_vector_local, env->metrics_mpi_type(), proc_num,
-    mpi_tag, env->comm_repl_vector(), &mpi_request));
-
-  return mpi_request;
-}
-#endif
-
 //-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
@@ -111,8 +61,8 @@ void comm_send_vectors_start(const GMVectors& vectors,
   COMET_MPI_SAFE_CALL(MPI_Isend(
     env.is_comm_gpu() ?
       (void*)vectors.buf()->d :
-      (void*)vectors.data,
-    vectors.num_packedfield_vector_local, env.metrics_mpi_type(), proc_num,
+      (void*)vectors.data(),
+    vectors.num_packedfield_vector_local(), env.metrics_mpi_type(), proc_num,
     0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &request.mpi_request()));
 
   if (BuildHas::DEBUG) {
@@ -141,8 +91,8 @@ void comm_recv_vectors_start(const GMVectors& vectors,
   COMET_MPI_SAFE_CALL(MPI_Irecv(
     env.is_comm_gpu() ?
       (void*)vectors.buf()->d :
-      (void*)vectors.data,
-    vectors.num_packedfield_vector_local, env.metrics_mpi_type(), proc_num,
+      (void*)vectors.data(),
+    vectors.num_packedfield_vector_local(), env.metrics_mpi_type(), proc_num,
     0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &request.mpi_request()));
 
   if (BuildHas::DEBUG) {
@@ -153,28 +103,6 @@ void comm_recv_vectors_start(const GMVectors& vectors,
       1+2*mpi_tag, env.comm_repl_vector(), &request.mpi_request_cksum_));
   }
 }
-
-#if 0
-//-----------------------------------------------------------------------------
-
-void gm_send_vectors_wait(MPI_Request* mpi_request, CEnv* env) {
-  COMET_INSIST(mpi_request && env);
-
-  MPI_Status mpi_status;
-
-  COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
-}
-
-//-----------------------------------------------------------------------------
-
-void gm_recv_vectors_wait(MPI_Request* mpi_request, CEnv* env) {
-  COMET_INSIST(mpi_request && env);
-
-  MPI_Status mpi_status;
-
-  COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
-}
-#endif
 
 //=============================================================================
 // MPI reduce operations

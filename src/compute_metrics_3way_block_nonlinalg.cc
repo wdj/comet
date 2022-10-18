@@ -284,9 +284,12 @@ static void compute_nonlinalg_ccc_duo_(
 
           GMTally4x2 sum = GMTally4x2_null();
           for (int f = 0; f < nfal; ++f) {
-            const GMBits2 vi = GMVectors_bits2_get(vectors_i, f, i, env);
-            const GMBits2 vj = GMVectors_bits2_get(vectors_j, f, j, env);
-            const GMBits2 vk = GMVectors_bits2_get(vectors_k, f, k, env);
+            const GMBits2 vi = vectors_i->bits2_get(f, i, *env);
+            const GMBits2 vj = vectors_j->bits2_get(f, j, *env);
+            const GMBits2 vk = vectors_k->bits2_get(f, k, *env);
+            //const GMBits2 vi = GMVectors_bits2_get(vectors_i, f, i, env);
+            //const GMBits2 vj = GMVectors_bits2_get(vectors_j, f, j, env);
+            //const GMBits2 vk = GMVectors_bits2_get(vectors_k, f, k, env);
 
             const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                                : false;
@@ -488,7 +491,7 @@ static void compute_nonlinalg_ccc_duo_(
           const int k = si->unperm2(I, J, K);
 
           GMTally4x2 sum = GMTally4x2_null();
-          const int npfl = vectors_i->num_packedfield_local;
+          const int npfl = vectors_i->num_packedfield_local();
           for (int pfl = 0; pfl < npfl; ++pfl) {
 
             // Extract input values to process.
@@ -834,7 +837,7 @@ static void compute_nonlinalg_ccc_duo_(
           uint64_t sum_pvk = 0;
 
           GMTally4x2 sum = GMTally4x2_null();
-          const int npfl = vectors_i->num_packedfield_local;
+          const int npfl = vectors_i->num_packedfield_local();
           for (int pfl = 0; pfl < npfl; ++pfl) {
 
             // Extract input values to process.

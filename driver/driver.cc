@@ -686,20 +686,20 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Finalize metrics mem.
 
   timer.start();
-  metrics_mem.terminate();
-  compute_metrics.terminate();
+  metrics_mem.deallocate();
+  compute_metrics.deallocate();
   timer.add_elapsed(counters_.mctime);
 
   // Finalize output.
 
   timer.start();
   counters_.num_local_written += metrics_io.num_written();
-  metrics_io.terminate();
+  metrics_io.deallocate();
   histograms.finalize();
   histograms.output();
   if (options_.is_all_phase_all_stage())
     histograms.check(dm.num_vector_active);
-  histograms.terminate();
+  histograms.deallocate();
   timer.add_elapsed(counters_.outtime);
 
   // Perform some checks.

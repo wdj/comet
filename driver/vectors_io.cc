@@ -430,7 +430,7 @@ void VectorsIO::print(GMVectors& vectors, CEnv& env) {
 
       for (int vl = 0; vl < nval; ++vl) {
         for (int fl = 0; fl < nfal; ++fl) {
-          const GMBits2 value = GMVectors_bits2_get(&vectors, fl, vl, &env);
+          const GMBits2 value = vectors.bits2_get(fl, vl, env);
             printf("vec_proc %i vec %i "
                    "field_proc %i field %i value %.1i%.1i\n",
                    env.proc_num_vector(), vl,

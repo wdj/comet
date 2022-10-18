@@ -102,7 +102,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   {
 
   const int nvl = vectors.num_vector_local;
-  const int npfl = vectors.num_packedfield_local;
+  const int npfl = vectors.num_packedfield_local();
 
   // Allocate magma CPU memory for vectors and for result
 
@@ -158,7 +158,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   {
 
   const int nvl = metrics.num_vector_local;
-  const int npfl = vectors.num_packedfield_local;
+  const int npfl = vectors.num_packedfield_local();
 
   const int data_type = env->data_type_vectors();
 

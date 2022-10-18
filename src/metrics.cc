@@ -53,7 +53,7 @@ namespace comet {
 
 MetricsMem::MetricsMem(CEnv* env)
   : env_(env)
-  , is_active_(false)
+  , is_allocated_(false)
   , data_(NULL)
   , data_S_(NULL)
   , data_C_(NULL)
@@ -62,22 +62,22 @@ MetricsMem::MetricsMem(CEnv* env)
   , data_S_size_(0)
   , data_C_size_(0)
   , coords_size_(0) {
-  is_active_ = true;
+  is_allocated_ = true;
 }
 
 //-----------------------------------------------------------------------------
 
 MetricsMem::~MetricsMem() {
-  terminate();
+  deallocate();
 }
 
 //-----------------------------------------------------------------------------
 
-void MetricsMem::terminate() {
+void MetricsMem::deallocate() {
   if (! env_->is_proc_active())
     return;
 
-  if (!is_active_)
+  if (!is_allocated_)
     return;
 
   if (data_)
@@ -97,7 +97,7 @@ void MetricsMem::terminate() {
   data_C_ = NULL;
   coords_ = NULL;
 
-  is_active_ = false;
+  is_allocated_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -107,7 +107,7 @@ void* MetricsMem::malloc_data(size_t data_size) {
   if (! env_->is_proc_active())
     return NULL;
 
-  COMET_INSIST(is_active_);
+  COMET_INSIST(is_allocated_);
 
   if (!data_ || data_size > data_size_) {
     if (data_) {
@@ -127,7 +127,7 @@ void* MetricsMem::malloc_data_S(size_t data_S_size) {
   if (! env_->is_proc_active())
     return NULL;
 
-  COMET_INSIST(is_active_);
+  COMET_INSIST(is_allocated_);
 
   if (!data_S_ || data_S_size > data_S_size_) {
     if (data_S_) {
@@ -147,7 +147,7 @@ void* MetricsMem::malloc_data_C(size_t data_C_size) {
   if (! env_->is_proc_active())
     return NULL;
 
-  COMET_INSIST(is_active_);
+  COMET_INSIST(is_allocated_);
 
   if (!data_C_ || data_C_size > data_C_size_) {
     if (data_C_) {
@@ -168,7 +168,7 @@ MetricItemCoords_t* MetricsMem::malloc_coords(
   if (! env_->is_proc_active())
     return NULL;
 
-  COMET_INSIST(is_active_);
+  COMET_INSIST(is_allocated_);
 
   if (!coords_ ||
       coords_size > coords_size_) {

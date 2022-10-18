@@ -140,7 +140,8 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           // Create 2-bit value - make extra sure less than 4.
           GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
           // Store.
-          GMVectors_bits2_set(vectors, fl, vl, value, env);
+          //GMVectors_bits2_set(vectors, fl, vl, value, env);
+          vectors->bits2_set(fl, vl, value, *env);
         } // fl
       }   // vl
     } break;
@@ -292,7 +293,8 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           const GMBits2 bval = ((size_t)3) & (value - tpi.value_min_);
 
           // Store.
-          GMVectors_bits2_set(vectors, fl, vl, bval, env);
+          //GMVectors_bits2_set(vectors, fl, vl, bval, env);
+          vectors->bits2_set(fl, vl, bval, *env);
 
         } // field_local
       }   // vector_local

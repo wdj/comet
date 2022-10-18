@@ -55,7 +55,7 @@ public:
 
   ComputeMetrics(GMDecompMgr& dm, CEnv& env);
   ~ComputeMetrics();
-  void terminate();
+  void deallocate();
 
   void compute(GMMetrics& metrics, GMVectors& vectors);
 
@@ -65,7 +65,7 @@ public:
 private:
 
   CEnv& env_;
-  bool is_active_;
+  bool is_allocated_;
 
   ComputeMetrics2Way* compute_metrics_2way_;
   ComputeMetrics3Way* compute_metrics_3way_;

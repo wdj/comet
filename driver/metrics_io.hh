@@ -155,7 +155,7 @@ public:
 
   MetricsIO(const char* path_stub, int verbosity, CEnv& env);
   ~MetricsIO();
-  void terminate();
+  void deallocate();
 
   void write(GMMetrics& metrics);
   void check_file(GMMetrics& metrics);
@@ -179,7 +179,7 @@ private:
   int verbosity_;
   size_t num_written_;
   size_t num_written_last_write_;
-  bool is_active_;
+  bool is_allocated_;
 
   size_t bytes_(size_t num) const {
     return num * MetricIO::num_bytes_written_per_metric(env_);

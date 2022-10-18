@@ -741,7 +741,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // Initializations.
 
   const int nvl = metrics.num_vector_local;
-  const int npfl = vdata_i.vectors->num_packedfield_local;
+  const int npfl = vdata_i.vectors->num_packedfield_local();
   const int i_block = env_.proc_num_vector();
 
   GMSectionInfo si_value, *si = &si_value;

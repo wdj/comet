@@ -141,7 +141,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   {
 
   const int nvl = vectors.num_vector_local;
-  const int npfl = vectors.num_packedfield_local;
+  const int npfl = vectors.num_packedfield_local();
 
   // Allocate memory for vectors and for result 
 

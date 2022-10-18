@@ -62,9 +62,6 @@ public:
   void allocate(size_t dim0, size_t dim1);
   void allocate(MirroredBuf& buf, size_t dim0);
   void deallocate();
-  void terminate() {
-    deallocate();
-  }
 
   template<typename T>
   T& elt(size_t ind0, size_t ind1) {

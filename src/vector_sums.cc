@@ -174,7 +174,8 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         Float_t count = 0;
         for (int f = 0; f < (int)vectors.dm()->num_field_active_local; ++f) {
           // Slow way: sum each seminibble individually
-          const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
+          const GMBits2 v = vectors.bits2_get(f, i, env_);
+          //const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
           if (GM_2BIT_UNKNOWN != v){
             sum += is_cbpe_2 ? ((v & 1) != 0) + ((v & 2) != 0)
                              : ((v & 1) != 0);
@@ -189,7 +190,8 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         //#pragma omp parallel for reduction(+:sum)
         for (int f = 0; f < vectors.num_field_local; ++f) {
           // Slow way: sum each seminibble individually
-          const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
+          const GMBits2 v = vectors.bits2_get(f, i, env_);
+          //const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
           sum += is_cbpe_2 ? ((v & 1) != 0) + ((v & 2) != 0)
                            : ((v & 1) != 0);
         } // for f
@@ -211,7 +213,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
       if (need_counts_()) {
         const uint64_t oddbits = 0x5555555555555555;
         Float_t count = 0;
-        for (int f = 0; f < vectors.num_packedfield_local; ++f) {
+        for (int f = 0; f < vectors.num_packedfield_local(); ++f) {
           // Fast way: sum all 64 bits of each word immediately
           const GMBits2x64 v = vectors.elt_bits2x64_const(f, i);
           const uint64_t data0 = v.data[0];
@@ -240,7 +242,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
 //printf("1111 %f %f\n", sum, count);
       } else { // ! need_counts_()
         const uint64_t oddbits = 0x5555555555555555;
-        for (int f = 0; f < vectors.num_packedfield_local; ++f) {
+        for (int f = 0; f < vectors.num_packedfield_local(); ++f) {
           // Fast way: sum all 64 bits of each word immediately
           const GMBits2x64 v = vectors.elt_bits2x64_const(f, i);
           sum += is_cbpe_2 ? utils::popc64(v.data[0])
@@ -481,7 +483,7 @@ void VectorSums::compute_float_accel_(const GMVectors& vectors,
   // Sum up all values in each vector.
 
   const int nvl_thread = num_vector_local_;
-  const int npfl_thread = vectors.num_packedfield_local;
+  const int npfl_thread = vectors.num_packedfield_local();
 
 # if defined COMET_USE_CUDA
     cudaMemsetAsync(sums_local.d, 0, nvl_thread*sizeof(Float_t), accel_stream);
@@ -535,7 +537,7 @@ void VectorSums::compute_bits2_accel_(const GMVectors& vectors,
   const bool need_counts = need_counts_();
 
   const int nvl_thread = num_vector_local_;
-  const int npfl_thread = vectors.num_packedfield_local;
+  const int npfl_thread = vectors.num_packedfield_local();
 
 # if defined COMET_USE_CUDA
     cudaMemsetAsync(sums_local.d, 0, nvl_thread*sizeof(Float_t), accel_stream);

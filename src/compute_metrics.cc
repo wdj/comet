@@ -49,7 +49,7 @@ namespace comet {
 
 ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
   : env_(env)
-  , is_active_(false)
+  , is_allocated_(false)
   , compute_metrics_2way_(NULL)
   , compute_metrics_3way_(NULL) {
 
@@ -63,23 +63,23 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
   else
     compute_metrics_3way_ = new ComputeMetrics3Way(dm, env);
 
-  is_active_ = true;
+  is_allocated_ = true;
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Destructor for ComputeMetrics class.
 
 ComputeMetrics::~ComputeMetrics() {
-  terminate();
+  deallocate();
 }
 
 //-----------------------------------------------------------------------------
 
-void ComputeMetrics::terminate() {
+void ComputeMetrics::deallocate() {
   if (! can_run_())
     return;
 
-  if (!is_active_)
+  if (!is_allocated_)
     return;
 
   CodeBlockTimer timer(env_);
@@ -87,7 +87,7 @@ void ComputeMetrics::terminate() {
   delete compute_metrics_2way_;
   delete compute_metrics_3way_;
 
-  is_active_ = false;
+  is_allocated_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -98,7 +98,7 @@ void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors) {
   if (! can_run_())
     return;
 
-  COMET_INSIST(is_active_);
+  COMET_INSIST(is_allocated_);
 
   {
     CodeBlockTimer timer(env_);

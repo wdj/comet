@@ -155,8 +155,10 @@ static void compute_nums_nonlinalg_ccc_start_(
       for (int i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
         for (int f = 0; f < nfal; ++f) {
-          const GMBits2 vi = GMVectors_bits2_get(vectors_left, f, i, env);
-          const GMBits2 vj = GMVectors_bits2_get(vectors_right, f, j, env);
+          const GMBits2 vi = vectors_left->bits2_get(f, i, *env);
+          const GMBits2 vj = vectors_right->bits2_get(f, j, *env);
+          //const GMBits2 vi = vectors_left->bits2_get(f, i, *env);
+          //const GMBits2 vj = vectors_right->bits2_get(f, j, *env);
           const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                              : false;
           const bool unknown_j = env->sparse() ? vj == GM_2BIT_UNKNOWN
@@ -237,7 +239,7 @@ static void compute_nums_nonlinalg_ccc_start_(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        const int npfl = vectors_left->num_packedfield_local;
+        const int npfl = vectors_left->num_packedfield_local();
         for (int pfl = 0; pfl < npfl; ++pfl) {
 
           // Extract input values to process.
@@ -392,8 +394,10 @@ static void compute_nums_nonlinalg_duo_start_(
       for (int i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
         for (int f = 0; f < nfal; ++f) {
-          const GMBits2 vi = GMVectors_bits2_get(vectors_left, f, i, env);
-          const GMBits2 vj = GMVectors_bits2_get(vectors_right, f, j, env);
+          const GMBits2 vi = vectors_left->bits2_get(f, i, *env);
+          const GMBits2 vj = vectors_right->bits2_get(f, j, *env);
+          //const GMBits2 vi = GMVectors_bits2_get(vectors_left, f, i, env);
+          //const GMBits2 vj = GMVectors_bits2_get(vectors_right, f, j, env);
           const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                              : false;
           const bool unknown_j = env->sparse() ? vj == GM_2BIT_UNKNOWN
@@ -448,7 +452,7 @@ static void compute_nums_nonlinalg_duo_start_(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        const int npfl = vectors_left->num_packedfield_local;
+        const int npfl = vectors_left->num_packedfield_local();
         for (int pfl = 0; pfl < npfl; ++pfl) {
 
           // Extract input values to process.
@@ -549,7 +553,7 @@ static void compute_nums_nonlinalg_duo_start_(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        const int npfl = vectors_left->num_packedfield_local;
+        const int npfl = vectors_left->num_packedfield_local();
         for (int pfl = 0; pfl < npfl; ++pfl) {
 
           // Extract input values to process.
@@ -671,7 +675,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
     LinAlg::gemm_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
-      vectors_left->num_packedfield_local,
+      vectors_left->num_packedfield_local(),
       vectors_left_buf,
       vectors_right_buf,
       metrics_buf,
@@ -740,7 +744,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
     LinAlg::gemm_wait(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
-      vectors_left->num_packedfield_local,
+      vectors_left->num_packedfield_local(),
       vectors_left_buf,
       vectors_right_buf,
       metrics_buf,
