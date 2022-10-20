@@ -135,6 +135,8 @@ private:
 
   void allocate_impl_(int data_type_id, GMDecompMgr& dm, bool has_buf);
 
+  // Helpers for accessor functions.
+
   template<int DTI, class T>
   inline T& elt_(int packedfield_local, int vector_local) {
     COMET_ASSERT(DTI == data_type_id_);

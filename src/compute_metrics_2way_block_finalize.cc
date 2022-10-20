@@ -244,7 +244,7 @@ static void finalize_ccc_duo_(
     // NOTE: this may be slight overestimate of amt of mem that will be needed.
 
     COMET_INSIST(metrics->num_metric_items_local_computed +
-      matB_cbuf->num_entries() <=
+      static_cast<NML_t>(matB_cbuf->num_entries()) <=
       metrics->num_metric_items_local_allocated && 
       "Insufficient metrics memory; please decrease metrics_shrink.");
 
@@ -271,7 +271,7 @@ static void finalize_ccc_duo_(
         continue;
 
       // Location to store it (item number in metrics array).
-      const size_t index = metrics->num_metric_items_local_computed;
+      const NML_t index = metrics->num_metric_items_local_computed;
       COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
 
       // Get row, col nums of item just read.
@@ -336,7 +336,7 @@ static void finalize_ccc_duo_(
                                   (uint64_t)r10 + (uint64_t)r11 !=
                        (uint64_t)(cbpe * cbpe * metrics->num_field_active);
               if (error1) {
-                const size_t index =
+                const NML_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error:"
@@ -358,7 +358,7 @@ static void finalize_ccc_duo_(
               const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * si1);
               if (error2) {
-                const size_t index =
+                const NML_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error:"
@@ -381,7 +381,7 @@ static void finalize_ccc_duo_(
               const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * sj1);
               if (error3) {
-                const size_t index =
+                const NML_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error:"
@@ -427,7 +427,7 @@ static void finalize_ccc_duo_(
                                   (uint64_t)r10 + (uint64_t)r11 !=
                        (uint64_t)(cbpe * cbpe * metrics->num_field_active);
               if (error1) {
-                const size_t index =
+                const NML_t index =
                    Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error:"
@@ -448,7 +448,7 @@ static void finalize_ccc_duo_(
               const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * si1);
               if (error2) {
-                const size_t index =
+                const NML_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error:"
@@ -471,7 +471,7 @@ static void finalize_ccc_duo_(
               const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * sj1);
               if (error3) {
-                const size_t index =
+                const NML_t index =
                   Metrics_index_2(*metrics, i, j, j_block, *env);
                 const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error:"

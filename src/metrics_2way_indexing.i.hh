@@ -210,11 +210,11 @@ static bool is_part2(int i_block, int j_block) {
 //-----------------------------------------------------------------------------
 /// \brief Convert elt coords to index, 2-way case, main diagonal block.
 
-static size_t Metrics_index_2_part1(GMMetrics& metrics,
+static NML_t Metrics_index_2_part1(GMMetrics& metrics,
   int i, int j, int j_block, CEnv& env) {
   COMET_ASSERT(is_part1(env.proc_num_vector(), j_block));
 
-  const int64_t index_offset_part1_ = 0;
+  const NML_t index_offset_part1_ = 0;
 
   return index_offset_part1_ + triangle_index(j) + i;
 }
@@ -222,7 +222,7 @@ static size_t Metrics_index_2_part1(GMMetrics& metrics,
 //-----------------------------------------------------------------------------
 /// \brief Convert elt coords to index, 2-way case, off-diagonal block.
 
-static size_t Metrics_index_2_part2(GMMetrics& metrics,
+static NML_t Metrics_index_2_part2(GMMetrics& metrics,
   int i, int j, int j_block, CEnv& env) {
   COMET_ASSERT(env.all2all());
   COMET_ASSERT(j_block != env.proc_num_vector());
@@ -245,8 +245,8 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
 
   /* clang-format off */
   return metrics.index_offset_part2_ +
-      i + metrics.num_vector_local * (size_t)(
-      j + metrics.num_vector_local * (
+      i + metrics.num_vector_local * (
+      j + metrics.num_vector_local * static_cast<NML_t>(
       block_part2));
   /* clang-format on */
 }
@@ -254,7 +254,7 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
 //-----------------------------------------------------------------------------
 /// \brief Convert element coordinates to index, 2-way case.
 
-static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
+static NML_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
   CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
@@ -267,27 +267,27 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
 
   const int i_block = env.proc_num_vector();
 
-  const int64_t index = is_part1(i_block, j_block)
+  const NML_t index = is_part1(i_block, j_block)
            ? Metrics_index_2_part1(metrics, i, j, j_block, env)
            : Metrics_index_2_part2(metrics, i, j, j_block, env);
 
-  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_metrics_local);
+  COMET_ASSERT(index >= 0 && index < metrics.num_metrics_local);
 
   // Map back from index to coords to ensure consistency.
 
   COMET_ASSERT(CoordsInfo::getiG(metrics.coords_value(index), metrics, env) ==
-           i + i_block * (size_t)metrics.num_vector_local);
+           i + i_block * static_cast<NV_t>(metrics.num_vector_local));
 
   COMET_ASSERT(CoordsInfo::getjG(metrics.coords_value(index), metrics, env) ==
-           j + j_block * (size_t)metrics.num_vector_local);
+           j + j_block * static_cast<NV_t>(metrics.num_vector_local));
 
-  return (size_t)index;
+  return index;
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Convert element global coords to index, 2-way case.
 
-static size_t Metrics_index_2(GMMetrics& metrics, size_t iG, size_t jG,
+static NML_t Metrics_index_2(GMMetrics& metrics, NV_t iG, NV_t jG,
   CEnv& env) {
   COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
   COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
@@ -307,7 +307,7 @@ static size_t Metrics_index_2(GMMetrics& metrics, size_t iG, size_t jG,
 
   const int j_block = env.all2all() ? j_proc : env.proc_num_vector();
 
-  const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
+  const NML_t index = Metrics_index_2(metrics, i, j, j_block, env);
 
   return index;
 }

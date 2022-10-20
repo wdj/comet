@@ -58,7 +58,7 @@ void set_vectors_random_(Vectors* vectors, int verbosity, CEnv* env) {
     return;
   }
 
-  const size_t nva = vectors->dm()->num_vector_active;
+  const NV_t nva = vectors->dm()->num_vector_active;
   const size_t nfa = vectors->dm()->num_field_active;
   const size_t nfl = vectors->dm()->num_field_local;
 
@@ -154,7 +154,8 @@ void set_vectors_random_(Vectors* vectors, int verbosity, CEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static size_t perm_shuffle(size_t key, size_t i, size_t n) {
+template<class T>
+static T perm_shuffle(size_t key, T i, T n) {
   COMET_ASSERT((key & (~(size_t)1)) == 0);
   COMET_ASSERT(i>=0 && i<n);
   COMET_ASSERT(n>=0);
@@ -164,8 +165,8 @@ static size_t perm_shuffle(size_t key, size_t i, size_t n) {
   // For an ascending sequence of integers, first output the even values,
   // then the odd values, for key=0. If key=1, same with even/odd reversed.
 
-  const size_t nhalf = (n+1-key)/2;
-  const size_t result = i < nhalf ? 2*i + key : 2*(i-nhalf) + 1 - key;
+  const T nhalf = (n+1-key)/2;
+  const T result = i < nhalf ? 2*i + key : 2*(i-nhalf) + 1 - key;
   COMET_ASSERT(result>=0 && result<n);
   return result;
 }
@@ -180,7 +181,8 @@ static size_t perm_shuffle(size_t key, size_t i, size_t n) {
 #pragma GCC optimize ("unroll-loops")
 #endif
 
-static size_t perm(size_t key, size_t i, size_t n) {
+template<class T>
+static T perm(size_t key, T i, T n) {
   COMET_ASSERT((key & (~(size_t)((1<<TestProblemInfo::NUM_SHUFFLE)-1))) == 0);
   COMET_ASSERT(i>=0 && i<n);
   COMET_ASSERT(n>=0);
@@ -188,9 +190,10 @@ static size_t perm(size_t key, size_t i, size_t n) {
   // For an integer between 0 and n-1, permute it to another such integer.
   // The permutation choice is specified by NUM_SHUFFLE bits.
 
-  size_t result = i;
+  T result = i;
   size_t key_resid = key;
-  for (int shuffle_num = 0; shuffle_num < TestProblemInfo::NUM_SHUFFLE; ++shuffle_num) {
+  for (int shuffle_num = 0; shuffle_num < TestProblemInfo::NUM_SHUFFLE;
+       ++shuffle_num) {
     result = perm_shuffle(key_resid&1, result, n);
     key_resid >>= 1;
   }
@@ -210,8 +213,8 @@ void set_vectors_analytic_(Vectors* vectors, int verbosity, CEnv* env) {
   if (! env->is_proc_active())
     return;
 
+  const NV_t nva = vectors->dm()->num_vector_active;
   const size_t nfa = vectors->dm()->num_field_active;
-  const size_t nva = vectors->dm()->num_vector_active;
   const size_t nfl = vectors->dm()->num_field_local;
 
   const auto tpi = TestProblemInfo(nva, nfa, *env);
@@ -230,27 +233,28 @@ void set_vectors_analytic_(Vectors* vectors, int verbosity, CEnv* env) {
     //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
-        size_t vector = vl +
-            vectors->num_vector_local() * (size_t)env->proc_num_vector();
+        const size_t vector = vl + vectors->num_vector_local() *
+                                   static_cast<NV_t>(env->proc_num_vector());
         // Fill pad vectors with copies of the last vector.
-        const size_t vector_capped = utils::min(vector, nva-1);
+        const NV_t vector_capped = utils::min(vector, nva-1);
         for (size_t fl = 0; fl < nfl; ++fl) {
           size_t field = fl +
               nfl * (size_t)env->proc_num_field();
-          if (field >= nfa) {
+          if (field >= nfa)
             continue; // These vector entries will be padded to zero elsewhere.
-          }
+
           const size_t f = field; // field number
-          const size_t v = vector_capped; // vector number
+          const NV_t v = vector_capped; // vector number
 
           const size_t pf = perm(0, f, nfa); // permuted field number
           const size_t g = pf / tpi.group_size_max_; // group number
           COMET_ASSERT(g>=0 && g<tpi.num_group_);
 
-          const size_t pv = perm(g, v, nva); // permuted vector number
+          const NV_t pv = perm(g, v, nva); // permuted vector number
 
           // Linearly map pv to small interval.
-          const size_t value = tpi.value_min_ + (pv * tpi.value_max_) / (tpi.value_min_+nva);
+          const size_t value = tpi.value_min_ +
+                               (pv * tpi.value_max_) / (tpi.value_min_ + nva);
 
           const GMFloat float_value = value;
 
@@ -268,28 +272,28 @@ void set_vectors_analytic_(Vectors* vectors, int verbosity, CEnv* env) {
 
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
-        size_t vector = vl +
-            vectors->num_vector_local() * (size_t)env->proc_num_vector();
+        const NV_t vector = vl + vectors->num_vector_local() *
+                                 static_cast<NV_t>(env->proc_num_vector());
         // Fill pad vectors with copies of the last vector.
-        const size_t vector_capped = utils::min(vector, nva-1);
+        const NV_t vector_capped = utils::min(vector, nva-1);
         for (size_t fl = 0; fl < nfl; ++fl) {
-          size_t field = fl +
-              nfl * (size_t)env->proc_num_field();
-          if (field >= nfa) {
+          size_t field = fl + nfl * (size_t)env->proc_num_field();
+          if (field >= nfa)
             continue; // These vector entries will be padded to zero elsewhere.
-          }
+
           // Create 2-bit value - make extra sure less than 4.
 
           const size_t f = field;
-          const size_t v = vector_capped;
+          const NV_t v = vector_capped;
 
           const size_t pf = perm(0, f, nfa);
           const size_t g = pf / tpi.group_size_max_;
           COMET_ASSERT(g>=0 && g<tpi.num_group_);
 
-          const size_t pv = perm(g, v, nva);
+          const NV_t pv = perm(g, v, nva);
 
-          const size_t value = tpi.value_min_ + ( pv * tpi.value_max_ ) / (nva+tpi.value_min_);
+          const size_t value = tpi.value_min_ +
+                               (pv * tpi.value_max_) / (tpi.value_min_ + nva);
 
           const GMBits2 bval = ((size_t)3) & (value - tpi.value_min_);
 
@@ -325,9 +329,8 @@ void TestProblem::set_vectors_synthetic(Vectors* vectors, int problem_type,
 //=============================================================================
 // Compute metric value, analytic case, czek 2-way.
 
-static GMFloat metric_value_analytic_(size_t vi,
-  size_t vj, const TestProblemInfo& tpi) {
-
+static GMFloat metric_value_analytic_(NV_t vi, NV_t vj,
+                                      const TestProblemInfo& tpi) {
   GMFloat float_n = 0;
   GMFloat float_d = 0;
 
@@ -345,13 +348,13 @@ static GMFloat metric_value_analytic_(size_t vi,
     const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
     const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-    const size_t pvi = perm(g, vi, tpi.nva_);
-    const size_t pvj = perm(g, vj, tpi.nva_);
+    const NV_t pvi = perm(g, vi, tpi.nva_);
+    const NV_t pvj = perm(g, vj, tpi.nva_);
 
-    const size_t value_i = tpi.value_min_ + ( pvi * tpi.value_max_ ) /
-                                       (tpi.value_min_+tpi.nva_);
-    const size_t value_j = tpi.value_min_ + ( pvj * tpi.value_max_ ) /
-                                       (tpi.value_min_+tpi.nva_);
+    const size_t value_i = tpi.value_min_ +
+                           (pvi * tpi.value_max_) / (tpi.value_min_ + tpi.nva_);
+    const size_t value_j = tpi.value_min_ +
+                           (pvj * tpi.value_max_) / (tpi.value_min_ + tpi.nva_);
     float_n += utils::min(value_i, value_j) * gs_this;
     float_d += (value_i + value_j) * gs_this;
     n += utils::min(value_i, value_j) * gs_this;
@@ -372,8 +375,8 @@ static GMFloat metric_value_analytic_(size_t vi,
 //=============================================================================
 // Compute metric value, analytic case, czek 3-way.
 
-static GMFloat metric_value_analytic_(size_t vi,
-  size_t vj, size_t vk, const TestProblemInfo& tpi) {
+static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
+                                      const TestProblemInfo& tpi) {
 
   GMFloat float_n = 0;
   GMFloat float_d = 0;
@@ -392,16 +395,16 @@ static GMFloat metric_value_analytic_(size_t vi,
     const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
     const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-    const size_t pvi = perm(g, vi, tpi.nva_);
-    const size_t pvj = perm(g, vj, tpi.nva_);
-    const size_t pvk = perm(g, vk, tpi.nva_);
+    const NV_t pvi = perm(g, vi, tpi.nva_);
+    const NV_t pvj = perm(g, vj, tpi.nva_);
+    const NV_t pvk = perm(g, vk, tpi.nva_);
 
-    const size_t value_i = tpi.value_min_ + ( pvi * tpi.value_max_ ) /
-                                            (tpi.nva_+tpi.value_min_);
-    const size_t value_j = tpi.value_min_ + ( pvj * tpi.value_max_ ) /
-                                            (tpi.nva_+tpi.value_min_);
-    const size_t value_k = tpi.value_min_ + ( pvk * tpi.value_max_ ) /
-                                            (tpi.nva_+tpi.value_min_);
+    const size_t value_i = tpi.value_min_ +
+                           (pvi * tpi.value_max_) / (tpi.nva_ + tpi.value_min_);
+    const size_t value_j = tpi.value_min_ +
+                           (pvj * tpi.value_max_) / (tpi.nva_ + tpi.value_min_);
+    const size_t value_k = tpi.value_min_ +
+                           (pvk * tpi.value_max_) / (tpi.nva_ + tpi.value_min_);
 
     float_n += utils::min(value_i, value_j) * gs_this;
     float_n += utils::min(value_i, value_k) * gs_this;
@@ -430,14 +433,14 @@ static GMFloat metric_value_analytic_(size_t vi,
 //=============================================================================
 // Compute metric value, analytic case, ccc/duo 2-way.
 
-static GMFloat metric_value_analytic_(size_t vi,
-  size_t vj, int iE, int jE, const TestProblemInfo& tpi, CEnv& env) {
+static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, int iE, int jE,
+                                      const TestProblemInfo& tpi, CEnv& env) {
 
   const int cbpe = env.counted_bits_per_elt();
   const double recip_m = 1. / tpi.nfa_;
 
-  const size_t iG = vi;
-  const size_t jG = vj;
+  const NV_t iG = vi;
+  const NV_t jG = vj;
 
   GMTally1 rij = 0;
   GMTally1 si = 0;
@@ -452,13 +455,13 @@ static GMFloat metric_value_analytic_(size_t vi,
     const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
     const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-    const size_t piG = perm(g, iG, tpi.nva_);
-    const size_t pjG = perm(g, jG, tpi.nva_);
+    const NV_t piG = perm(g, iG, tpi.nva_);
+    const NV_t pjG = perm(g, jG, tpi.nva_);
 
     const size_t value_i = tpi.value_min_ + (piG * tpi.value_max_) /
-                                            (tpi.nva_+tpi.value_min_);
+                                            (tpi.nva_ + tpi.value_min_);
     const size_t value_j = tpi.value_min_ + (pjG * tpi.value_max_ ) /
-                                            (tpi.nva_+tpi.value_min_);
+                                            (tpi.nva_ + tpi.value_min_);
 
     const GMBits2 bval_i = ((size_t)3) & (value_i - tpi.value_min_);
     const GMBits2 bval_j = ((size_t)3) & (value_j - tpi.value_min_);
@@ -539,16 +542,15 @@ static GMFloat metric_value_analytic_(size_t vi,
 //=============================================================================
 // Compute metric value, analytic case, ccc/duo 3-way.
 
-static GMFloat metric_value_analytic_(size_t vi,
-  size_t vj, size_t vk, int iE, int jE, int kE, const TestProblemInfo& tpi,
-  CEnv& env) {
+static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
+  int iE, int jE, int kE, const TestProblemInfo& tpi, CEnv& env) {
 
   const int cbpe = env.counted_bits_per_elt();
   const double recip_m = 1. / tpi.nfa_;
 
-  const size_t iG = vi;
-  const size_t jG = vj;
-  const size_t kG = vk;
+  const NV_t iG = vi;
+  const NV_t jG = vj;
+  const NV_t kG = vk;
 
     GMTally1 rijk = 0;
     GMTally1 si = 0;
@@ -565,9 +567,9 @@ static GMFloat metric_value_analytic_(size_t vi,
       const size_t pf_max = utils::min((g+1) * tpi.group_size_max_, tpi.nfa_);
       const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-      const size_t piG = perm(g, iG, tpi.nva_);
-      const size_t pjG = perm(g, jG, tpi.nva_);
-      const size_t pkG = perm(g, kG, tpi.nva_);
+      const NV_t piG = perm(g, iG, tpi.nva_);
+      const NV_t pjG = perm(g, jG, tpi.nva_);
+      const NV_t pkG = perm(g, kG, tpi.nva_);
 
       const size_t value_i = tpi.value_min_ + (piG * tpi.value_max_ ) /
                                          (tpi.nva_+tpi.value_min_);
@@ -586,7 +588,6 @@ static GMFloat metric_value_analytic_(size_t vi,
       const int bval_j_1 = !!(bval_j&2);
       const int bval_k_0 = !!(bval_k&1);
       const int bval_k_1 = !!(bval_k&2);
-
 
       const bool unk_i = env.sparse() && bval_i == GM_2BIT_UNKNOWN;
       const bool unk_j = env.sparse() && bval_j == GM_2BIT_UNKNOWN;
@@ -668,8 +669,8 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
   if (! env->is_proc_active())
     return;
 
+  const NV_t nva = metrics->num_vector_active;
   const size_t nfa = metrics->num_field_active;
-  const size_t nva = metrics->num_vector_active;
 
   const auto tpi = TestProblemInfo(nva, nfa, *env);
 
@@ -684,15 +685,16 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
   switch (env->data_type_metrics()) {
+
     //--------------------
     case DataTypeId::FLOAT: {
     //--------------------
       if (env->num_way() == NumWay::_2) {
 
 #       pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-        for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-          const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
-          const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
+        for (NML_t index = 0; index < metrics->num_metrics_local; ++index) {
+          const NV_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+          const NV_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
           if (vi >= nva || vj >= nva)
             continue;
 
@@ -718,10 +720,10 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
       if (env->num_way() == NumWay::_3) {
 
 #       pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-        for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-          const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
-          const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
-          const size_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
+        for (NML_t index = 0; index < metrics->num_metrics_local; ++index) {
+          const NV_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+          const NV_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
+          const NV_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
           if (vi >= nva || vj >= nva || vk >= nva)
             continue;
 
@@ -750,11 +752,11 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
     //--------------------
 
 #     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-      for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+      for (NML_t index = 0; index < metrics->num_metric_items_local_computed;
            ++index) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
-        const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
-        const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+        const NV_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+        const NV_t jG = CoordsInfo::getjG(coords, *metrics, *env);
         if (iG >= nva || jG >= nva)
           continue;
         for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
@@ -831,12 +833,12 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
     //--------------------
 
 #     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-      for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+      for (NML_t index = 0; index < metrics->num_metric_items_local_computed;
            ++index) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
-        const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
-        const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
-        const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
+        const NV_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+        const NV_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+        const NV_t kG = CoordsInfo::getkG(coords, *metrics, *env);
         if (iG >= nva || jG >= nva || kG >= nva)
           continue;
         for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();

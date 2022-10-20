@@ -62,18 +62,18 @@ MetricIO::MetricIO(FILE* file, GMMetrics& metrics, CEnv& env)
   , num_way_(env.num_way())
   , num_written_(0) {
 
-  const size_t index_max = metrics.num_vector_active *
+  const NML_t index_max = metrics.num_vector_active *
     (env_.is_metric_type_bitwise() ? 2 : 1) - 1;
   if (stdout != file_)
     COMET_INSIST_INTERFACE(&env, index_max ==
-       (size_t)(IntForFile_t)index_max &&
+       (NML_t)(IntForFile_t)index_max &&
                   "Too many vectors for output format.");
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CZEK 2-way case; helper for others.
 
-void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
+void MetricIO::write(NV_t iG, NV_t jG, GMFloat value) const {
 
   bool success = true;
   size_t bytes_written = 0;
@@ -93,7 +93,7 @@ void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CZEK 3-way case; helper for others.
 
-void MetricIO::write(size_t iG, size_t jG, size_t kG, GMFloat value) const {
+void MetricIO::write(NV_t iG, NV_t jG, NV_t kG, GMFloat value) const {
 
   bool success = true;
   size_t bytes_written = 0;
@@ -114,7 +114,7 @@ void MetricIO::write(size_t iG, size_t jG, size_t kG, GMFloat value) const {
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CCC/DUO 2-way case.
 
-void MetricIO::write(size_t iG, size_t jG, int iE, int jE,
+void MetricIO::write(NV_t iG, NV_t jG, int iE, int jE,
                          GMFloat value) const {
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
@@ -126,7 +126,7 @@ void MetricIO::write(size_t iG, size_t jG, int iE, int jE,
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CCC/DUO 3-way case.
 
-void MetricIO::write(size_t iG, size_t jG, size_t kG,
+void MetricIO::write(NV_t iG, NV_t jG, NV_t kG,
                          int iE, int jE, int kE, GMFloat value) const {
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
@@ -175,15 +175,15 @@ static void MetricsIO_write_tally2x2_bin_impl_(
     do_out_buf[i] = 0;
 
   // Process num_buf_ind index values at a time
-  for (size_t ind_base = 0; ind_base < metrics->num_metric_items_local_computed;
+  for (NML_t ind_base = 0; ind_base < metrics->num_metric_items_local_computed;
        ind_base += num_buf_ind) {
     // Largest index value to visit for this loop trip.
-    const size_t ind_max = utils::min(metrics->num_metric_items_local_computed,
+    const NML_t ind_max = utils::min(metrics->num_metric_items_local_computed,
                                       ind_base + num_buf_ind);
 
     // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)
-    for (size_t index = ind_base; index < ind_max; ++index) {
+    for (NML_t index = ind_base; index < ind_max; ++index) {
       // Fast check to skip metrics with no passes.
 //FIXTHRESHOLD - revise how this call does its checks
       if (Metrics_ccc_duo_threshold_detector_2<COUNTED_BITS_PER_ELT>(
@@ -310,14 +310,14 @@ static void MetricsIO_write_tally4x2_bin_impl_(
     do_out_buf[i] = 0;
 
   // Process num_buf_ind index values at a time
-  for (size_t ind_base = 0; ind_base < metrics->num_metric_items_local_computed;
+  for (NML_t ind_base = 0; ind_base < metrics->num_metric_items_local_computed;
        ind_base += num_buf_ind) {
     // Largest index value to visit for this loop trip.
-    const size_t ind_max = utils::min(metrics->num_metric_items_local_computed,
+    const NML_t ind_max = utils::min(metrics->num_metric_items_local_computed,
                                       ind_base + num_buf_ind);
     // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)
-    for (size_t index = ind_base; index < ind_max; ++index) {
+    for (NML_t index = ind_base; index < ind_max; ++index) {
       // Fast check to skip metrics with no passes.
 //FIXTHRESHOLD - revise how this call does its checks
       if (Metrics_ccc_duo_threshold_detector_3<COUNTED_BITS_PER_ELT>(
@@ -434,9 +434,9 @@ static void MetricsIO_write_(
 
     COMET_INSIST(!env->thresholds().is_multi());
 
-    for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+    for (NML_t index = 0; index < metrics->num_metrics_local; ++index) {
+      const NV_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+      const NV_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active)
         continue;
@@ -466,10 +466,10 @@ static void MetricsIO_write_(
 
     COMET_INSIST(!env->thresholds().is_multi());
 
-    for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
-      const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
+    for (NML_t index = 0; index < metrics->num_metrics_local; ++index) {
+      const NV_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+      const NV_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+      const NV_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
@@ -500,11 +500,11 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     // Loop over metric items.
-    for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+    for (NML_t index = 0; index < metrics->num_metric_items_local_computed;
          ++index) {
       const MetricItemCoords_t coords = metrics->coords_value(index);
-      const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
-      const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+      const NV_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+      const NV_t jG = CoordsInfo::getjG(coords, *metrics, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active)
         continue;
@@ -545,12 +545,12 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     // Loop over metric items.
-    for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+    for (NML_t index = 0; index < metrics->num_metric_items_local_computed;
          ++index) {
       const MetricItemCoords_t coords = metrics->coords_value(index);
-      const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
-      const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
-      const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
+      const NV_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+      const NV_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+      const NV_t kG = CoordsInfo::getkG(coords, *metrics, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
@@ -717,8 +717,8 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       MetricIO::MetricForFile<NumWay::_2> metric;
       MetricIO::read(metric, file_, env_);
 
-      const size_t iG = metric.iG(env_);
-      const size_t jG = metric.jG(env_);
+      const NV_t iG = metric.iG(env_);
+      const NV_t jG = metric.jG(env_);
 
       const int iE = metric.iE(env_);
       const int jE = metric.jE(env_);
@@ -731,7 +731,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
       // Compare.
 
-      const size_t index = Metrics_index_2(metrics, iG, jG, env_);
+      const NML_t index = Metrics_index_2(metrics, iG, jG, env_);
 
       bool do_coords_match = true;
       if (env_.is_shrink()) {
@@ -800,9 +800,9 @@ do_coords_match
       MetricIO::MetricForFile<NumWay::_3> metric;
       MetricIO::read(metric, file_, env_);
 
-      const size_t iG = metric.iG(env_);
-      const size_t jG = metric.jG(env_);
-      const size_t kG = metric.kG(env_);
+      const NV_t iG = metric.iG(env_);
+      const NV_t jG = metric.jG(env_);
+      const NV_t kG = metric.kG(env_);
 
       const int iE = metric.iE(env_);
       const int jE = metric.jE(env_);
@@ -816,7 +816,7 @@ do_coords_match
 
       // Compare.
 
-      const size_t index = Metrics_index_3(metrics, iG, jG, kG, env_);
+      const NML_t index = Metrics_index_3(metrics, iG, jG, kG, env_);
 
       bool do_coords_match = true;
       if (env_.is_shrink()) {
@@ -877,10 +877,10 @@ do_coords_match
   if (env_.num_way() == NumWay::_2) {
   //--------------------
 
-    for (size_t index = 0; index <  metrics.num_metric_items_local_computed;
+    for (NML_t index = 0; index <  metrics.num_metric_items_local_computed;
          ++index) {
-      const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
-      const size_t jG = Metrics_coords_getG(metrics, index, 1, env_);
+      const NV_t iG = Metrics_coords_getG(metrics, index, 0, env_);
+      const NV_t jG = Metrics_coords_getG(metrics, index, 1, env_);
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active)
         continue;
@@ -919,11 +919,11 @@ do_coords_match
   } else { // if (env_.num_way() == NumWay::_3)
   //--------------------
 
-    for (size_t index = 0; index <  metrics.num_metric_items_local_computed;
+    for (NML_t index = 0; index <  metrics.num_metric_items_local_computed;
          ++index) {
-      const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
-      const size_t jG = Metrics_coords_getG(metrics, index, 1, env_);
-      const size_t kG = Metrics_coords_getG(metrics, index, 2, env_);
+      const NV_t iG = Metrics_coords_getG(metrics, index, 0, env_);
+      const NV_t jG = Metrics_coords_getG(metrics, index, 1, env_);
+      const NV_t kG = Metrics_coords_getG(metrics, index, 2, env_);
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active ||
           kG >= metrics.num_vector_active)

@@ -51,6 +51,8 @@ namespace comet {
 
 // TODO: consistently use C++ types that have guaranteed sizes, e.g., int32_t.
 
+enum {BITS_PER_BYTE = 8};
+
 struct BasicTypes {
 
   typedef float FP32;
@@ -64,15 +66,13 @@ struct BasicTypes {
 
 private:
 
-  enum {BITS_PER_BYTE_ = 8};
-
   static void check_type_sizes_() {
-    COMET_STATIC_ASSERT(sizeof(FP32) == 32/BITS_PER_BYTE_);
-    COMET_STATIC_ASSERT(sizeof(FP64) == 64/BITS_PER_BYTE_);
+    COMET_STATIC_ASSERT(sizeof(FP32) == 32/BITS_PER_BYTE);
+    COMET_STATIC_ASSERT(sizeof(FP64) == 64/BITS_PER_BYTE);
     COMET_STATIC_ASSERT(sizeof(int) == 4);
     COMET_STATIC_ASSERT(sizeof(size_t) == 8);
 #   ifdef COMET_USE_INT128
-      COMET_STATIC_ASSERT(sizeof(BigUInt) == 128/BITS_PER_BYTE_);
+      COMET_STATIC_ASSERT(sizeof(BigUInt) == 128/BITS_PER_BYTE);
 #   endif
   }
 
@@ -83,10 +83,14 @@ private:
 }; // BasicTypes
 
 //=============================================================================
-// Type for storing coordinates of a metrics item.
+// Types for different integer quantities.
+
+typedef size_t NV_t;
+typedef int64_t NML_t;
 
 //typedef size_t MetricItemCoords_t;
 typedef BasicTypes::BigUInt MetricItemCoords_t;
+
 
 //=============================================================================
 // Types (mainly) for Czekanowski metric

@@ -148,8 +148,10 @@ inline static void sort3(T& i, T& j, T& k, TI& ind_i, TI& ind_j, TI& ind_k) {
 //-----------------------------------------------------------------------------
 /// \brief Checksum helper function: left shift that works for any shift amount.
 
-inline static size_t lshift(size_t a, int j) {
-  if (j >= 64 || j <= -64) {
+template<class T>
+inline static T lshift(T a, int j) {
+  if (j >=  static_cast<int>(sizeof(T)*BITS_PER_BYTE) ||
+      j <= -static_cast<int>(sizeof(T)*BITS_PER_BYTE)) {
     return 0;
   }
   return j > 0 ? a << j : a >> (-j);
@@ -162,7 +164,7 @@ inline static size_t lshift(size_t a, int j) {
 
 double Checksum::metrics_elt(
   GMMetrics& metrics,
-  size_t index,
+  NML_t index,
   int entry_num,
   CEnv& env) { 
   COMET_INSIST(index < metrics.num_metric_items_local_allocated); // && index >= 0
@@ -245,13 +247,13 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 
   // Loop over metrics indices to find max.
   #pragma omp parallel for reduction(max:result)
-  for (size_t index = 0; index < metrics.num_metric_items_local_computed;
+  for (NML_t index = 0; index < metrics.num_metric_items_local_computed;
        ++index) {
 
     // Determine whether this cell is active.
     bool is_active = true;
     for (int i = 0; i < env.num_way(); ++i) {
-      const size_t coord = Metrics_coords_getG(metrics, index, i,
+      const NV_t coord = Metrics_coords_getG(metrics, index, i,
         env);
       is_active = is_active && coord < metrics.num_vector_active;
     }
@@ -365,7 +367,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     double num_zero_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
-    for (size_t index = 0; index < metrics.num_metric_items_local_computed;
+    for (NML_t index = 0; index < metrics.num_metric_items_local_computed;
          ++index) {
       // Loop over data values at this index
       for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
@@ -375,11 +377,11 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         const bool is_active = CoordsInfo::is_active(coords, metrics, env);
 
         // Obtain global coords of metrics elt
-        size_t coord_perm[NumWay::MAX] = {0};
+        NV_t coord_perm[NumWay::MAX] = {0};
         int iperm[NumWay::MAX] = {0};
 
         for (int i = 0; i < env.num_way(); ++i) {
-          const size_t coord = Metrics_coords_getG(metrics, index, i, env);
+          const NV_t coord = Metrics_coords_getG(metrics, index, i, env);
           coord_perm[i] = coord;
           iperm[i] = i;
         }

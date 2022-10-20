@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //=============================================================================
-// Vectors constructor.
+/// \brief Vectors constructor.
 
 Vectors::Vectors(CEnv& env)
   : num_field_local_(0)
@@ -67,32 +67,38 @@ Vectors::Vectors(CEnv& env)
   }
 
 //-----------------------------------------------------------------------------
+/// \brief Vectors destructor.
 
-void Vectors::allocate(int data_type_id, GMDecompMgr& dm) {
-  allocate_impl_(data_type_id, dm, HAS_BUF_FALSE);
+Vectors::~Vectors() {
+  deallocate();
 }
 
-//-----------------------------------------------------------------------------
+//=============================================================================
+/// \brief Vectors allocate, case of using mirrored buf.
 
 void Vectors::allocate_with_buf(int data_type_id, GMDecompMgr& dm) {
   allocate_impl_(data_type_id, dm, HAS_BUF_TRUE);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Vectors allocate, case of not using mirrored buf.
 
-void Vectors::allocate_impl_(int data_type_id,
-                               GMDecompMgr& dm,
-                               bool has_buf) {
+void Vectors::allocate(int data_type_id, GMDecompMgr& dm) {
+  allocate_impl_(data_type_id, dm, HAS_BUF_FALSE);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Vectors allocate implementation.
+
+void Vectors::allocate_impl_(int data_type_id, GMDecompMgr& dm, bool has_buf) {
   if (!env_.is_proc_active())
     return;
 
-  this->data_type_id_ = data_type_id;
+  data_type_id_ = data_type_id;
   dm_ = &dm;
   has_buf_ = has_buf;
   num_field_local_ = dm_->num_field_local;
   num_vector_local_ = dm_->num_vector_local;
-
-  const int bits_per_byte = 8;
 
   // Allocation size for vector storage
 
@@ -102,7 +108,7 @@ void Vectors::allocate_impl_(int data_type_id,
       num_packedfield_local_ * dm_->num_vector_local;
 
   data_size_ = num_packedfield_vector_local_ *
-              (dm_->num_bit_per_packedfield / bits_per_byte);
+              (dm_->num_bit_per_packedfield / BITS_PER_BYTE);
 
   // Set up vector storage, mirrored buffer
 
@@ -124,10 +130,9 @@ void Vectors::allocate_impl_(int data_type_id,
 }
 
 //=============================================================================
-// Set vector entries to zero.
+/// \brief Set vector entries to zero.
 
 void Vectors::initialize() {
-
   if (!env_.is_proc_active())
     return;
 
@@ -157,20 +162,19 @@ void Vectors::initialize() {
 }
 
 //=============================================================================
-// Set unused (pad) vector entries to zero.
-
-//TODO: initialize pad vectors as well as pad fields !!!
-
-// TODO: consider check to make sure user has set all vector entries (?).
+/// \brief Set unused (pad) vector entries to zero.
+///
+/// The purpose of this function is to ensure final pad words/bits
+/// of each vector are set to zero so that word-wise summations of bits
+/// aren't corrupted with bad trailing data
+///
+/// TODO: possibly initialize pad vectors as well as pad fields.
+/// TODO: possibly check to make sure user has set all vector entries (?).
+///
 
 void Vectors::initialize_pad() {
-
-  /*---Ensure final pad words/bits of each vector are set to zero so that
-       word-wise summations of bits aren't corrupted with bad trailing data---*/
-
-  if (!env_.is_proc_active()) {
+  if (!env_.is_proc_active())
     return;
-  }
 
   const size_t nfal = dm_->num_field_active_local;
 
@@ -178,6 +182,7 @@ void Vectors::initialize_pad() {
   const size_t pfl_max = dm_->num_packedfield_local;
 
   switch (data_type_id_) {
+
     case DataTypeId::FLOAT: {
       GMFloat zero = 0;
       for (int vl = 0; vl < num_vector_local_; ++vl) {
@@ -186,6 +191,7 @@ void Vectors::initialize_pad() {
         }
       }
     } break;
+
     case DataTypeId::BITS2: {
       const GMBits2x64 zero = GMBits2x64_null();
       const uint64_t allbits = 0xffffffffffffffff;
@@ -218,13 +224,14 @@ void Vectors::initialize_pad() {
         } // for pfl
       }
     } break;
+
     default:
       COMET_INSIST(false && "Invalid vectors data_type_id.");
   } // switch
 }
 
 //=============================================================================
-// Vectors destructor.
+/// \brief Vectors deallocate.
 
 void Vectors::deallocate() {
   if (!is_allocated_)
@@ -245,66 +252,60 @@ void Vectors::deallocate() {
   is_allocated_ = false;
 }
 
-//-----------------------------------------------------------------------------
-
-Vectors::~Vectors() {
-  deallocate();
-}
-
 //=============================================================================
-// Copy vectors to mirrored buffer
+/// \brief Copy vectors elements to a specified mirrored buffer.
 
 void Vectors::to_buf(MirroredBuf& vectors_buf) const {
-
   if (!env_.is_using_linalg())
     return;
-
-  // Copy vectors into GPU buffers if needed.
+  if (!env_.is_proc_active())
+    return;
+  COMET_INSIST(is_allocated_);
 
   switch (env_.metric_type()) {
+
     case MetricType::CZEK: {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
       for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (int fl = 0; fl < num_field_local_; ++fl) {
-          vectors_buf.elt<GMFloat>(fl, vl) =
-            elt_float_const(fl, vl);
+          vectors_buf.elt<GMFloat>(fl, vl) = elt_float_const(fl, vl);
         }
       }
     } break;
+
     case MetricType::CCC: {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
       for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (int fl = 0; fl < num_packedfield_local_; ++fl) {
-          vectors_buf.elt<GMBits2x64>(fl, vl) =
-            elt_bits2x64_const(fl, vl);
+          vectors_buf.elt<GMBits2x64>(fl, vl) = elt_bits2x64_const(fl, vl);
         }
       }
     } break;
+
     case MetricType::DUO: {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
       for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (int fl = 0; fl < num_packedfield_local_; ++fl) {
-          vectors_buf.elt<GMBits2x64>(fl, vl) =
-            elt_bits2x64_const(fl, vl);
+          vectors_buf.elt<GMBits2x64>(fl, vl) = elt_bits2x64_const(fl, vl);
         }
       }
     } break;
+
     default:
       COMET_INSIST_INTERFACE(&env_, false && "Unimplemented metric_type.");
   } // switch
 }
 
 //=============================================================================
-// checksum of vector entries.
+/// \brief Compute checksum of vector entries.
 
 size_t Vectors::cksum() const {
-
   if (!env_.is_proc_active())
     return 0;
 

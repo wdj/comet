@@ -68,7 +68,7 @@ public:
 
   GemmShape2Way() {}
 
-  GemmShape2Way(bool do_compute_triang_only, int nvl, int nva,
+  GemmShape2Way(bool do_compute_triang_only, int nvl, NV_t nva,
                 int proc_num_I, int proc_num_J)
     : do_compute_triang_only_(do_compute_triang_only)
     , nvl_(nvl)
@@ -76,7 +76,7 @@ public:
     , proc_num_I_(proc_num_I)
     , proc_num_J_(proc_num_J) {}
 
-  void set(bool do_compute_triang_only, int nvl, int nva,
+  void set(bool do_compute_triang_only, int nvl, NV_t nva,
            int proc_num_I, int proc_num_J) {
     do_compute_triang_only_ = do_compute_triang_only;
     nvl_ = nvl;
@@ -88,15 +88,15 @@ public:
   __host__ __device__
   bool is_inside(int I, int J) const {
     return (I < J || !do_compute_triang_only_) &&
-           I + nvl_*proc_num_I_ < nva_ &&
-           J + nvl_*proc_num_J_ < nva_;
+           I + nvl_*static_cast<NV_t>(proc_num_I_) < nva_ &&
+           J + nvl_*static_cast<NV_t>(proc_num_J_) < nva_;
   }
 
 private:
 
   bool do_compute_triang_only_;
   int nvl_;
-  int nva_;
+  NV_t nva_;
   int proc_num_I_;
   int proc_num_J_;
 };
@@ -109,7 +109,7 @@ public:
 
   GemmShape3Way() {}
 
-  GemmShape3Way(int I_max, int K_min, int K_max, int nvl, int nva,
+  GemmShape3Way(int I_max, int K_min, int K_max, int nvl, NV_t nva,
                 int proc_num_I, int proc_num_J, int proc_num_K)
     : I_max_(I_max)
     , K_min_(K_min)
@@ -120,7 +120,7 @@ public:
     , proc_num_J_(proc_num_J)
     , proc_num_K_(proc_num_K) {}
 
-  void set(int I_max, int K_min, int K_max, int nvl, int nva,
+  void set(int I_max, int K_min, int K_max, int nvl, NV_t nva,
            int proc_num_I, int proc_num_J, int proc_num_K) {
     I_max_ = I_max;
     K_min_ = K_min;
@@ -135,9 +135,9 @@ public:
   __host__ __device__
   bool is_inside(int I, int J, int K) const {
     return I < I_max_ && K >= K_min_ && K < K_max_ &&
-           I + nvl_*proc_num_I_ < nva_ &&
-           J + nvl_*proc_num_J_ < nva_ &&
-           K + nvl_*proc_num_K_ < nva_;
+           I + nvl_*static_cast<NV_t>(proc_num_I_) < nva_ &&
+           J + nvl_*static_cast<NV_t>(proc_num_J_) < nva_ &&
+           K + nvl_*static_cast<NV_t>(proc_num_K_) < nva_;
   }
 
 private:
@@ -146,7 +146,7 @@ private:
   int K_min_;
   int K_max_;
   int nvl_;
-  int nva_;
+  NV_t nva_;
   int proc_num_I_;
   int proc_num_J_;
   int proc_num_K_;

@@ -105,7 +105,7 @@ public:
 
   static double metrics_elt(
     GMMetrics& metrics,
-    size_t index,
+    NML_t index,
     int i_value,
     CEnv& env);
 

@@ -73,13 +73,13 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-/// \brief Help[er class with test problem size info.
+/// \brief Helper class with test problem size info.
 
 struct TestProblemInfo {
 
   enum {NUM_SHUFFLE = 3};
 
-  TestProblemInfo(size_t nva, size_t nfa, CEnv& env)
+  TestProblemInfo(NV_t nva, size_t nfa, CEnv& env)
     : nva_(nva)
     , nfa_(nfa)
       // Upper bound on integer representable exactly by floating point type.
@@ -99,7 +99,7 @@ struct TestProblemInfo {
   {
   }
 
-  const size_t nva_;
+  const NV_t nva_;
   const size_t nfa_;
   const size_t max_float_;
   const size_t overflow_limit_;

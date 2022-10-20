@@ -203,36 +203,17 @@ static size_t randomize(T i) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief N choose K function.
-
-static size_t nchoosek(int n, int k) {
-  COMET_ASSERT(n >= 0);
-  COMET_ASSERT(k >= 0 && k <= n);
-
-  size_t numer = 1;
-  size_t denom = 1;
-
-  for (int i = 0; i < k; ++i) {
-    numer *= (n - i);
-    denom *= (i + 1);
-  }
-
-  return numer / denom;
-}
-
-//-----------------------------------------------------------------------------
 /// \brief Ceiling of log2 of an integer.
 
-static int log2(size_t n) {
-  COMET_STATIC_ASSERT(sizeof(n) == 8);
-
+template<class T>
+static int log2(T n) {
   if (n <= 1)
     return 0;
 
   size_t n_ = n - 1;
- 
+
   int r = 0; 
-  for (r = 0; r <= 8 * (int)sizeof(size_t); ++r) {
+  for ( ; r <= static_cast<int>(sizeof(T)*BITS_PER_BYTE); ++r) {
     if (n_ == 0) {
       break;
     }
@@ -240,11 +221,34 @@ static int log2(size_t n) {
   }
 
   COMET_ASSERT(r >= 1);
-  COMET_ASSERT(r <= 62 && "Case unimplemented.");
-  COMET_ASSERT(n <= (size_t(1) << r));
-  COMET_ASSERT(!(n <= (size_t(1) << (r-1))));
+
+  COMET_ASSERT(n <= (static_cast<T>(1) << r));
+  COMET_ASSERT(!(n <= (static_cast<T>(1) << (r-1))));
 
   return r;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief N choose K function.
+
+template<class T>
+static T nchoosek(T n, int k) {
+  COMET_ASSERT(n+1 >= 0+1);
+  COMET_ASSERT(k >= 0 && static_cast<T>(k) <= n);
+
+  T numer = 1;
+  int denom = 1;
+
+  for (int i = 0; i < k; ++i) {
+    // Subtract 2 because of possible sign bit
+    // and also edge case of 2^i - 1 limit.
+    COMET_ASSERT(log2(numer) + log2(n - i) <=
+                 static_cast<int>(sizeof(T)*BITS_PER_BYTE - 2));
+    numer *= (n - i);
+    denom *= (i + 1);
+  }
+
+  return numer / denom;
 }
 
 //-----------------------------------------------------------------------------

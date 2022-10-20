@@ -60,25 +60,25 @@ void MetricsTest_3way_num_metrics_local_() {
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
-  const int num_proc_mock = 20;
-  const int nvl = 12;
+  const size_t num_proc_mock = 20;
+  const size_t nvl = 12;
   const int num_stage = 2;
 
-  const uint64_t num_vector = nvl * (uint64_t)num_proc_mock;
+  const auto num_vector = nvl * num_proc_mock;
 
-  const uint64_t num_metrics_local_expected = num_vector * (num_vector-1) *
-                                              (num_vector-2) / 6;
+  const auto num_metrics_local_expected = num_vector * (num_vector-1) *
+                                          (num_vector-2) / 6;
 
   size_t num_metrics_local = 0;
 
-  const char options_template[] = "--num_proc_vector %i --verbosity 0 "
-                                  "--num_vector_local %i --num_field 1 "
+  const char options_template[] = "--num_proc_vector %zu --verbosity 0 "
+                                  "--num_vector_local %zu --num_field 1 "
                                   "--all2all yes --compute_method GPU "
                                   "--num_way 3 ";
 
   if (comm_rank == 0) {
 
-    for (int proc_num_mock=0; proc_num_mock<num_proc_mock; ++proc_num_mock) {
+    for (size_t proc_num_mock=0; proc_num_mock<num_proc_mock; ++proc_num_mock) {
       for (int stage_num=0; stage_num<num_stage; ++stage_num) {
 
         char options[1024];

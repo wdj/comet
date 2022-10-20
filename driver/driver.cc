@@ -150,7 +150,7 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
                     && "Invalid setting for num_vector.");
-      options_.num_vector_active = safe_cast<int>(value);
+      options_.num_vector_active = safe_cast<NV_t>(value);
       options_.is_inited_num_vector_active = true;
       options_.is_inited_num_vector_local = false;
 
@@ -704,26 +704,33 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   // Perform some checks.
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(
-    &counters_.num_metric_items_local_computed,
-    &counters_.num_metric_items_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-    env.comm_repl_vector()));
+  const bool can_fit = utils::log2(2*dm.num_vector) * env.num_way() <
+                       static_cast<int>(sizeof(size_t) * BITS_PER_BYTE);
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(
-    &counters_.num_metrics_active_local,
-    &counters_.num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-    env.comm_repl_vector()));
+  if (env.all2all() && options_.is_all_phase_all_stage() && can_fit) {
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_local_written,
-                      &counters_.num_written, 1, MPI_UNSIGNED_LONG_LONG,
-                      MPI_SUM, env.comm_repl_vector()));
+    // NOTE: this computation will only work right if the metric counts below
+    // can fit in a size_t integer.
 
-  if (env.all2all() && options_.is_all_phase_all_stage()) {
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(
+      &counters_.num_metric_items_local_computed,
+      &counters_.num_metric_items_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+      env.comm_repl_vector()));
+
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(
+      &counters_.num_metrics_active_local,
+      &counters_.num_metrics_active, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+      env.comm_repl_vector()));
+
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&counters_.num_local_written,
+                        &counters_.num_written, 1, MPI_UNSIGNED_LONG_LONG,
+                        MPI_SUM, env.comm_repl_vector()));
+
     const size_t num_metrics_expected =
-      utils::nchoosek(dm.num_vector, env.num_way());
+      utils::nchoosek<size_t>(dm.num_vector, env.num_way());
 
     const size_t num_metrics_active_expected =
-      utils::nchoosek(dm.num_vector_active, env.num_way());
+      utils::nchoosek<size_t>(dm.num_vector_active, env.num_way());
 
     COMET_INSIST(counters_.num_metrics_active == num_metrics_active_expected &&
                  "Inconsistent metrics count.");

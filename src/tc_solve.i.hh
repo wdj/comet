@@ -499,7 +499,6 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     // 8 == number of uint8_t values used to store each chunk of
     // NUM_FL_PER_PFL fields in the tc buf.
-    enum {BITS_PER_BYTE = 8};
     enum {BYTES_PER_PFL_FIELDS =
       (NUM_FL_PER_PFL*TCTraits<TC_METHOD>::NUM_BITS_PER_FIELD) / BITS_PER_BYTE};
 

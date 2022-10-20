@@ -112,7 +112,7 @@ static double GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
 /// \brief Accessor for 2-way CCC metric computed with 128 bit int arithmetic.
 
 static double GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
-                                                  size_t index,
+                                                  NML_t index,
                                                   int iE,
                                                   int jE,
                                                   CEnv* env) {
@@ -167,7 +167,7 @@ static double GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
 
 template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
 static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
-  size_t index, int iE, int jE, CEnv& env) {
+  NML_t index, int iE, int jE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(env.is_metric_type_bitwise());
@@ -365,7 +365,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 template<int CBPE, typename FloatResult_t>
 struct MetricsIndexCCCDUO2Helper {
   static FloatResult_t impl(
-  GMMetrics& metrics, size_t index, int iE, int jE, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int iE, int jE, CEnv& env) {
     return Metrics_ccc_duo_get_2_impl<
       CBPE, FloatResult_t>(metrics, index, iE, jE, env);;
   }
@@ -376,7 +376,7 @@ struct MetricsIndexCCCDUO2Helper {
 template<typename FloatResult_t>
 struct MetricsIndexCCCDUO2Helper<CBPE::NONE, FloatResult_t> {
   static FloatResult_t impl(
-  GMMetrics& metrics, size_t index, int iE, int jE, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int iE, int jE, CEnv& env) {
     return env.counted_bits_per_elt() == CBPE::CCC ?
       MetricsIndexCCCDUO2Helper<CBPE::CCC, FloatResult_t>::impl(
         metrics, index, iE, jE, env) :
@@ -390,14 +390,14 @@ struct MetricsIndexCCCDUO2Helper<CBPE::NONE, FloatResult_t> {
 
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
 static FloatResult_t Metrics_ccc_duo_get_2(
-  GMMetrics& metrics, size_t index, int iE, int jE, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int iE, int jE, CEnv& env) {
     return MetricsIndexCCCDUO2Helper<CBPE, FloatResult_t>::impl(
       metrics, index, iE, jE, env);
 }
 
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
 static FloatResult_t Metrics_ccc_duo_get_2(
-  GMMetrics& metrics, size_t index, int entry_num, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int entry_num, CEnv& env) {
 
   if (env.is_shrink()) {
     COMET_ASSERT(0 == entry_num);
@@ -576,7 +576,7 @@ static T& Metrics_elt_2(GMMetrics& metrics, int i, int j, int j_block,
   COMET_ASSERT(env.all2all() || env.proc_num_vector() == j_block);
   // WARNING: these conditions are not exhaustive.
 
-  const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
+  const NML_t index = Metrics_index_2(metrics, i, j, j_block, env);
 
   return Metrics_elt<T, MA>(metrics, index, env);
 }
@@ -592,7 +592,7 @@ static T Metrics_elt_const_2(GMMetrics& metrics, int i, int j, int j_block,
   COMET_ASSERT(env.all2all() || env.proc_num_vector() == j_block);
   // WARNING: these conditions are not exhaustive.
 
-  const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
+  const NML_t index = Metrics_index_2(metrics, i, j, j_block, env);
 
   return Metrics_elt_const<T>(metrics, index, env);
 }
@@ -601,7 +601,7 @@ static T Metrics_elt_const_2(GMMetrics& metrics, int i, int j, int j_block,
 // Accessors: value from index: get: 2-way.
 
 static GMFloat GMMetrics_get_2(GMMetrics& metrics,
-  size_t index, int iE, int jE, CEnv& env) {
+  NML_t index, int iE, int jE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(index >= 0 && index < metrics.num_metrics_local);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
@@ -619,35 +619,14 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 // Accessors: value from (global) coord: get: 2-way.
 
 static GMFloat GMMetrics_get_2(GMMetrics& metrics,
-  size_t iG, size_t jG, int iE, int jE, CEnv& env) {
+  NV_t iG, NV_t jG, int iE, int jE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
 
   // WARNING: these conditions are not exhaustive.
 
-#if 0
-  const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, iG, &env);
-  const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, jG, &env);
-  COMET_ASSERT(i >= 0 && i < metrics.dm->num_vector_local);
-  COMET_ASSERT(j >= 0 && j < metrics.dm->num_vector_local);
-
-  const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, iG, &env);
-  const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, jG, &env);
-  no_unused_variable_warning(i_proc);
-  COMET_ASSERT(env.proc_num_vector() == i_proc);
-  COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
-
-  const int j_block = env.all2all() ? j_proc : env.proc_num_vector();
-
-  const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
-#endif
-
-  const size_t index = Metrics_index_2(metrics, iG, jG, env);
+  const NML_t index = Metrics_index_2(metrics, iG, jG, env);
 
   const GMFloat result = GMMetrics_get_2(metrics, index, iE, jE, env);
 
@@ -658,7 +637,7 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 // Accessors: determine whether pass threshold: 2-way.
 
 static bool Metrics_is_pass_threshold(GMMetrics& metrics,
-  size_t index, int iE, int jE, CEnv& env) {
+  NML_t index, int iE, int jE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(iE >= 0 && iE < 2);

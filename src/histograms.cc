@@ -134,7 +134,7 @@ void Histograms::output() {
 //-----------------------------------------------------------------------------
 /// \brief Check result.
 
-void Histograms::check(size_t num_vector_active) {
+void Histograms::check(NV_t num_vector_active) {
 
   if (!is_computing_histograms() || !env_.is_proc_active())
     return;

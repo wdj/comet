@@ -59,7 +59,7 @@ void static VectorsIO_read_float(Vectors& vectors, const char* path,
   FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nva = vectors.dm()->num_vector_active;
+  const NV_t nva = vectors.dm()->num_vector_active;
   const size_t nfa = vectors.dm()->num_field_active;
   const size_t nvl = vectors.dm()->num_vector_local;
   const size_t nfl = vectors.dm()->num_field_local;
@@ -73,13 +73,13 @@ void static VectorsIO_read_float(Vectors& vectors, const char* path,
   for (size_t vl = 0; vl < nvl; ++vl) {
 
     // (global) vector number.
-    const size_t v = vl + vectors.dm()->vector_base;
+    const NV_t v = vl + vectors.dm()->vector_base;
 
     // Fill pad vectors at end with copies of last active vector.
-    const size_t v_file = utils::min(v, nva-1);
+    const NV_t v_file = utils::min(v, nva-1);
 
     // Offset into file of first byte to read
-    const size_t loc_min_file = sizeof(IO_t) * (f_min + nfa * v_file);
+    const NV_t loc_min_file = sizeof(IO_t) * (f_min + nfa * v_file);
 
     // Position to that location in file.
     const int success = fseek(file, loc_min_file, SEEK_SET);
@@ -124,7 +124,7 @@ void VectorsIO_read_bits2(Vectors& vectors, const char* path, CEnv& env) {
   FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nva = vectors.dm()->num_vector_active;
+  const NV_t nva = vectors.dm()->num_vector_active;
   const size_t nfa = vectors.dm()->num_field_active;
   const size_t nvl = vectors.num_vector_local();
   const size_t npfl = vectors.dm()->num_packedfield_local;
@@ -157,17 +157,17 @@ void VectorsIO_read_bits2(Vectors& vectors, const char* path, CEnv& env) {
   for (size_t vl = 0; vl < nvl; ++vl) {
 
     // (global) vector number.
-    const size_t v = vl + vectors.dm()->vector_base;
+    const NV_t v = vl + vectors.dm()->vector_base;
 
     // Fill pad vectors at end with copies of last active vector.
-    const size_t v_file = utils::min(v, nva-1);
+    const NV_t v_file = utils::min(v, nva-1);
 
     // Byte in file where this vector starts
-    const size_t v_base = byte_per_v_file * v_file;
+    const NV_t v_base = byte_per_v_file * v_file;
 
     // Offset into file to first byte to read
     // NOTE: round downward to capture all bits of required byte.
-    const size_t loc_min_file = utils::trunc(f_min, f_per_byte) + v_base;
+    const NV_t loc_min_file = utils::trunc(f_min, f_per_byte) + v_base;
 
     // Last field of this vector that must be read (0-based).
     const size_t last_field_needed = f_max - 1;
@@ -178,7 +178,7 @@ void VectorsIO_read_bits2(Vectors& vectors, const char* path, CEnv& env) {
 
     // Offset into file to [1 plus] last byte to read.
     // NOTE: Rounded upward to capture all bits of required byte.
-    const size_t loc_max_file = last_byte_needed + 1 + v_base;
+    const NV_t loc_max_file = last_byte_needed + 1 + v_base;
     COMET_INSIST(loc_max_file > loc_min_file);
     COMET_INSIST(loc_max_file <= nva * nfa);
 

@@ -65,7 +65,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Divisibility requirement for GEMM: vector axis.
 
-// The units are "vector"s (as counted by num_vectors_local)..
+// The units are "vector"s (as counted by num_vector_local).
 
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 

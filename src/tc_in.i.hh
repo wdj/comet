@@ -269,8 +269,6 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_get_field_(
 
   // Sizes.
 
-  enum {BITS_PER_BYTE = 8};
-
   enum {BPSN = 2}; // bits per seminibble
   enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles / word
 
@@ -364,8 +362,6 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const int flT = flT_min + flT_thread;
 
   // Sizes.
-
-  enum {BITS_PER_BYTE = 8};
 
   // assert(NGIPT >= 1 && NFPGI >= 1);
   // assert(NFPGI * NGIPT <= SNPW);
@@ -526,7 +522,6 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
     const TCWord_t* const vim_col = vim + vl * (size_t)vi_dim0;
 
-    //enum {BITS_PER_BYTE = 8};
     //enum {SNPW = 16}; // seminibbles per 32-bit word
     enum {BPSN = 2}; // bits per seminibble
     enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles / word

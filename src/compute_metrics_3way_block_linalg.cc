@@ -352,7 +352,7 @@ static void finalize_ccc_duo_(
     // NOTE: this may be slight overestimate of amt of mem that will be needed.
 
     COMET_INSIST(metrics->num_metric_items_local_computed +
-      matB_cbuf->num_entries() <=
+      static_cast<NML_t>(matB_cbuf->num_entries()) <=
       metrics->num_metric_items_local_allocated &&
       "Insufficient metrics memory; please decrease metrics_shrink.");
 
@@ -396,7 +396,7 @@ static void finalize_ccc_duo_(
         continue;
 
       // Location to store it (item number in metrics array).
-      const size_t index = metrics->num_metric_items_local_computed;
+      const NML_t index = metrics->num_metric_items_local_computed;
       COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
 
       // Get indexing info.

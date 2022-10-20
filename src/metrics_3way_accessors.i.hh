@@ -145,7 +145,7 @@ static double GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
 /// \brief Accessor for 3-way CCC metric computed with 128 bit int arithmetic.
 
 static double GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
-                                                  size_t index,
+                                                  NML_t index,
                                                   int iE,
                                                   int jE,
                                                   int kE,
@@ -207,7 +207,7 @@ static double GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
 
 template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
 static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
-  size_t index, int iE, int jE, int kE, CEnv& env) {
+  NML_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metric_items_local_allocated); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.is_metric_type_bitwise());
@@ -345,7 +345,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 template<int CBPE, typename FloatResult_t>
 struct MetricsIndexCCCDUO3Helper {
   static FloatResult_t impl(
-  GMMetrics& metrics, size_t index, int iE, int jE, int kE, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int iE, int jE, int kE, CEnv& env) {
     return Metrics_ccc_duo_get_3_impl<
       CBPE, FloatResult_t>(metrics, index, iE, jE, kE, env);;
   }
@@ -354,7 +354,7 @@ struct MetricsIndexCCCDUO3Helper {
 template<typename FloatResult_t>
 struct MetricsIndexCCCDUO3Helper<CBPE::NONE, FloatResult_t> {
   static FloatResult_t impl(
-  GMMetrics& metrics, size_t index, int iE, int jE, int kE, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int iE, int jE, int kE, CEnv& env) {
     return env.counted_bits_per_elt() == CBPE::CCC ?
       MetricsIndexCCCDUO3Helper<CBPE::CCC, FloatResult_t>::impl( 
         metrics, index, iE, jE, kE, env) :
@@ -369,7 +369,7 @@ struct MetricsIndexCCCDUO3Helper<CBPE::NONE, FloatResult_t> {
 #if 1
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
 static FloatResult_t Metrics_ccc_duo_get_3(
-  GMMetrics& metrics, size_t index, int iE, int jE, int kE, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int iE, int jE, int kE, CEnv& env) {
     return MetricsIndexCCCDUO3Helper<CBPE, FloatResult_t>::impl( 
       metrics, index, iE, jE, kE, env);
 }
@@ -379,7 +379,7 @@ static FloatResult_t Metrics_ccc_duo_get_3(
 
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
 static FloatResult_t Metrics_ccc_duo_get_3(
-  GMMetrics& metrics, size_t index, int entry_num, CEnv& env) {
+  GMMetrics& metrics, NML_t index, int entry_num, CEnv& env) {
 
   if (env.is_shrink()) {
     COMET_ASSERT(0 == entry_num);
@@ -574,7 +574,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
                                  env.proc_num_vector() == k_block));
   // WARNING: these conditions are not exhaustive.
 
-  const size_t index = Metrics_index_3(metrics, i, j, k, j_block, k_block, env);
+  const NML_t index = Metrics_index_3(metrics, i, j, k, j_block, k_block, env);
 
   return Metrics_elt<T, MA>(metrics, index, env);
 }
@@ -590,7 +590,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
                                  env.proc_num_vector() == k_block));
   // WARNING: these conditions are not exhaustive.
 
-  const size_t index = Metrics_index_3(metrics, i, j, k, j_block, k_block,
+  const NML_t index = Metrics_index_3(metrics, i, j, k, j_block, k_block,
     index_cache, env);
 
   return Metrics_elt<T, MA>(metrics, index, env);
@@ -610,7 +610,7 @@ static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
                                  env.proc_num_vector() == k_block));
   // WARNING: these conditions are not exhaustive.
 
-  const size_t index = Metrics_index_3(metrics, i, j, k,
+  const NML_t index = Metrics_index_3(metrics, i, j, k,
     j_block, k_block, index_cache, env);
 
   return Metrics_elt_const<T>(metrics, index, env);
@@ -620,7 +620,7 @@ static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
 // Accessors: value from index: get: 3-way.
 
 static GMFloat GMMetrics_get_3(GMMetrics& metrics,
-  size_t index, int iE, int jE, int kE, CEnv& env) {
+  NML_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(index >= 0 && index < metrics.num_metrics_local);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
@@ -641,7 +641,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 // Accessors: value from (global) coord: get: 3-way.
 
 static GMFloat GMMetrics_get_3(GMMetrics& metrics,
-  size_t iG, size_t jG, size_t kG, int iE, int jE, int kE, CEnv& env) {
+  NV_t iG, NV_t jG, NV_t kG, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
@@ -649,36 +649,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   COMET_ASSERT(!env.is_shrink());
   // WARNING: these conditions are not exhaustive.
 
-#if 0
-  const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, iG, &env);
-  const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, jG, &env);
-  const size_t k = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, kG, &env);
-  COMET_ASSERT(i >= 0 && i < metrics.dm->num_vector_local);
-  COMET_ASSERT(j >= 0 && j < metrics.dm->num_vector_local);
-  COMET_ASSERT(k >= 0 && k < metrics.dm->num_vector_local);
-
-  const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, iG, &env);
-  const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, jG, &env);
-  const int k_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, kG, &env);
-  no_unused_variable_warning(i_proc);
-  COMET_ASSERT(env.proc_num_vector() == i_proc);
-  COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
-  COMET_ASSERT(k_proc >= 0 && k_proc < env.num_proc_vector());
-
-  const int j_block = env.all2all() ? j_proc : env.proc_num_vector();
-  const int k_block = env.all2all() ? k_proc : env.proc_num_vector();
-
-  const size_t index = Metrics_index_3(metrics, i, j, k, j_block,
-    k_block, env);
-#endif
-
-  const size_t index = Metrics_index_3(metrics, iG, jG, kG, env);
+  const NML_t index = Metrics_index_3(metrics, iG, jG, kG, env);
 
   const GMFloat result = GMMetrics_get_3(metrics, index, iE, jE, kE, env);
 
@@ -689,7 +660,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 // Accessors: determine whether pass threshold: 3-way.
 
 static bool Metrics_is_pass_threshold( GMMetrics& metrics,
-  size_t index, int iE, int jE, int kE, CEnv& env) {
+  NML_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(iE >= 0 && iE < 2);

@@ -96,23 +96,23 @@ struct GMMetrics {
   enum {NUM_SECTION_MAX = 6};
 
   // Logical sizes.
-  int num_field;
   int num_field_local;
+  int num_field;
   size_t num_field_active;
-  size_t num_vector;
   int num_vector_local;
-  size_t num_vector_active;
+  NV_t num_vector;
+  NV_t num_vector_active;
   int J_lo_part3_[NUM_SECTION_MAX];
   int J_wi_part3_[NUM_SECTION_MAX];
-  size_t num_metrics_local;
-  size_t num_metric_items_local;
-  size_t num_metric_items_local_allocated;
+  NML_t num_metrics_local;
+  NML_t num_metric_items_local;
+  NML_t num_metric_items_local_allocated;
   // Helper values.
   double recip_m;
-  int64_t index_offset_part2_;
-  int64_t index_offset_part3_;
-  int64_t index_offset_section_part1_[NUM_SECTION_MAX];
-  int64_t index_offset_section_part2_[NUM_SECTION_MAX];
+  NML_t index_offset_part2_;
+  NML_t index_offset_part3_;
+  NML_t index_offset_section_part1_[NUM_SECTION_MAX];
+  NML_t index_offset_section_part2_[NUM_SECTION_MAX];
   bool is_section_num_valid_part1_[NUM_SECTION_MAX];
   bool is_section_num_valid_part2_[NUM_SECTION_MAX];
   size_t section_size_part2_[NUM_SECTION_MAX];
@@ -130,12 +130,12 @@ struct GMMetrics {
   // Map of (contig) index to linearized Cartesian coords.
   MetricItemCoords_t* __restrict__ coords_;
   // Accessor.
-  MetricItemCoords_t coords_value(size_t index) const {
+  MetricItemCoords_t coords_value(NML_t index) const {
     COMET_ASSERT(index+1 >= 1 && index < num_metric_items_local_allocated);
     return coords_[index];
   }
   // Counters.
-  size_t num_metric_items_local_computed;
+  NML_t num_metric_items_local_computed;
   void num_metric_items_local_computed_inc(size_t n) {
     num_metric_items_local_computed += n;
   }
@@ -144,7 +144,7 @@ struct GMMetrics {
     return num_metric_items_local == num_metric_items_local_computed ? 1 :
       num_metric_items_local / (num_metric_items_local_computed + fuzz);
   }
-  size_t num_metrics_active_local;
+  NML_t num_metrics_active_local;
   // Other.
   int data_type_id;
   GMDecompMgr* dm;
@@ -163,56 +163,56 @@ struct CoordsInfo {
 
   //---------- Get i/j/k G
 
-  static size_t getiG(MetricItemCoords_t coords, GMMetrics& metrics,
+  static NV_t getiG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
     const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
     if (env.coords_type_by_metric()) {
-      const size_t result = safe_cast<size_t>(
+      const auto result = safe_cast<NV_t>(
         coords % nv);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     } else {
-      const size_t result = safe_cast<size_t>(
+      const auto result = safe_cast<NV_t>(
         (coords / 2) % nv);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     }
   }
 
-  static size_t getjG(MetricItemCoords_t coords, GMMetrics& metrics,
+  static NV_t getjG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
     const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
     if (env.coords_type_by_metric()) {
-      const size_t result = safe_cast<size_t>(
+      const auto result = safe_cast<NV_t>(
         (coords / nv) % nv);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     } else {
-      const size_t result = safe_cast<size_t>(
+      const auto result = safe_cast<NV_t>(
         (coords / (2 * nv * 2)) % nv);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     }
   }
 
-  static size_t getkG(MetricItemCoords_t coords, GMMetrics& metrics,
+  static NV_t getkG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(env.num_way() >= NumWay::_3);
     const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
     if (env.coords_type_by_metric()) {
-      const size_t result = safe_cast<size_t>(
+      const auto result = safe_cast<NV_t>(
         coords / (nv * nv));
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     } else {
-      const auto result = safe_cast<size_t>(
+      const auto result = safe_cast<NV_t>(
         coords / (2 * nv * 2 * nv * 2));
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     }
   }
 
-  static size_t getG(MetricItemCoords_t coords, int ijk, GMMetrics& metrics,
+  static NV_t getG(MetricItemCoords_t coords, int ijk, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
     return ijk==0 ? getiG(coords, metrics, env) :
@@ -220,7 +220,7 @@ struct CoordsInfo {
                     getkG(coords, metrics, env);
   }
 
-  static size_t is_active(MetricItemCoords_t coords, GMMetrics& metrics,
+  static bool is_active(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
     return getiG(coords, metrics, env) < metrics.num_vector_active &&
            getjG(coords, metrics, env) < metrics.num_vector_active &&
@@ -288,7 +288,7 @@ struct CoordsInfo {
 
   //---------- Set
 
-  static MetricItemCoords_t set(size_t iG, size_t jG, GMMetrics& metrics,
+  static MetricItemCoords_t set(NV_t iG, NV_t jG, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(env.coords_type() == CoordsType::BY_METRIC);
     COMET_ASSERT(env.num_way() == NumWay::_2);
@@ -302,7 +302,7 @@ struct CoordsInfo {
     return result;
   }
 
-  static MetricItemCoords_t set(size_t iG, size_t jG,
+  static MetricItemCoords_t set(NV_t iG, NV_t jG,
     int iE, int jE, GMMetrics& metrics, CEnv& env) {
     COMET_ASSERT(env.coords_type() == CoordsType::BY_ENTRY);
     COMET_ASSERT(env.num_way() == NumWay::_2);
@@ -322,7 +322,7 @@ struct CoordsInfo {
     return result;
   }
 
-  static MetricItemCoords_t set(size_t iG, size_t jG, size_t kG,
+  static MetricItemCoords_t set(NV_t iG, NV_t jG, NV_t kG,
     GMMetrics& metrics, CEnv& env) {
     COMET_ASSERT(env.coords_type() == CoordsType::BY_METRIC);
     COMET_ASSERT(env.num_way() == NumWay::_3);
@@ -339,7 +339,7 @@ struct CoordsInfo {
     return result;
   }
 
-  static MetricItemCoords_t set(size_t iG, size_t jG, size_t kG,
+  static MetricItemCoords_t set(NV_t iG, NV_t jG, NV_t kG,
     int iE, int jE, int kE, GMMetrics& metrics, CEnv& env) {
     COMET_ASSERT(env.coords_type() == CoordsType::BY_ENTRY);
     COMET_ASSERT(env.num_way() == NumWay::_3);
@@ -389,8 +389,17 @@ void GMMetrics_destroy(GMMetrics* metrics, CEnv* env);
 //=============================================================================
 // Accessors: indexing: global coord from (contig) index: generic.
 
-size_t Metrics_coords_getG(GMMetrics& metrics, size_t index, int ijk,
- CEnv& env);
+static NV_t Metrics_coords_getG(GMMetrics& metrics, NML_t index, int ijk,
+  CEnv& env) {
+  COMET_ASSERT(index+1 >= 1 &&
+               index < metrics.num_metric_items_local_allocated);
+  COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
+
+  const NV_t result = CoordsInfo::getG(metrics.coords_value(index), ijk,
+    metrics, env);
+
+  return result;
+}
 
 //=============================================================================
 // Adjustment required to compensate for padding.
@@ -455,7 +464,7 @@ template<> struct MetricsArrayData<MetricsArray::C> {
 };
 
 template<typename T, int MA = MetricsArray::_>
-static T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
+static T Metrics_elt_const(const GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
   //COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
@@ -464,7 +473,7 @@ static T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
 }
 
 template<typename T, int MA = MetricsArray::_>
-static T& Metrics_elt(GMMetrics& metrics, size_t index, CEnv& env) {
+static T& Metrics_elt(GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
   //COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);

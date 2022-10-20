@@ -55,11 +55,11 @@ struct GMDecompMgr {
   size_t num_field_active_local;
   size_t field_base;
   // Vector counts
-  size_t num_vector;
   size_t num_vector_local;
-  size_t num_vector_active;
   size_t num_vector_active_local;
-  size_t vector_base;
+  NV_t num_vector;
+  NV_t num_vector_active;
+  NV_t vector_base;
   // Packed field info
   int num_bit_per_field;
   int num_bit_per_packedfield;
@@ -109,7 +109,7 @@ void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env);
 
 static size_t GMDecompMgr_get_vector_local_from_vector_active(
   GMDecompMgr* dm,
-  size_t vector_active,
+  NV_t vector_active,
   CEnv* env) {
   COMET_ASSERT(vector_active+1 >= 0+1 && vector_active < dm->num_vector_active);
 
@@ -121,7 +121,7 @@ static size_t GMDecompMgr_get_vector_local_from_vector_active(
 
 static size_t GMDecompMgr_get_proc_vector_from_vector_active(
   GMDecompMgr* dm,
-  size_t vector_active,
+  NV_t vector_active,
   CEnv* env) {
   COMET_ASSERT(vector_active+1 >= 0+1 && vector_active < dm->num_vector_active);
 

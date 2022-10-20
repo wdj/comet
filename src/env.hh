@@ -289,18 +289,6 @@ struct MetricType {
            strcmp(str, "duo") == 0         ? (int)DUO :
                                              (int)INVALID;
   }
-
-#if 0
-  static size_t metric_size(int metric_type) {
-    COMET_INSIST(CZEK == metric_type || CCC == metric_type ||
-                 DUO == metric_type);
-    return   CZEK == metric_type    ? sizeof(GMFloat) :
-             CCC  == metric_type    ? sizeof(GMTally2x2)
-           /* DUO == metric_type */ : sizeof(GMTally4x2);
-  }
-
-  static size_t metric_item_coords_size() {return sizeof(MetricItemCoords_t);}
-#endif
 };
 
 //-----------------------------------------------------------------------------

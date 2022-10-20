@@ -286,7 +286,7 @@ public:
 
   //----------
 
-  void check(size_t num_vector);
+  void check(NV_t num_vector);
 
   //----------
 
@@ -299,19 +299,12 @@ public:
 private:
 
   CEnv& env_;
-
   bool is_allocated_;
-
   const bool is_computing_histograms_;
-
   const std::string histograms_file_str_;
-
   const Elt_t range_;
-
   const int num_buckets_;
-
   const int num_histograms_;
-
   const int num_elts_;
 
   // buf_ will represent a 2D array, dimensions are
