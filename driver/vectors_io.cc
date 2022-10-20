@@ -49,7 +49,7 @@ namespace comet {
 /// \brief Read vectors from files: floating point case.
 
 template<typename IO_t = GMFloat>
-void static VectorsIO_read_float(GMVectors& vectors, const char* path,
+void static VectorsIO_read_float(Vectors& vectors, const char* path,
   CEnv& env) {
   COMET_INSIST(path);
 
@@ -110,7 +110,7 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
 //-----------------------------------------------------------------------------
 /// \brief Read vectors from files: bits2 case.
 
-void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
+void VectorsIO_read_bits2(Vectors& vectors, const char* path, CEnv& env) {
   COMET_INSIST(path);
 
   typedef unsigned char IO_t;
@@ -250,7 +250,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Read vectors from files.
 
-void VectorsIO::read(GMVectors& vectors, const char* path, CEnv& env) {
+void VectorsIO::read(Vectors& vectors, const char* path, CEnv& env) {
   COMET_INSIST(path);
 
   switch (env.data_type_vectors()) {
@@ -272,7 +272,7 @@ void VectorsIO::read(GMVectors& vectors, const char* path, CEnv& env) {
 /// \brief Write vectors to files: floating point case.
 
 template<typename IO_t = GMFloat>
-void static VectorsIO_write_float(GMVectors& vectors, const char* path,
+void static VectorsIO_write_float(Vectors& vectors, const char* path,
   CEnv& env) {
   COMET_INSIST(path);
 
@@ -311,7 +311,7 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
 //-----------------------------------------------------------------------------
 /// \brief Write vectors to files: bits2 case.
 
-void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
+void static VectorsIO_write_bits2(Vectors& vectors, const char* path,
   CEnv& env) {
   COMET_INSIST(path);
 
@@ -384,7 +384,7 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
 //-----------------------------------------------------------------------------
 /// \brief Write vectors to files.
 
-void VectorsIO::write(GMVectors& vectors, const char* path, CEnv& env) {
+void VectorsIO::write(Vectors& vectors, const char* path, CEnv& env) {
   COMET_INSIST(path);
 
   switch (env.data_type_vectors()) {
@@ -404,7 +404,7 @@ void VectorsIO::write(GMVectors& vectors, const char* path, CEnv& env) {
 
 //=============================================================================
 
-void VectorsIO::print(GMVectors& vectors, CEnv& env) {
+void VectorsIO::print(Vectors& vectors, CEnv& env) {
 
   if (! env.is_proc_active())
     return;

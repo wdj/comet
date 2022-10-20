@@ -53,12 +53,12 @@ public:
   typedef GMFloat Float_t;
 
   VectorSums(size_t num_vector_local, CEnv& env_);
-  VectorSums(const GMVectors& vectors, CEnv& env);
+  VectorSums(const Vectors& vectors, CEnv& env);
   ~VectorSums() {}
 
-  void compute(const GMVectors& vectors);
+  void compute(const Vectors& vectors);
 
-  void compute_accel(const GMVectors& vectors, AccelStream_t accel_stream);
+  void compute_accel(const Vectors& vectors, AccelStream_t accel_stream);
 
   void to_accel() {
     sums_.to_accel();
@@ -97,11 +97,11 @@ private:
   MirroredBuf counts_;
   MirroredBuf counts_tmp_;
 
-  void compute_float_(const GMVectors& vectors);
-  void compute_bits2_(const GMVectors& vectors);
-  void compute_float_accel_(const GMVectors& vectors,
+  void compute_float_(const Vectors& vectors);
+  void compute_bits2_(const Vectors& vectors);
+  void compute_float_accel_(const Vectors& vectors,
     AccelStream_t accel_stream);
-  void compute_bits2_accel_(const GMVectors& vectors,
+  void compute_bits2_accel_(const Vectors& vectors,
     AccelStream_t accel_stream);
 
   Float_t& elt_ref_(MirroredBuf& b, size_t i) {
@@ -128,11 +128,11 @@ private:
 // TODO: put in separate file.
 
 struct VData {
-  GMVectors* vectors;
+  Vectors* vectors;
   MirroredBuf* buf;
   VectorSums* sums;
 
-  VData(GMVectors* vectors_in, MirroredBuf* buf_in,
+  VData(Vectors* vectors_in, MirroredBuf* buf_in,
     VectorSums* sums_in = NULL)
     : vectors(vectors_in), buf(buf_in), sums(sums_in) {}
 };

@@ -57,16 +57,16 @@ public:
   ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env);
   ~ComputeMetrics2Way();
 
-  void compute(GMMetrics& metrics, GMVectors& vectors);
+  void compute(GMMetrics& metrics, Vectors& vectors);
 
 private:
 
   CEnv& env_;
 
-  GMVectors vectors_0_;
-  GMVectors vectors_1_;
-  GMVectors* vectors_01_[NUM_BUF];
-  GMVectors vectors_left_alt_;
+  Vectors vectors_0_;
+  Vectors vectors_1_;
+  Vectors* vectors_01_[NUM_BUF];
+  Vectors vectors_left_alt_;
   MirroredBuf metrics_buf_0_;
   MirroredBuf metrics_buf_1_;
   MirroredBuf* metrics_buf_01_[NUM_BUF];
@@ -76,8 +76,8 @@ private:
   VectorSums vector_sums_offproc_1_;
   VectorSums* vector_sums_offproc_01_[NUM_BUF];
 
-  void compute_notall2all_(GMMetrics& metrics, GMVectors& vectors);
-  void compute_all2all_(GMMetrics& metrics, GMVectors& vectors);
+  void compute_notall2all_(GMMetrics& metrics, Vectors& vectors);
+  void compute_all2all_(GMMetrics& metrics, Vectors& vectors);
 
   void lock(bool& lock_val) {
     COMET_INSIST(! lock_val);

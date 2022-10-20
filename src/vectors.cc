@@ -51,7 +51,7 @@ namespace comet {
 //=============================================================================
 // Vectors constructor.
 
-GMVectors::GMVectors(CEnv& env)
+Vectors::Vectors(CEnv& env)
   : num_field_local_(0)
   , num_vector_local_(0)
   , num_packedfield_local_(0)
@@ -68,19 +68,19 @@ GMVectors::GMVectors(CEnv& env)
 
 //-----------------------------------------------------------------------------
 
-void GMVectors::allocate(int data_type_id, GMDecompMgr& dm) {
+void Vectors::allocate(int data_type_id, GMDecompMgr& dm) {
   allocate_impl_(data_type_id, dm, HAS_BUF_FALSE);
 }
 
 //-----------------------------------------------------------------------------
 
-void GMVectors::allocate_with_buf(int data_type_id, GMDecompMgr& dm) {
+void Vectors::allocate_with_buf(int data_type_id, GMDecompMgr& dm) {
   allocate_impl_(data_type_id, dm, HAS_BUF_TRUE);
 }
 
 //-----------------------------------------------------------------------------
 
-void GMVectors::allocate_impl_(int data_type_id,
+void Vectors::allocate_impl_(int data_type_id,
                                GMDecompMgr& dm,
                                bool has_buf) {
   if (!env_.is_proc_active())
@@ -126,7 +126,7 @@ void GMVectors::allocate_impl_(int data_type_id,
 //=============================================================================
 // Set vector entries to zero.
 
-void GMVectors::initialize() {
+void Vectors::initialize() {
 
   if (!env_.is_proc_active())
     return;
@@ -163,7 +163,7 @@ void GMVectors::initialize() {
 
 // TODO: consider check to make sure user has set all vector entries (?).
 
-void GMVectors::initialize_pad() {
+void Vectors::initialize_pad() {
 
   /*---Ensure final pad words/bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
@@ -226,7 +226,7 @@ void GMVectors::initialize_pad() {
 //=============================================================================
 // Vectors destructor.
 
-void GMVectors::deallocate() {
+void Vectors::deallocate() {
   if (!is_allocated_)
     return;
 
@@ -247,14 +247,14 @@ void GMVectors::deallocate() {
 
 //-----------------------------------------------------------------------------
 
-GMVectors::~GMVectors() {
+Vectors::~Vectors() {
   deallocate();
 }
 
 //=============================================================================
 // Copy vectors to mirrored buffer
 
-void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
+void Vectors::to_buf(MirroredBuf& vectors_buf) const {
 
   if (!env_.is_using_linalg())
     return;
@@ -303,7 +303,7 @@ void GMVectors::to_buf(MirroredBuf& vectors_buf) const {
 //=============================================================================
 // checksum of vector entries.
 
-size_t GMVectors::cksum() const {
+size_t Vectors::cksum() const {
 
   if (!env_.is_proc_active())
     return 0;

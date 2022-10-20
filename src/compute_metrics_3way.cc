@@ -69,7 +69,7 @@ ComputeMetrics3Way::~ComputeMetrics3Way() {
 //-----------------------------------------------------------------------------
 /// \brief Perform the 3-way metrics computation.
 
-void ComputeMetrics3Way::compute(GMMetrics& metrics, GMVectors& vectors) {
+void ComputeMetrics3Way::compute(GMMetrics& metrics, Vectors& vectors) {
   COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) {
@@ -83,7 +83,7 @@ void ComputeMetrics3Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 /// \brief Perform the 3-way metrics computation, non-all2all case.
 
 void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
-                                             GMVectors& vectors) {
+                                             Vectors& vectors) {
   CEnv* const env = &env_;
 
   //---------------
@@ -148,7 +148,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 /// \brief Perform the 3-way metrics computation,  all2all case.
 
 void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
-                                          GMVectors& vectors) {
+                                          Vectors& vectors) {
   CEnv* const env = &env_;
 
   // Initializations.
@@ -175,7 +175,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_i_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_i = &vector_sums_i_value;
 
-  GMVectors* const vectors_i = &vectors;
+  Vectors* const vectors_i = &vectors;
 
   MirroredBuf vectors_i_buf_value(npfl, nvl, env_);
   MirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
@@ -187,9 +187,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_j_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
 
-  GMVectors vectors_j_value_0(env_);
-  GMVectors vectors_j_value_1(env_);
-  GMVectors* const vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
+  Vectors vectors_j_value_0(env_);
+  Vectors vectors_j_value_1(env_);
+  Vectors* const vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
   vectors_j[0]->allocate(data_type, *vectors.dm());
   vectors_j[1]->allocate(data_type, *vectors.dm());
 
@@ -203,9 +203,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_k_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
 
-  GMVectors vectors_k_value_0(env_);
-  GMVectors vectors_k_value_1(env_);
-  GMVectors* const vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
+  Vectors vectors_k_value_0(env_);
+  Vectors vectors_k_value_1(env_);
+  Vectors* const vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
   vectors_k[0]->allocate(data_type, *vectors.dm());
   vectors_k[1]->allocate(data_type, *vectors.dm());
 
@@ -216,8 +216,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Prepare to compute.
   // ------------------
 
-  GMVectors* vectors_j_prev = NULL;
-  GMVectors* vectors_k_prev = NULL;
+  Vectors* vectors_j_prev = NULL;
+  Vectors* vectors_k_prev = NULL;
 
   MirroredBuf* vectors_j_buf_prev = NULL;
   MirroredBuf* vectors_k_buf_prev = NULL;
@@ -302,12 +302,12 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Part 2 Computation: triangular prisms.
   // ------------------
 
-  GMVectors* vectors_j_recv = NULL;
-  GMVectors* vectors_k_recv = NULL;
+  Vectors* vectors_j_recv = NULL;
+  Vectors* vectors_k_recv = NULL;
   if(0) printf("%zu\n",(size_t)vectors_j_recv);
   if(0) printf("%zu\n",(size_t)vectors_k_recv);
 
-  GMVectors* vectors_j_this = 0;
+  Vectors* vectors_j_this = 0;
   CommRequest comm_request_send_j;
   CommRequest comm_request_recv_j;
   //MPI_Request req_send_j;
@@ -398,7 +398,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Part 3 Computation: block sections.
   // ------------------
 
-  GMVectors* vectors_k_this = 0;
+  Vectors* vectors_k_this = 0;
   CommRequest comm_request_send_k;
   CommRequest comm_request_recv_k;
   //MPI_Request req_send_k;

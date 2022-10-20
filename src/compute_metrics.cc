@@ -93,7 +93,7 @@ void ComputeMetrics::deallocate() {
 //-----------------------------------------------------------------------------
 /// \brief Function to compute 2-way or 3-way metrics.
 
-void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors) {
+void ComputeMetrics::compute(GMMetrics& metrics, Vectors& vectors) {
 
   if (! can_run_())
     return;
@@ -207,7 +207,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 //-----------------------------------------------------------------------------
 /// \brief Convenience function for constructor, compute, destructor.
 
-void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors,
+void ComputeMetrics::compute(GMMetrics& metrics, Vectors& vectors,
   CEnv& env) {
 
   ComputeMetrics compute_metrics(*vectors.dm(), env);

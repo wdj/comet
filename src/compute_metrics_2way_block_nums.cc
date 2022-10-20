@@ -52,8 +52,8 @@ namespace comet {
 // Start calculation of numerators, 2-way Czekanowski.
 
 static void compute_nums_nonlinalg_czek_start_(
-  GMVectors* vectors_left,
-  GMVectors* vectors_right,
+  Vectors* vectors_left,
+  Vectors* vectors_right,
   GMMetrics* metrics,
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
@@ -123,8 +123,8 @@ static void compute_nums_nonlinalg_czek_start_(
 // Start calculation of numerators, 2-way CCC.
 
 static void compute_nums_nonlinalg_ccc_start_(
-  GMVectors* vectors_left,
-  GMVectors* vectors_right,
+  Vectors* vectors_left,
+  Vectors* vectors_right,
   GMMetrics* metrics,
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
@@ -362,8 +362,8 @@ static void compute_nums_nonlinalg_ccc_start_(
 // Start calculation of numerators, 2-way DUO.
 
 static void compute_nums_nonlinalg_duo_start_(
-  GMVectors* vectors_left,
-  GMVectors* vectors_right,
+  Vectors* vectors_left,
+  Vectors* vectors_right,
   GMMetrics* metrics,
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
@@ -396,8 +396,8 @@ static void compute_nums_nonlinalg_duo_start_(
         for (int f = 0; f < nfal; ++f) {
           const GMBits2 vi = vectors_left->bits2_get(f, i, *env);
           const GMBits2 vj = vectors_right->bits2_get(f, j, *env);
-          //const GMBits2 vi = GMVectors_bits2_get(vectors_left, f, i, env);
-          //const GMBits2 vj = GMVectors_bits2_get(vectors_right, f, j, env);
+          //const GMBits2 vi = Vectors_bits2_get(vectors_left, f, i, env);
+          //const GMBits2 vj = Vectors_bits2_get(vectors_right, f, j, env);
           const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                              : false;
           const bool unknown_j = env->sparse() ? vj == GM_2BIT_UNKNOWN
@@ -645,8 +645,8 @@ static void compute_nums_nonlinalg_duo_start_(
 // metrics_buf from the GPU.
 
 void ComputeMetrics2WayBlock::compute_nums_start(
-  GMVectors* vectors_left,
-  GMVectors* vectors_right,
+  Vectors* vectors_left,
+  Vectors* vectors_right,
   GMMetrics* metrics,
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
@@ -716,8 +716,8 @@ void ComputeMetrics2WayBlock::compute_nums_start(
 // Finish calculation of numerators, 2-way generic.
 
 void ComputeMetrics2WayBlock::compute_nums_wait(
-  GMVectors* vectors_left,
-  GMVectors* vectors_right,
+  Vectors* vectors_left,
+  Vectors* vectors_right,
   GMMetrics* metrics,
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,

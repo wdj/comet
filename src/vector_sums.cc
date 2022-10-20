@@ -59,7 +59,7 @@ VectorSums::VectorSums(size_t num_vector_local, CEnv& env)
 
 //-----------------------------------------------------------------------------
 
-VectorSums::VectorSums(const GMVectors& vectors, CEnv& env)
+VectorSums::VectorSums(const Vectors& vectors, CEnv& env)
   : env_(env)
   , num_vector_local_(vectors.num_vector_local())
   , sums_(env)
@@ -91,7 +91,7 @@ void VectorSums::allocate_() {
 
 //-----------------------------------------------------------------------------
 
-void VectorSums::compute(const GMVectors& vectors) {
+void VectorSums::compute(const Vectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   // Compute the vector sums.
@@ -105,7 +105,7 @@ void VectorSums::compute(const GMVectors& vectors) {
 
 //-----------------------------------------------------------------------------
 
-void VectorSums::compute_accel(const GMVectors& vectors,
+void VectorSums::compute_accel(const Vectors& vectors,
   AccelStream_t accel_stream) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
@@ -123,7 +123,7 @@ void VectorSums::compute_accel(const GMVectors& vectors,
 
 //-----------------------------------------------------------------------------
 
-void VectorSums::compute_float_(const GMVectors& vectors) {
+void VectorSums::compute_float_(const Vectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
@@ -153,7 +153,7 @@ void VectorSums::compute_float_(const GMVectors& vectors) {
 
 //-----------------------------------------------------------------------------
 
-void VectorSums::compute_bits2_(const GMVectors& vectors) {
+void VectorSums::compute_bits2_(const Vectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
   MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
@@ -176,7 +176,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         for (int f = 0; f < (int)vectors.dm()->num_field_active_local; ++f) {
           // Slow way: sum each seminibble individually
           const GMBits2 v = vectors.bits2_get(f, i, env_);
-          //const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
+          //const GMBits2 v = Vectors_bits2_get(&vectors, f, i, &env_);
           if (GM_2BIT_UNKNOWN != v){
             sum += is_cbpe_2 ? ((v & 1) != 0) + ((v & 2) != 0)
                              : ((v & 1) != 0);
@@ -192,7 +192,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         for (int f = 0; f < (int)vectors.dm()->num_field_local; ++f) {
           // Slow way: sum each seminibble individually
           const GMBits2 v = vectors.bits2_get(f, i, env_);
-          //const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
+          //const GMBits2 v = Vectors_bits2_get(&vectors, f, i, &env_);
           sum += is_cbpe_2 ? ((v & 1) != 0) + ((v & 2) != 0)
                            : ((v & 1) != 0);
         } // for f
@@ -313,7 +313,7 @@ static void VectorSums_compute_float_accel_kernel_(
 
   while (pfl < npfl_thread) {
 
-    const VectorSums::Float_t v = vectors_data[GMVectors::index(pfl, vl, npfl)];
+    const VectorSums::Float_t v = vectors_data[Vectors::index(pfl, vl, npfl)];
 //printf("%f\n", (double)v);
 
     const Out_t sum = v;
@@ -394,7 +394,7 @@ static void VectorSums_compute_bits2_accel_kernel_(
 
   while (pfl < npfl_thread) {
 
-    const GMBits2x64 v = vectors_data[GMVectors::index(pfl, vl, npfl)];
+    const GMBits2x64 v = vectors_data[Vectors::index(pfl, vl, npfl)];
 
     if (need_counts) {
 
@@ -471,7 +471,7 @@ static void VectorSums_compute_bits2_accel_kernel_(
 
 //-----------------------------------------------------------------------------
 
-void VectorSums::compute_float_accel_(const GMVectors& vectors,
+void VectorSums::compute_float_accel_(const Vectors& vectors,
   AccelStream_t accel_stream) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 
@@ -519,7 +519,7 @@ void VectorSums::compute_float_accel_(const GMVectors& vectors,
 
 //-----------------------------------------------------------------------------
 
-void VectorSums::compute_bits2_accel_(const GMVectors& vectors,
+void VectorSums::compute_bits2_accel_(const Vectors& vectors,
   AccelStream_t accel_stream) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local());
 

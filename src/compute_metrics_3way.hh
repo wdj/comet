@@ -54,14 +54,14 @@ public:
   ComputeMetrics3Way(GMDecompMgr& dm, CEnv& env);
   ~ComputeMetrics3Way();
 
-  void compute(GMMetrics& metrics, GMVectors& vectors);
+  void compute(GMMetrics& metrics, Vectors& vectors);
 
 private:
 
   CEnv& env_;
 
-  void compute_notall2all_(GMMetrics& metrics, GMVectors& vectors);
-  void compute_all2all_(GMMetrics& metrics, GMVectors& vectors);
+  void compute_notall2all_(GMMetrics& metrics, Vectors& vectors);
+  void compute_all2all_(GMMetrics& metrics, Vectors& vectors);
 
   // Disallowed methods.
 

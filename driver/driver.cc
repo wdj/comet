@@ -360,7 +360,7 @@ void Driver::finish_parsing(int argc, char** argv) {
 
 //-----------------------------------------------------------------------------
 
-void Driver::set_vectors(GMVectors& vectors) {
+void Driver::set_vectors(Vectors& vectors) {
   if (options_.input_file)
     VectorsIO::read(vectors, options_.input_file, env_);
   else
@@ -577,7 +577,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Allocate vectors.
 
   timer.start();
-  GMVectors vectors(env);
+  Vectors vectors(env);
   vectors.allocate(env.data_type_vectors(), dm);
   timer.add_elapsed(counters_.vctime);
 

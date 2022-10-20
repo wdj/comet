@@ -58,9 +58,9 @@ static void compute_nonlinalg_czek_(
 
   GMMetrics* metrics = &numerators;
   CEnv* env = &env_;
-  GMVectors* vectors_i = vdata_i.vectors;
-  GMVectors* vectors_j = vdata_j.vectors;
-  GMVectors* vectors_k = vdata_k.vectors;
+  Vectors* vectors_i = vdata_i.vectors;
+  Vectors* vectors_j = vdata_j.vectors;
+  Vectors* vectors_k = vdata_k.vectors;
   MirroredBuf* vectors_i_buf = vdata_i.buf;
   MirroredBuf* vectors_j_buf = vdata_j.buf;
   MirroredBuf* vectors_k_buf = vdata_k.buf;
@@ -213,9 +213,9 @@ static void compute_nonlinalg_ccc_duo_(
 
   GMMetrics* metrics = &numerators;
   CEnv* env = &env_;
-  GMVectors* vectors_i = vdata_i.vectors;
-  GMVectors* vectors_j = vdata_j.vectors;
-  GMVectors* vectors_k = vdata_k.vectors;
+  Vectors* vectors_i = vdata_i.vectors;
+  Vectors* vectors_j = vdata_j.vectors;
+  Vectors* vectors_k = vdata_k.vectors;
   MirroredBuf* vectors_i_buf = vdata_i.buf;
   MirroredBuf* vectors_j_buf = vdata_j.buf;
   MirroredBuf* vectors_k_buf = vdata_k.buf;
@@ -287,9 +287,9 @@ static void compute_nonlinalg_ccc_duo_(
             const GMBits2 vi = vectors_i->bits2_get(f, i, *env);
             const GMBits2 vj = vectors_j->bits2_get(f, j, *env);
             const GMBits2 vk = vectors_k->bits2_get(f, k, *env);
-            //const GMBits2 vi = GMVectors_bits2_get(vectors_i, f, i, env);
-            //const GMBits2 vj = GMVectors_bits2_get(vectors_j, f, j, env);
-            //const GMBits2 vk = GMVectors_bits2_get(vectors_k, f, k, env);
+            //const GMBits2 vi = Vectors_bits2_get(vectors_i, f, i, env);
+            //const GMBits2 vj = Vectors_bits2_get(vectors_j, f, j, env);
+            //const GMBits2 vk = Vectors_bits2_get(vectors_k, f, k, env);
 
             const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                                : false;

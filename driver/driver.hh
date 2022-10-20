@@ -108,7 +108,7 @@ public:
 
   void finish_parsing(int argc, char** argv);
 
-  void set_vectors(GMVectors& vectors);
+  void set_vectors(Vectors& vectors);
 
   void print_output_sync(Checksum& cksum);
 

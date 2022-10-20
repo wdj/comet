@@ -57,9 +57,9 @@ public:
   ~ComputeMetrics();
   void deallocate();
 
-  void compute(GMMetrics& metrics, GMVectors& vectors);
+  void compute(GMMetrics& metrics, Vectors& vectors);
 
-  static void compute(GMMetrics& metrics, GMVectors& vectors,
+  static void compute(GMMetrics& metrics, Vectors& vectors,
     CEnv& env);
 
 private:

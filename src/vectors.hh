@@ -45,14 +45,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-// GMVectors class declaration.
+// Vectors class declaration.
 
-class GMVectors {
+class Vectors {
 
 public:
 
-  GMVectors(CEnv& env);
-  ~GMVectors();
+  Vectors(CEnv& env);
+  ~Vectors();
 
   void allocate(int data_type_id, GMDecompMgr& dm);
   void allocate_with_buf(int data_type_id, GMDecompMgr& dm);
@@ -181,7 +181,7 @@ private:
 //=============================================================================
 // Accessors: Bits2, Bits2x64.
 
-GMBits2 GMVectors::bits2_get(int field_local,
+GMBits2 Vectors::bits2_get(int field_local,
                              int vector_local,
                              CEnv& env) const {
   // This function gets a single 2-bit value.
@@ -216,7 +216,7 @@ GMBits2 GMVectors::bits2_get(int field_local,
 
 //-----------------------------------------------------------------------------
 
-void GMVectors::bits2_set(int field_local,
+void Vectors::bits2_set(int field_local,
                           int vector_local,
                           GMBits2 value,
                           CEnv& env) {

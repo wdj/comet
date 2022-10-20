@@ -49,9 +49,9 @@ namespace comet {
 class VectorsIO {
 public:
 
-  void static read(GMVectors& vectors, const char* path, CEnv& env);
-  void static write(GMVectors& vectors, const char* path, CEnv& env);
-  void static print(GMVectors& vectors, CEnv& env);
+  void static read(Vectors& vectors, const char* path, CEnv& env);
+  void static write(Vectors& vectors, const char* path, CEnv& env);
+  void static print(Vectors& vectors, CEnv& env);
 
 };
 

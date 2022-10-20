@@ -60,7 +60,7 @@ struct ProblemType {
 
 class TestProblem {
 public:
-  static void set_vectors_synthetic(GMVectors* vectors, int problem_type,
+  static void set_vectors_synthetic(Vectors* vectors, int problem_type,
                                     int verbosity, CEnv* env);
 
   static void check_metrics(GMMetrics* metrics, Driver& driver, CEnv* env);

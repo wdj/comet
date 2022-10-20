@@ -51,7 +51,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Set the entries of the vectors.
 
-void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
+void set_vectors_random_(Vectors* vectors, int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
@@ -140,7 +140,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           // Create 2-bit value - make extra sure less than 4.
           GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
           // Store.
-          //GMVectors_bits2_set(vectors, fl, vl, value, env);
+          //Vectors_bits2_set(vectors, fl, vl, value, env);
           vectors->bits2_set(fl, vl, value, *env);
         } // fl
       }   // vl
@@ -204,7 +204,7 @@ static size_t perm(size_t key, size_t i, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
+void set_vectors_analytic_(Vectors* vectors, int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active())
@@ -294,7 +294,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           const GMBits2 bval = ((size_t)3) & (value - tpi.value_min_);
 
           // Store.
-          //GMVectors_bits2_set(vectors, fl, vl, bval, env);
+          //Vectors_bits2_set(vectors, fl, vl, bval, env);
           vectors->bits2_set(fl, vl, bval, *env);
 
         } // field_local
@@ -309,7 +309,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
 
 //=============================================================================
 
-void TestProblem::set_vectors_synthetic(GMVectors* vectors, int problem_type,
+void TestProblem::set_vectors_synthetic(Vectors* vectors, int problem_type,
                                         int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
 

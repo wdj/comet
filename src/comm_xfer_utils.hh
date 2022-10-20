@@ -73,19 +73,19 @@ struct CommRequest {
 
 //-----------------------------------------------------------------------------
 
-//MPI_Request gm_send_vectors_start(const GMVectors* vectors, int proc_num, int mpi_tag,
+//MPI_Request gm_send_vectors_start(const Vectors* vectors, int proc_num, int mpi_tag,
 //                                  CEnv* env);
 
-//MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
+//MPI_Request gm_recv_vectors_start(Vectors* vectors, int proc_num, int mpi_tag,
 //                                  CEnv* env);
 
-void comm_send_vectors_start(const GMVectors& vectors,
+void comm_send_vectors_start(const Vectors& vectors,
                              int proc_num,
                              int mpi_tag,
                              CommRequest& request,
                              CEnv& env);
 
-void comm_recv_vectors_start(const GMVectors& vectors,
+void comm_recv_vectors_start(const Vectors& vectors,
                              int proc_num,
                              int mpi_tag,
                              CommRequest& request,

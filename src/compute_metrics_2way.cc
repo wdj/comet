@@ -107,7 +107,7 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
 //-----------------------------------------------------------------------------
 /// \brief Perform the 2-way metrics computation.
 
-void ComputeMetrics2Way::compute(GMMetrics& metrics, GMVectors& vectors) {
+void ComputeMetrics2Way::compute(GMMetrics& metrics, Vectors& vectors) {
   COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) {
@@ -121,7 +121,7 @@ void ComputeMetrics2Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 /// \brief Perform the 2-way metrics computation, non-all2all case.
 
 void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
-                                             GMVectors& vectors) {
+                                             Vectors& vectors) {
   COMET_INSIST(!env_.all2all());
 
   //---------------
@@ -212,7 +212,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 /// \brief Perform the 2-way metrics computation, all2all case.
 
 void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
-                                          GMVectors& vectors) {
+                                          Vectors& vectors) {
   COMET_INSIST(env_.all2all());
 
   // Initializations
@@ -280,7 +280,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   // NOTE: ensures values are persistent across lifespan of async launches.
 
   struct LoopVars {
-    GMVectors* vectors_right;
+    Vectors* vectors_right;
     MirroredBuf* vectors_right_buf;
     MirroredBuf* metrics_buf;
     VectorSums* vector_sums_right;
@@ -390,7 +390,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     vars_next.needs_comm = vars_next.j_i_offset < num_block &&
       ! vars_next.is_main_diag;
 
-    GMVectors* vectors_left = &vectors;
+    Vectors* vectors_left = &vectors;
     vars_next.vectors_right = vars_next.is_right_aliased ?
       vectors_left : vectors_01_[vars_next.index_01];
 
@@ -438,12 +438,12 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
 
-      GMVectors* vectors_send = env_.is_comm_ring() && ! is_first_comm_step ?
+      Vectors* vectors_send = env_.is_comm_ring() && ! is_first_comm_step ?
         vectors_01_[1-vars_next.index_01] :
         env_.is_comm_gpu() ? &vectors_left_alt_ :
         vectors_left;
 
-      GMVectors* vectors_recv = vars_next.vectors_right;
+      Vectors* vectors_recv = vars_next.vectors_right;
 
       // NOTE: the following order seems to help performance.
 

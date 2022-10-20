@@ -57,8 +57,8 @@ class ComputeMetrics2WayBlock {
 public:
 
   static void compute_nums_start(
-    GMVectors* vectors_left,
-    GMVectors* vectors_right,
+    Vectors* vectors_left,
+    Vectors* vectors_right,
     GMMetrics* metrics,
     MirroredBuf* vectors_left_buf,
     MirroredBuf* vectors_right_buf,
@@ -72,8 +72,8 @@ public:
     CEnv* env);
 
   static void compute_nums_wait(
-    GMVectors* vectors_left,
-    GMVectors* vectors_right,
+    Vectors* vectors_left,
+    Vectors* vectors_right,
     GMMetrics* metrics,
     MirroredBuf* vectors_left_buf,
     MirroredBuf* vectors_right_buf,

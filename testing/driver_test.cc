@@ -202,7 +202,7 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   GMDecompMgr_create(dm, false, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors(env_value);
+  Vectors vectors(env_value);
   vectors.allocate(env->data_type_vectors(), *dm);
   TestProblem::set_vectors_synthetic(&vectors, problem_type, verbosity, env);
 
@@ -710,7 +710,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors(env_value);
+  Vectors vectors(env_value);
   vectors.allocate(env->data_type_vectors(), *dm);
   vectors.initialize();
 
@@ -825,7 +825,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors(env_value);
+  Vectors vectors(env_value);
   vectors.allocate(env->data_type_vectors(), *dm);
   vectors.initialize();
 
@@ -1000,7 +1000,7 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors(env_value);
+  Vectors vectors(env_value);
   vectors.allocate(env->data_type_vectors(), *dm);
   vectors.initialize();
 
@@ -1209,7 +1209,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors(env_value);
+  Vectors vectors(env_value);
   vectors.allocate(env->data_type_vectors(), *dm);
   vectors.initialize();
 
@@ -1372,7 +1372,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors(env_value);
+  Vectors vectors(env_value);
   vectors.allocate(env->data_type_vectors(), *dm);
   vectors.initialize();
 
@@ -1658,7 +1658,7 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
-  GMVectors vectors(env_value);
+  Vectors vectors(env_value);
   vectors.allocate(env->data_type_vectors(), *dm);
   vectors.initialize();
 

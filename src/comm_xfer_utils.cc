@@ -47,7 +47,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
-void comm_send_vectors_start(const GMVectors& vectors,
+void comm_send_vectors_start(const Vectors& vectors,
                              int proc_num,
                              int mpi_tag,
                              CommRequest& request,
@@ -77,7 +77,7 @@ void comm_send_vectors_start(const GMVectors& vectors,
 //-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
-void comm_recv_vectors_start(const GMVectors& vectors,
+void comm_recv_vectors_start(const Vectors& vectors,
                              int proc_num,
                              int mpi_tag,
                              CommRequest& request,
