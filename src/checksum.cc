@@ -241,9 +241,8 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
   double result = Checksum::entry_min_();
 
   // TODO: make this unnecessary.
-  if (! env.is_proc_active()) {
+  if (! env.is_proc_active())
     return result;
-  }
 
   // Loop over metrics indices to find max.
   #pragma omp parallel for reduction(max:result)

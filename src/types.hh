@@ -87,10 +87,10 @@ private:
 
 typedef size_t NV_t;
 typedef int64_t NML_t;
+typedef int32_t NF_t;
 
 //typedef size_t MetricItemCoords_t;
 typedef BasicTypes::BigUInt MetricItemCoords_t;
-
 
 //=============================================================================
 // Types (mainly) for Czekanowski metric
@@ -509,8 +509,8 @@ static TO safe_cast(const TI v) {
 #endif
   // ISSUE: this doesn't compile under CUDA:
   // COMET_STATIC_ASSERT(sizeof(TO) < sizeof(TI)):
-  COMET_ASSERT((TI)(TO)v == v);
-  return (TO)v;
+  COMET_ASSERT(static_cast<TI>(static_cast<TO>(v)) == v);
+  return static_cast<TO>(v);
 }
 
 //=============================================================================

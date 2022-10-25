@@ -165,15 +165,15 @@ struct CoordsInfo {
 
   static NV_t getiG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
-    const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
+    const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
     if (env.coords_type_by_metric()) {
       const auto result = safe_cast<NV_t>(
-        coords % nv);
+        coords % nv_);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     } else {
       const auto result = safe_cast<NV_t>(
-        (coords / 2) % nv);
+        (coords / 2) % nv_);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     }
@@ -181,15 +181,15 @@ struct CoordsInfo {
 
   static NV_t getjG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
-    const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
+    const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
     if (env.coords_type_by_metric()) {
       const auto result = safe_cast<NV_t>(
-        (coords / nv) % nv);
+        (coords / nv_) % nv_);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     } else {
       const auto result = safe_cast<NV_t>(
-        (coords / (2 * nv * 2)) % nv);
+        (coords / (2 * nv_ * 2)) % nv_);
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     }
@@ -198,15 +198,15 @@ struct CoordsInfo {
   static NV_t getkG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(env.num_way() >= NumWay::_3);
-    const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
+    const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
     if (env.coords_type_by_metric()) {
       const auto result = safe_cast<NV_t>(
-        coords / (nv * nv));
+        coords / (nv_ * nv_));
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     } else {
       const auto result = safe_cast<NV_t>(
-        coords / (2 * nv * 2 * nv * 2));
+        coords / (2 * nv_ * 2 * nv_ * 2));
       COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
       return result;
     }
@@ -254,8 +254,8 @@ struct CoordsInfo {
       COMET_ASSERT(result >= 0 && result < 2);
       return result;
     } else {
-      const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
-      const int result = safe_cast<int>((coords / (2 * nv)) % 2);
+      const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
+      const int result = safe_cast<int>((coords / (2 * nv_)) % 2);
       COMET_ASSERT(result >= 0 && result < 2);
       return result;
     }
@@ -271,8 +271,8 @@ struct CoordsInfo {
       COMET_ASSERT(result >= 0 && result < 2);
       return result;
     } else {
-      const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
-      const int result = safe_cast<int>((coords / (2 * nv * 2 * nv)) % 2);
+      const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
+      const int result = safe_cast<int>((coords / (2 * nv_ * 2 * nv_)) % 2);
       COMET_ASSERT(result >= 0 && result < 2);
       return result;
     }
@@ -294,8 +294,8 @@ struct CoordsInfo {
     COMET_ASSERT(env.num_way() == NumWay::_2);
     COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
     COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
-    const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
-    const auto result = safe_cast<MetricItemCoords_t>(iG + nv * (
+    const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
+    const auto result = safe_cast<MetricItemCoords_t>(iG + nv_ * (
                                                       jG));
     COMET_ASSERT(getiG(result, metrics, env) == iG);
     COMET_ASSERT(getjG(result, metrics, env) == jG);
@@ -310,9 +310,9 @@ struct CoordsInfo {
     COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
     COMET_ASSERT(iE >= 0 && iE < 2);
     COMET_ASSERT(jE >= 0 && jE < 2);
-    const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
+    const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
     const auto result = safe_cast<MetricItemCoords_t>(iE + 2 * (
-                                                      iG + nv * (
+                                                      iG + nv_ * (
                                                       jE + 2 * (
                                                       jG))));
     COMET_ASSERT(getiG(result, metrics, env) == iG);
@@ -329,9 +329,9 @@ struct CoordsInfo {
     COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
     COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
     COMET_ASSERT(kG+1 >= 1 && kG < metrics.num_vector);
-    const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
-    const auto result = safe_cast<MetricItemCoords_t>(iG + nv * (
-                                                      jG + nv * (
+    const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
+    const auto result = safe_cast<MetricItemCoords_t>(iG + nv_ * (
+                                                      jG + nv_ * (
                                                       kG)));
     COMET_ASSERT(getiG(result, metrics, env) == iG);
     COMET_ASSERT(getjG(result, metrics, env) == jG);
@@ -349,11 +349,11 @@ struct CoordsInfo {
     COMET_ASSERT(iE >= 0 && iE < 2);
     COMET_ASSERT(jE >= 0 && jE < 2);
     COMET_ASSERT(kE >= 0 && kE < 2);
-    const auto nv = static_cast<MetricItemCoords_t>(metrics.num_vector);
+    const auto nv_ = static_cast<MetricItemCoords_t>(metrics.num_vector);
     const auto result = safe_cast<MetricItemCoords_t>(iE + 2 * (
-                                                      iG + nv * (
+                                                      iG + nv_ * (
                                                       jE + 2 * (
-                                                      jG + nv * (
+                                                      jG + nv_ * (
                                                       kE + 2 * (
                                                       kG))))));
     COMET_ASSERT(getiG(result, metrics, env) == iG);

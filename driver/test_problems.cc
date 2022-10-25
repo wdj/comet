@@ -68,11 +68,11 @@ void set_vectors_random_(Vectors* vectors, int verbosity, CEnv* env) {
     //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
-        size_t vector = vl +
-            vectors->num_vector_local() * (size_t)env->proc_num_vector();
+        NV_t vector = vl + vectors->num_vector_local() *
+          static_cast<NV_t>(env->proc_num_vector());
         // Fill pad vectors with copies of the last vector.
         // By construction, active vectors are packed for lower procs.
-        const size_t vector_capped = utils::min(vector, nva);
+        const NV_t vector_capped = utils::min(vector, nva);
         for (size_t fl = 0; fl < nfl; ++fl) {
           size_t field = fl +
               nfl * (size_t)env->proc_num_field();
@@ -118,10 +118,10 @@ void set_vectors_random_(Vectors* vectors, int verbosity, CEnv* env) {
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
 
-        size_t vector = vl +
-            vectors->num_vector_local() * (size_t)env->proc_num_vector();
+        NV_t vector = vl + vectors->num_vector_local() *
+          static_cast<NV_t>(env->proc_num_vector());
         // Fill pad vectors with copies of the last vector.
-        const size_t vector_capped = utils::min(vector, nva);
+        const NV_t vector_capped = utils::min(vector, nva);
 
         for (size_t fl = 0; fl < nfl; ++fl) {
           size_t field = fl +
@@ -233,7 +233,7 @@ void set_vectors_analytic_(Vectors* vectors, int verbosity, CEnv* env) {
     //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local(); ++vl) {
-        const size_t vector = vl + vectors->num_vector_local() *
+        const NV_t vector = vl + vectors->num_vector_local() *
                                    static_cast<NV_t>(env->proc_num_vector());
         // Fill pad vectors with copies of the last vector.
         const NV_t vector_capped = utils::min(vector, nva-1);

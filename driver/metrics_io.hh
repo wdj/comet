@@ -63,14 +63,53 @@ public:
 
   // Write a metric with indexing to file.
 
-  void write(size_t iG, size_t jG, GMFloat value) const;
-  void write(size_t iG, size_t jG, size_t kG, GMFloat value) const;
-  void write(size_t iG, size_t jG, int iE, int jE, GMFloat value) const;
-  void write(size_t iG, size_t jG, size_t kG,
+  void write(NV_t iG, NV_t jG, GMFloat value) const;
+  void write(NV_t iG, NV_t jG, NV_t kG, GMFloat value) const;
+  void write(NV_t iG, NV_t jG, int iE, int jE, GMFloat value) const;
+  void write(NV_t iG, NV_t jG, NV_t kG,
              int iE, int jE, int kE, GMFloat value) const;
 
   // Internal helper class to hold one metric with indexing as stored in file.
 
+  template<int N>
+  struct MetricForFile {
+    IntForFile_t coords[N];
+    FloatForFile_t value;
+    NV_t iG(const CEnv& env) const {
+      const auto result = env.is_metric_type_bitwise() ? coords[0] / 2 : coords[0];
+      return static_cast<NV_t>(result);
+    }
+    NV_t jG(const CEnv& env) const {
+      const auto result = env.is_metric_type_bitwise() ? coords[1] / 2 : coords[1];
+      return static_cast<NV_t>(result);
+    }
+    NV_t kG(const CEnv& env) const {
+      COMET_ASSERT(N >= 3);
+      const auto result = env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
+      return static_cast<NV_t>(result);
+    }
+    int iE(const CEnv& env) const {
+      const auto result = env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
+      return static_cast<int>(result);
+    }
+    int jE(const CEnv& env) const {
+      const auto result = env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
+      return static_cast<int>(result);
+    }
+    int kE(const CEnv& env) const {
+      COMET_ASSERT(N >= 3);
+      const auto result = env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
+      return static_cast<int>(result);
+    }
+  private:
+    void check_() {
+      COMET_STATIC_ASSERT(N ==2 || N == 3);
+    }
+  }; // MetricForFile
+
+
+
+#if 0
   template<int N>
   struct MetricForFile {
     IntForFile_t coords[N];
@@ -96,15 +135,18 @@ public:
       return env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
     }
   }; // MetricForFile
+#endif
+
+
+
+
 
   // Sizes.
 
   size_t num_written() const {return num_written_;}
 
   static size_t num_bytes_written_per_metric(CEnv& env) {
-    return env.num_way() == NumWay::_2 ?
-             2*sizeof(IntForFile_t) + sizeof(FloatForFile_t) :
-             3*sizeof(IntForFile_t) + sizeof(FloatForFile_t);
+    return env.num_way() * sizeof(IntForFile_t) + sizeof(FloatForFile_t);
   }
 
   size_t num_bytes_written_per_metric() const {

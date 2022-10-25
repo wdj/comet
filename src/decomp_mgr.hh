@@ -95,7 +95,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                         bool fields_by_local,
                         bool vectors_by_local,
                         size_t num_field_specifier,
-                        size_t num_vector_specifier,
+                        NV_t num_vector_specifier,
                         int vectors_data_type_id,
                         CEnv* env);
 

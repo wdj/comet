@@ -119,7 +119,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   //--------------------
 
   if (vectors_by_local) {
-    dm->num_vector_local = num_vector_specifier;
+    dm->num_vector_local = safe_cast<int>(num_vector_specifier);
     const size_t nvl_required =
       gm_nvl_size_required(dm->num_vector_local, *env);
     COMET_INSIST_INTERFACE(env, dm->num_vector_local == nvl_required &&

@@ -252,6 +252,34 @@ static T nchoosek(T n, int k) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert string representing unsigned integer to arithmetic type.
+
+template<class T>
+T strtoarith(char* const str) {
+
+  T result = 0;
+
+  for (int i = 0; ; ++i) {
+
+    if (!str[i])
+      break;
+
+    if (' ' == str[i] || '	' == str[i])
+      continue;
+
+    COMET_INSIST(str[i] >= '0' && str[i] <= '9');
+
+    const int digit = str[i] - '0';
+ 
+    const T result_new = 10 * result + digit;
+    COMET_INSIST((result_new-digit) / 10 == result);
+    result = result_new;
+  }
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Population count of 1-bits in 8-bit word.
 
 __host__ __device__

@@ -161,7 +161,8 @@ void Driver::finish_parsing(int argc, char** argv) {
       ++i;
       COMET_INSIST_INTERFACE(&env_,
                              i < argc && "Missing value for num_vector_local.");
-      const auto value = strtol(argv[i], NULL, 10);
+      //const auto value = strtol(argv[i], NULL, 10);
+      const auto value = utils::strtoarith<BasicTypes::BigUInt>(argv[i]);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0 &&
                     "Invalid setting for num_vector_local.");
       options_.num_vector_local = safe_cast<int>(value);

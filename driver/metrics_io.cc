@@ -79,10 +79,12 @@ void MetricIO::write(NV_t iG, NV_t jG, GMFloat value) const {
   size_t bytes_written = 0;
 
   // File format currently assumes FP32.
-  const FloatForFile_t value_for_file = (FloatForFile_t)value;
+  const auto value_for_file = static_cast<FloatForFile_t>(value);
+  const auto iG_for_file = safe_cast<IntForFile_t>(iG);
+  const auto jG_for_file = safe_cast<IntForFile_t>(jG);
 
-  success = success && write_<IntForFile_t>(iG, bytes_written);
-  success = success && write_<IntForFile_t>(jG, bytes_written);
+  success = success && write_<IntForFile_t>(iG_for_file, bytes_written);
+  success = success && write_<IntForFile_t>(jG_for_file, bytes_written);
   success = success && write_<FloatForFile_t>(value_for_file, bytes_written);
 
   COMET_INSIST(success && "File write failure.");
@@ -99,11 +101,14 @@ void MetricIO::write(NV_t iG, NV_t jG, NV_t kG, GMFloat value) const {
   size_t bytes_written = 0;
 
   // File format currently assumes FP32.
-  const FloatForFile_t value_for_file = (FloatForFile_t)value;
+  const auto value_for_file = static_cast<FloatForFile_t>(value);
+  const auto iG_for_file = safe_cast<IntForFile_t>(iG);
+  const auto jG_for_file = safe_cast<IntForFile_t>(jG);
+  const auto kG_for_file = safe_cast<IntForFile_t>(kG);
 
-  success = success && write_<IntForFile_t>(iG, bytes_written);
-  success = success && write_<IntForFile_t>(jG, bytes_written);
-  success = success && write_<IntForFile_t>(kG, bytes_written);
+  success = success && write_<IntForFile_t>(iG_for_file, bytes_written);
+  success = success && write_<IntForFile_t>(jG_for_file, bytes_written);
+  success = success && write_<IntForFile_t>(kG_for_file, bytes_written);
   success = success && write_<FloatForFile_t>(value_for_file, bytes_written);
 
   COMET_INSIST(success && "File write failure.");

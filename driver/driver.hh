@@ -53,7 +53,7 @@ class Driver {
     int num_field_local;
     int num_vector_local;
     size_t num_field_active;
-    size_t num_vector_active;
+    NV_t num_vector_active;
     bool is_inited_num_field_local;
     bool is_inited_num_field_active;
     bool is_inited_num_vector_local;
