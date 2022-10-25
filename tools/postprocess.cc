@@ -72,9 +72,11 @@ int main(int argc, char** argv) {
 
   enum {NUM_WAY_MAX = 3};
 
+  typedef int IntForFile_t;
+
   int num_read = 0;
   int fseek_success = 0;
-  int coord[NUM_WAY_MAX];
+  IntForFile_t coord[NUM_WAY_MAX];
   const int no_allele = 'X'; // Marker for case only one allele label in a line
 
   // Determine line label length by examining first line label.
@@ -112,12 +114,12 @@ int main(int argc, char** argv) {
 
   // NOTE while statement reads first coord of metric.
 
-  while ((num_read = fread(&coord[0], sizeof(int), 1, metricsbinfile)) == 1) {
+  while ((num_read = fread(&coord[0], sizeof(IntForFile_t), 1, metricsbinfile)) == 1) {
 
     // Get (rest of the) coordinates.
 
     for (int i=0+1; i<num_way; ++i) {
-      const int num_read = fread(&coord[i], sizeof(int), 1, metricsbinfile);
+      const int num_read = fread(&coord[i], sizeof(IntForFile_t), 1, metricsbinfile);
       if (1 != num_read) {
         fprintf(stderr, "Error: error reading metric coord\n");
         return 1;
