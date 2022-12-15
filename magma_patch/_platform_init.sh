@@ -1314,6 +1314,7 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   #module load cmake/3.20.2
   module load cmake
   module load rocm
+  export HIP_PATH=$OLCF_ROCM_ROOT/hip
   (module list) 2>&1 | grep -v '^ *$'
 
   local ROCBLAS_PATH=$ROCM_PATH
@@ -1325,6 +1326,7 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   local COMET_C_COMPILER=clang
   local COMET_CXX_COMPILER=hipcc
   local COMET_CXX_SERIAL_COMPILER=hipcc
+  local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 
   local USE_OPENMP=OFF
 

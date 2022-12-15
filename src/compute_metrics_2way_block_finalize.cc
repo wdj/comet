@@ -270,10 +270,6 @@ static void finalize_ccc_duo_(
       if (Thresholds::is_zero(metric_item))
         continue;
 
-      // Location to store it (item number in metrics array).
-      const NML_t index = metrics->num_metric_items_local_computed;
-      COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
-
       // Get row, col nums of item just read.
 
       const size_t j = matB_cbuf->ind1_recent();
@@ -295,6 +291,14 @@ static void finalize_ccc_duo_(
       const int iE = matB_cbuf->iE_recent();
       const int jE = matB_cbuf->jE_recent();
 
+      // Location to store it (item number in metrics array).
+      const NML_t index = metrics->num_metric_items_local_computed;
+      metrics->num_metric_items_local_computed_inc(1);
+      //COMET_ASSERT(metrics_mem_needed <= metrics->num_metric_items_local_allocated);
+      if (metrics->num_metric_items_local_computed >
+          metrics->num_metric_items_local_allocated)
+        continue;
+
       // Store metric item.
 
       Metrics_elt<MFTypeIn>(*metrics, index, *env) = metric_item;
@@ -304,9 +308,18 @@ static void finalize_ccc_duo_(
       metrics->coords_[index] =
         CoordsInfo::set(iG, jG, iE, jE, *metrics, *env);
 
-      metrics->num_metric_items_local_computed_inc(1);
-
     } // for ind_entry
+
+    if (metrics->num_metric_items_local_computed >
+        metrics->num_metric_items_local_allocated)
+      fprintf(stderr,
+        "Error: insufficient metrics memory; "
+        "please lower metrics_shrink or increase threshold. "
+        "At failure, needed %" PRIu64 ", have %" PRIu64 ".\n",
+        metrics->num_metric_items_local_computed,
+        metrics->num_metric_items_local_allocated);
+    COMET_INSIST(metrics->num_metric_items_local_computed <=
+                 metrics->num_metric_items_local_allocated);
 
   } else if (env->is_using_linalg()) { // && ! env->is_shrink()
 

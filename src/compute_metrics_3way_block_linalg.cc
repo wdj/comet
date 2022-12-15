@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cstdint"
 #include "string.h"
+#define __STDC_FORMAT_MACROS 1
+#include "inttypes.h"
 
 #include "env.hh"
 #include "tc.hh"
@@ -395,10 +397,6 @@ static void finalize_ccc_duo_(
       if (!is_in_range)
         continue;
 
-      // Location to store it (item number in metrics array).
-      const NML_t index = metrics->num_metric_items_local_computed;
-      COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
-
       // Get indexing info.
 
       const size_t i = si->unperm0(I, (size_t)J, K);
@@ -418,6 +416,14 @@ static void finalize_ccc_duo_(
       const int jE = si->unperm1(IE, JE, KE);
       const int kE = si->unperm2(IE, JE, KE);
 
+      // Location to store it (item number in metrics array).
+      const NML_t index = metrics->num_metric_items_local_computed;
+      metrics->num_metric_items_local_computed_inc(1);
+      //COMET_ASSERT(metrics_mem_needed <= metrics->num_metric_items_local_allocated);
+      if (metrics->num_metric_items_local_computed >
+          metrics->num_metric_items_local_allocated)
+        continue;
+
       // Store metric item.
 
       Metrics_elt<MFTypeIn>(*metrics, index, env) = metric_item;
@@ -427,9 +433,18 @@ static void finalize_ccc_duo_(
       metrics->coords_[index] =
         CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env);
 
-      metrics->num_metric_items_local_computed_inc(1);
-
     } // for ind_entry
+
+    if (metrics->num_metric_items_local_computed >
+        metrics->num_metric_items_local_allocated)
+      fprintf(stderr,
+        "Error: insufficient metrics memory; "
+        "please lower metrics_shrink  or increase threshold. "
+        "At failure, needed %" PRIu64 ", have %" PRIu64 ".\n",
+        metrics->num_metric_items_local_computed,
+        metrics->num_metric_items_local_allocated);
+    COMET_INSIST(metrics->num_metric_items_local_computed <=
+                 metrics->num_metric_items_local_allocated);
 
   //--------------------
   } else { // if (!env.is_shrink())

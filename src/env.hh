@@ -891,18 +891,24 @@ public:
   // Can we shrink metrics storage allocated on the CPU for the requested tc.
   // This only makes sense if the tc package compresses the metrics.
 
+  size_t storage_per_metric_() const {
+    return metric_size() + sizeof(MetricItemCoords_t);
+  }
+
+  size_t storage_per_metric_shrink_() const {
+    return metric_size() + sizeof(MetricItemCoords_t)*num_entries_per_metric();
+  }
+
   bool can_shrink_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
-    const size_t storage_per_metric = metric_size() +
-      sizeof(MetricItemCoords_t);
-    const size_t storage_per_metric_shrink = metric_size() +
-      sizeof(MetricItemCoords_t) * num_entries_per_metric();
+    //const size_t storage_per_metric = metric_size() + sizeof(MetricItemCoords_t);
+    //const size_t storage_per_metric_shrink = metric_size() + sizeof(MetricItemCoords_t) * num_entries_per_metric();
     const bool is_shrinking_helpful =
-      storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
-    return can_threshold_tc_(tc_try) && can_compress_enable_(tc_try) &&
-      is_try_tc_(tc_try) &&
-      //NumWay::_3 == num_way() && // TODO: implement 2-way
-      is_shrinking_helpful;
+      storage_per_metric_shrink_() < metrics_shrink_ * storage_per_metric_();
+    return can_threshold_tc_(tc_try) &&
+           can_compress_enable_(tc_try) &&
+           is_try_tc_(tc_try) &&
+           is_shrinking_helpful;
   }
 
   // Do we shrink metrics storage allocated on the CPU.

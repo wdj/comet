@@ -2105,7 +2105,9 @@ void DriverTest_threshold_() {
 
     for (int thresholds_case : {0, 1})
     //for (int thresholds_case : {0})
-    for (double metrics_shrink : {1., 2.4+fuzz})
+    for (double metrics_shrink : {1., (10./3.)+fuzz})
+    //XXXfor (int metrics_shrink_case : {0, 1}) {
+    //XXX  const double metrics_shrink = 0 == metrics_shrink_case ? 1. :
     for (int num_way : {2, 3}) {
     //for (int num_way : {3}) {
       const double tmax = 2 == num_way ? .99 : .65;
@@ -2167,7 +2169,7 @@ void DriverTest_threshold_() {
         metrics_shrink);
       test_2runs(options1, options2);
     } 
-    } 
+    }
 } // DriverTest_tc_
 
 //=============================================================================
@@ -2806,6 +2808,10 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
+TEST(DriverTest, threshold) {
+  DriverTest_threshold_();
+}
+
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
@@ -2815,10 +2821,6 @@ TEST(DriverTest, czek3) {
 }
 
 #if 1
-TEST(DriverTest, threshold) {
-  DriverTest_threshold_();
-}
-
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
