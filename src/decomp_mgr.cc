@@ -89,30 +89,51 @@ size_t gm_nvl_size_required(size_t size_requested, const CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
-// Set to null
+// DecompMgr constructor.
 
-GMDecompMgr GMDecompMgr_null() {
-  GMDecompMgr result;
-  memset((void*)&result, 0, sizeof(result));
-  return result;
+GMDecompMgr::GMDecompMgr(CEnv& env)
+  : env_(env)
+  , is_allocated_(false)
+  , num_field(0)
+  , num_field_local(0)
+  , num_field_active(0)
+  , num_field_active_local(0)
+  , field_base(0)
+  , num_vector_local(0)
+  , num_vector_active_local(0)
+  , num_vector(0)
+  , num_vector_active(0)
+  , vector_base(0)
+  , num_bit_per_field(0)
+  , num_bit_per_packedfield(0)
+  , num_field_per_packedfield(0)
+  , num_pad_field_local(0)
+  , num_packedfield_local(0)
+  , tc_bufs(env_) {
+}
+
+//-----------------------------------------------------------------------------
+// DecompMgr destructor.
+
+GMDecompMgr::~GMDecompMgr() {
+  deallocate();
 }
 
 //-----------------------------------------------------------------------------
 // (Pseudo) constructor
 
-void GMDecompMgr_create(GMDecompMgr* dm,
-                        bool fields_by_local,
-                        bool vectors_by_local,
-                        size_t num_field_specifier,
-                        NV_t num_vector_specifier,
-                        int vectors_data_type_id,
-                        CEnv* env) {
-  COMET_INSIST(dm && env);
+void GMDecompMgr::allocate(bool fields_by_local,
+                          bool vectors_by_local,
+                          size_t num_field_specifier,
+                          NV_t num_vector_specifier,
+                          int vectors_data_type_id) {
 
-  *dm = GMDecompMgr_null();
-
-  if (!env->is_proc_active())
+  if (!env_.is_proc_active())
     return;
+
+  COMET_INSIST(!is_allocated_);
+
+  GMDecompMgr* dm = this;
 
   //--------------------
   // Vector counts
@@ -121,29 +142,29 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   if (vectors_by_local) {
     dm->num_vector_local = safe_cast<int>(num_vector_specifier);
     const size_t nvl_required =
-      gm_nvl_size_required(dm->num_vector_local, *env);
-    COMET_INSIST_INTERFACE(env, dm->num_vector_local == nvl_required &&
+      gm_nvl_size_required(dm->num_vector_local, env_);
+    COMET_INSIST_INTERFACE(&env_, dm->num_vector_local == nvl_required &&
          "Manual selection of nvl requires divisibility condition");
     // All vectors active on every proc.
     dm->num_vector_active_local = dm->num_vector_local;
     dm->num_vector_active = static_cast<NV_t>(dm->num_vector_active_local) *
-                            env->num_proc_vector();
+                            env_.num_proc_vector();
     dm->num_vector = static_cast<NV_t>(dm->num_vector_local) *
-                     env->num_proc_vector();
+                     env_.num_proc_vector();
     dm->vector_base = static_cast<NV_t>(dm->num_vector_local) *
-                      env->proc_num_vector();
+                      env_.proc_num_vector();
   } else { // ! vectors_by_local
-    COMET_INSIST_INTERFACE(env, (env->all2all() ||
-                                 env->num_proc_vector() == 1) &&
+    COMET_INSIST_INTERFACE(&env_, (env_.all2all() ||
+                                   env_.num_proc_vector() == 1) &&
       "Use of all2all = no option currently requires "
       "num_vector_local, not num_vector.");
     dm->num_vector_active = num_vector_specifier;
     // Pad up as needed, require every proc has same number
-    const int npv = env->num_proc_vector();
-    const int pnv = env->proc_num_vector();
+    const int npv = env_.num_proc_vector();
+    const int pnv = env_.proc_num_vector();
     //dm->num_vector_local = utils::ceil(dm->num_vector_active, (size_t)npv);
     dm->num_vector_local = gm_nvl_size_required(
-      utils::ceil(dm->num_vector_active, static_cast<NV_t>(npv)), *env);
+      utils::ceil(dm->num_vector_active, static_cast<NV_t>(npv)), env_);
     dm->num_vector = static_cast<NV_t>(dm->num_vector_local) * npv;
     // Lower procs fully packed with active values
     // Upper procs fully inactive
@@ -210,16 +231,16 @@ void GMDecompMgr_create(GMDecompMgr* dm,
            dm->num_vector_active_local <= dm->num_vector_local);
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_vector_local, &sum, 1,
-    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
   COMET_INSIST(sum == static_cast<NV_t>(dm->num_vector_local) *
-                      env->num_proc_repl_vector() &&
+                      env_.num_proc_repl_vector() &&
            "Every process must have the same number of vectors.");
-  COMET_INSIST(sum == dm->num_vector * env->num_proc_repl() &&
+  COMET_INSIST(sum == dm->num_vector * env_.num_proc_repl() &&
            "Error in local/global sizes computation.");
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_vector_active_local, &sum, 1,
-    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
-  COMET_INSIST(sum == dm->num_vector_active * env->num_proc_repl() &&
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
+  COMET_INSIST(sum == dm->num_vector_active * env_.num_proc_repl() &&
            "Error in local/global sizes computation.");
 
   //--------------------
@@ -229,14 +250,14 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   if (fields_by_local) {
     dm->num_field_active_local = num_field_specifier;
     dm->num_field_local = dm->num_field_active_local;
-    dm->num_field = dm->num_field_local * (size_t)env->num_proc_field();
+    dm->num_field = dm->num_field_local * (size_t)env_.num_proc_field();
     dm->num_field_active = dm->num_field;
-    dm->field_base = dm->num_field_local * env->proc_num_field();
+    dm->field_base = dm->num_field_local * env_.proc_num_field();
   } else { // ! fields_by_local
     dm->num_field_active = num_field_specifier;
     // Pad up as needed so that every proc has same number
-    const int num_proc = env->num_proc_field();
-    const int proc_num = env->proc_num_field();
+    const int num_proc = env_.num_proc_field();
+    const int proc_num = env_.proc_num_field();
     dm->num_field_local = utils::ceil(dm->num_field_active, (size_t)num_proc);
     dm->num_field = dm->num_field_local * num_proc;
     // Lower procs fully packed with active values
@@ -265,14 +286,14 @@ void GMDecompMgr_create(GMDecompMgr* dm,
            dm->num_field_active_local <= dm->num_field_local);
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_field_local, &sum, 1,
-    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_field()));
-  COMET_INSIST(sum == dm->num_field_local * env->num_proc_field() &&
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_field()));
+  COMET_INSIST(sum == dm->num_field_local * env_.num_proc_field() &&
            "Every process must have the same number of fields.");
   COMET_INSIST(sum == dm->num_field &&
            "Error in local/global sizes computation.");
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_field_active_local, &sum, 1,
-    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_field()));
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_field()));
   COMET_INSIST(sum == dm->num_field_active &&
            "Error in local/global sizes computation.");
 
@@ -295,8 +316,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
       // have 2-way method on-proc be exact, then for 3-way combining
       // or num_proc_field>1 drop low order bits to allow to fit.
       const int table_entry_value_max =
-        env->metric_type() == MetricType::DUO ?  1 : env->pow2_num_way();
-      COMET_INSIST_INTERFACE(env,
+        env_.metric_type() == MetricType::DUO ?  1 : env_.pow2_num_way();
+      COMET_INSIST_INTERFACE(&env_,
                ((uint64_t)(table_entry_value_max * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
                 && "Number of fields requested is too large for this metric");
@@ -316,7 +337,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // Packedfield counts
   //--------------------
 
-  const size_t d = tc_gemm_faxis_divisibility_required(*env);
+  const size_t d = tc_gemm_faxis_divisibility_required(env_);
 
   dm->num_packedfield_local =
     utils::ceil(utils::ceil(dm->num_field_local * dm->num_bit_per_field,
@@ -335,32 +356,44 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // tc memory
   //--------------------
 
-  TCBufs::malloc(dm->num_vector_local,
-                 dm->num_packedfield_local, dm->tc_bufs, *env);
+  dm->tc_bufs.allocate(dm->num_vector_local, dm->num_packedfield_local);
+
+//  TCBufs::malloc(dm->num_vector_local,
+//                 dm->num_packedfield_local, dm->tc_bufs, env_);
 
   //--------------------
   // histograms
   //--------------------
 
-  dm->histograms_default_ = new Histograms("", *env);
+  dm->histograms_default_ = new Histograms("", env_);
 
   dm->histograms_ = dm->histograms_default_;
+
+  // Finalize.
+
+  is_allocated_ = true;
 }
 
 //-----------------------------------------------------------------------------
 // (Pseudo) destructor
 
-void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env) {
-  COMET_INSIST(dm && env);
+void GMDecompMgr::deallocate() {
 
-  if (! env->is_proc_active())
+  if (! env_.is_proc_active())
     return;
+
+  if (! is_allocated_)
+    return;
+
+  GMDecompMgr* dm = this;
 
   //--------------------
   // tc memory
   //--------------------
 
-  TCBufs::free(dm->tc_bufs, *env);
+  dm->tc_bufs.deallocate();
+
+  //TCBufs::free(dm->tc_bufs, env_);
 
   //--------------------
   // histograms
@@ -370,6 +403,10 @@ void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env) {
 
   delete dm->histograms_default_;
   dm->histograms_default_ = NULL;
+
+  // Finalize.
+
+  is_allocated_ = false;
 }
 
 //=============================================================================

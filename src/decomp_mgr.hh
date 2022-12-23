@@ -47,7 +47,26 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // DecompMgr struct
 
-struct GMDecompMgr {
+class GMDecompMgr {
+
+private:
+
+  CEnv& env_;
+  bool is_allocated_;
+
+public:
+
+  GMDecompMgr(CEnv& env);
+  ~GMDecompMgr();
+
+  void allocate(bool fields_by_local,
+                bool vectors_by_local,
+                size_t num_field_specifier,
+                NV_t num_vector_specifier,
+                int vectors_data_type_id);
+
+  void deallocate();
+
   // Field counts
   size_t num_field;
   size_t num_field_local;
@@ -76,17 +95,17 @@ struct GMDecompMgr {
 
   Histograms* histograms_;
   Histograms* histograms_default_;
-
 };
 
 //-----------------------------------------------------------------------------
 
 size_t gm_nvl_size_required(size_t size_requested, const CEnv& env);
 
+#if 0
 //-----------------------------------------------------------------------------
 // Set to null
 
-GMDecompMgr GMDecompMgr_null();
+//GMDecompMgr GMDecompMgr_null();
 
 //-----------------------------------------------------------------------------
 // (Pseudo) constructor
@@ -103,6 +122,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 // (Pseudo) destructor
 
 void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env);
+#endif
 
 //-----------------------------------------------------------------------------
 // Accessor.

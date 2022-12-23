@@ -49,6 +49,8 @@ namespace comet {
 
 class Vectors {
 
+  typedef GMFloat Float_t;
+
 public:
 
   Vectors(CEnv& env);
@@ -80,13 +82,13 @@ public:
 
   // Element accessors.
 
-  inline GMFloat& elt_float(int packedfield_local, int vector_local) {
-    return elt_<DataTypeId::FLOAT, GMFloat>(packedfield_local, vector_local);
+  inline Float_t& elt_float(int packedfield_local, int vector_local) {
+    return elt_<DataTypeId::FLOAT, Float_t>(packedfield_local, vector_local);
   }
 
-  inline GMFloat elt_float_const(int packedfield_local,
+  inline Float_t elt_float_const(int packedfield_local,
                                  int vector_local) const {
-    return elt_const_<DataTypeId::FLOAT, GMFloat>(packedfield_local,
+    return elt_const_<DataTypeId::FLOAT, Float_t>(packedfield_local,
                                                   vector_local);
   }
 

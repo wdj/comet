@@ -567,15 +567,15 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Set up parallel decomp for vectors, metrics.
 
   Driver::Timer timer(env);
-  GMDecompMgr dm = GMDecompMgr_null();
-  GMDecompMgr_create(&dm,
+  GMDecompMgr dm(env);
+  dm.allocate(
     options_.is_inited_num_field_local,
     options_.is_inited_num_vector_local,
     options_.is_inited_num_field_local ? options_.num_field_local
                                        : options_.num_field_active,
     options_.is_inited_num_vector_local ? options_.num_vector_local
                                         : options_.num_vector_active,
-    env.data_type_vectors(), &env);
+    env.data_type_vectors());
   timer.add_elapsed(counters_.vctime);
 
   // Allocate vectors.
@@ -748,7 +748,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
 
   timer.start();
   vectors.deallocate();
-  GMDecompMgr_destroy(&dm, &env);
+  dm.deallocate();
   timer.add_elapsed(counters_.vctime);
 
   COMET_INSIST(env.cpu_mem_local() == 0 && "Memory leak detected.");

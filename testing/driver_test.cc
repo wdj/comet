@@ -198,18 +198,17 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, false, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(false, false, num_field, num_vector, env->data_type_vectors());
 
   Vectors vectors(env_value);
-  vectors.allocate(env->data_type_vectors(), *dm);
+  vectors.allocate(env->data_type_vectors(), dm);
   TestProblem::set_vectors_synthetic(&vectors, problem_type, verbosity, env);
 
   VectorsIO::write(vectors, file_path, *env);
 
   vectors.deallocate();
-  GMDecompMgr_destroy(dm, env);
+  dm.deallocate();
 }
 
 //=============================================================================
@@ -706,12 +705,11 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
   Vectors vectors(env_value);
-  vectors.allocate(env->data_type_vectors(), *dm);
+  vectors.allocate(env->data_type_vectors(), dm);
   vectors.initialize();
 
   if (env->is_proc_active()) {
@@ -742,7 +740,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   MetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
@@ -788,7 +786,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   vectors.deallocate();
-  GMDecompMgr_destroy(dm, env);
+  dm.deallocate();
 } // DriverTest_ccc2_simple_compute_method
 
 //=============================================================================
@@ -821,12 +819,11 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
   Vectors vectors(env_value);
-  vectors.allocate(env->data_type_vectors(), *dm);
+  vectors.allocate(env->data_type_vectors(), dm);
   vectors.initialize();
 
   if (env->is_proc_active()) {
@@ -866,7 +863,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   MetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
@@ -960,7 +957,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   vectors.deallocate();
-  GMDecompMgr_destroy(dm, env);
+  dm.deallocate();
 } // DriverTest_ccc2_simple_sparse_compute_method
 
 //=============================================================================
@@ -996,12 +993,11 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
   Vectors vectors(env_value);
-  vectors.allocate(env->data_type_vectors(), *dm);
+  vectors.allocate(env->data_type_vectors(), dm);
   vectors.initialize();
 
   if (env->is_proc_active()) {
@@ -1034,7 +1030,7 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   MetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
@@ -1143,7 +1139,7 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
 
   GMMetrics_destroy(metrics, env);
   vectors.deallocate();
-  GMDecompMgr_destroy(dm, env);
+  dm.deallocate();
 } // DriverTest_duo2_simple_sparse_
 
 //=============================================================================
@@ -1205,12 +1201,11 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
   Vectors vectors(env_value);
-  vectors.allocate(env->data_type_vectors(), *dm);
+  vectors.allocate(env->data_type_vectors(), dm);
   vectors.initialize();
 
   if (env->is_proc_active()) {
@@ -1267,7 +1262,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   MetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
@@ -1334,7 +1329,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   vectors.deallocate();
-  GMDecompMgr_destroy(dm, env);
+  dm.deallocate();
 } // DriverTest_ccc3_simple_compute_method
 
 //=============================================================================
@@ -1368,12 +1363,11 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
   Vectors vectors(env_value);
-  vectors.allocate(env->data_type_vectors(), *dm);
+  vectors.allocate(env->data_type_vectors(), dm);
   vectors.initialize();
 
   if (env->is_proc_active()) {
@@ -1443,7 +1437,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   MetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
@@ -1613,7 +1607,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   vectors.deallocate();
-  GMDecompMgr_destroy(dm, env);
+  dm.deallocate();
 } // DriverTest_ccc3_simple_sparse_compute_method
 
 //=============================================================================
@@ -1654,12 +1648,11 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
     return;
   }
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
   Vectors vectors(env_value);
-  vectors.allocate(env->data_type_vectors(), *dm);
+  vectors.allocate(env->data_type_vectors(), dm);
   vectors.initialize();
 
   if (env->is_proc_active()) {
@@ -1717,7 +1710,7 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   MetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
@@ -1914,7 +1907,7 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
 
   GMMetrics_destroy(metrics, env);
   vectors.deallocate();
-  GMDecompMgr_destroy(dm, env);
+  dm.deallocate();
 } // DriverTest_ccc3_simple_sparse_compute_method
 
 //=============================================================================

@@ -141,7 +141,7 @@ void Vectors::initialize() {
 
   switch (data_type_id_) {
     case DataTypeId::FLOAT: {
-      GMFloat zero = 0;
+      Float_t zero = 0;
       for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           elt_float(pfl, vl) = zero;
@@ -184,7 +184,7 @@ void Vectors::initialize_pad() {
   switch (data_type_id_) {
 
     case DataTypeId::FLOAT: {
-      GMFloat zero = 0;
+      Float_t zero = 0;
       for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           elt_float(pfl, vl) = zero;
@@ -270,7 +270,7 @@ void Vectors::to_buf(MirroredBuf& vectors_buf) const {
       #pragma omp parallel for schedule(dynamic,1000)
       for (int vl = 0; vl < num_vector_local_; ++vl) {
         for (int fl = 0; fl < num_field_local_; ++fl) {
-          vectors_buf.elt<GMFloat>(fl, vl) = elt_float_const(fl, vl);
+          vectors_buf.elt<Float_t>(fl, vl) = elt_float_const(fl, vl);
         }
       }
     } break;

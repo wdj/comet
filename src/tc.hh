@@ -211,13 +211,10 @@ struct GemmShapes {
 
 struct TCBufs {
 
-  void* tc_buf_left;
-  void* tc_buf_right;
-  size_t tc_buf_size;
-  uint32_t* matX_counts;
-  size_t matX_counts_size;
-  accelblasHandle_t accelblas_handle;
+  TCBufs(CEnv& env);
+  ~TCBufs();
 
+#if 0
   static void malloc(
     int num_vector_local,
     int num_packedfield_local,
@@ -225,6 +222,22 @@ struct TCBufs {
     CEnv& env);
 
   static void free(TCBufs& tc_bufs, CEnv& env);
+#endif
+
+  void* tc_buf_left;
+  void* tc_buf_right;
+  size_t tc_buf_size;
+  uint32_t* matX_counts;
+  size_t matX_counts_size;
+  accelblasHandle_t accelblas_handle;
+
+  void allocate(int num_vector_local, int num_packedfield_local);
+  void deallocate();
+
+private:
+
+  CEnv& env_;
+  bool is_allocated_;
 };
 
 //-----------------------------------------------------------------------------
