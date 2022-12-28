@@ -47,13 +47,11 @@ namespace comet {
 
 //=============================================================================
 
-struct CommRequest {
+class CommVectors {
 
-  MPI_Request mpi_request_;
-  MPI_Request mpi_request_cksum_;
-  size_t cksum_;
+public:
 
-  CommRequest()
+  CommVectors()
     : mpi_request_(MPI_REQUEST_NULL)
     , mpi_request_cksum_(MPI_REQUEST_NULL)
     , cksum_(0) {
@@ -68,29 +66,25 @@ struct CommRequest {
     }
   }
 
-  MPI_Request& mpi_request() {
-    return mpi_request_;
-  }
-}; // CommRequest
+  void send_start(const Vectors& vectors,
+                  int proc_num,
+                  int mpi_tag,
+                  CEnv& env);
 
-//-----------------------------------------------------------------------------
+  void recv_start(const Vectors& vectors,
+                  int proc_num,
+                  int mpi_tag,
+                  CEnv& env);
 
-namespace comm {
+  size_t cksum() const {return cksum_;}
 
-//-----------------------------------------------------------------------------
-// Start MPI send/receive of vectors data.
+private:
 
-void send_vectors_start(const Vectors& vectors,
-                        int proc_num,
-                        int mpi_tag,
-                        CommRequest& request,
-                        CEnv& env);
+  MPI_Request mpi_request_;
+  MPI_Request mpi_request_cksum_;
+  size_t cksum_;
 
-void recv_vectors_start(const Vectors& vectors,
-                        int proc_num,
-                        int mpi_tag,
-                        CommRequest& request,
-                        CEnv& env);
+}; // CommVectors
 
 //-----------------------------------------------------------------------------
 
@@ -110,8 +104,6 @@ void reduce_metrics_wait(MPI_Request& mpi_request,
                          CEnv& env);
 
 //=============================================================================
-
-} // namespace comm
 
 } // namespace comet
 

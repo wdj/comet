@@ -78,11 +78,6 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
     metrics_buf_01_[i]->allocate(dm.num_vector_local, dm.num_vector_local);
   }
 
-//Vectors v(1);
-//v.add(2);
-//Vectors v2(1, Vectors::WITH_BUF);
-//v2.add(2);
-
   vectors_left_alt_.allocate_with_buf(env_.data_type_vectors(), dm);
 
   if (env_.do_reduce())
@@ -192,7 +187,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Do reduction across field procs if needed
 
-  comm::reduce_metrics(metrics, &metrics_buf, metrics_buf_ptr, env_);
+  reduce_metrics(metrics, &metrics_buf, metrics_buf_ptr, env_);
 
   // Combine
 
@@ -244,8 +239,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   //const int num_proc_rv = num_block * num_proc_repl;
   //const int proc_num_rv = proc_num_repl + num_proc_repl * i_block;
 
-  CommRequest comm_request_send;
-  CommRequest comm_request_recv;
+  CommVectors comm_vectors_send;
+  CommVectors comm_vectors_recv;
 
   //MPI_Request mpi_requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
@@ -447,10 +442,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
       // NOTE: the following order seems to help performance.
 
-      comm::recv_vectors_start(*vectors_recv, proc_recv,
-                               mpi_tag, comm_request_recv, env_);
-      comm::send_vectors_start(*vectors_send, proc_send,
-                               mpi_tag, comm_request_send, env_);
+      comm_vectors_recv.recv_start(*vectors_recv, proc_recv, mpi_tag, env_);
+      comm_vectors_send.send_start(*vectors_send, proc_send, mpi_tag, env_);
     }
 
     //========== Send right matrix to GPU - WAIT.
@@ -540,8 +533,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //========== Reduce along field procs
 
         if (env_.do_reduce()) {
-          comm::reduce_metrics(metrics, metrics_buf_prev_ptr,
-                               vars_prev.metrics_buf, env_);
+          reduce_metrics(metrics, metrics_buf_prev_ptr,
+                         vars_prev.metrics_buf, env_);
           matB_buf_compressed.attach(*metrics_buf_prev_ptr);
         }
 
@@ -583,13 +576,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //========== MPI receives - WAIT
 
     if (vars_next.is_compute_step && vars_next.needs_comm) {
-      comm_request_recv.wait();
-      //gm_recv_vectors_wait(&(mpi_requests[1]), &env_);
+      comm_vectors_recv.wait();
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
-//vars_next.vectors_right->buf()->from_accel_start();
-//vars_next.vectors_right->buf()->from_accel_wait();
-//fprintf(stderr, "%e\n", (double)(((float*)vars_next.vectors_right->data)[0]));
     }
 
     //========== Send right matrix to GPU - START.
@@ -604,16 +593,11 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     if (vars.is_compute_step && vars.do_compute_block) {
 
-     // vars.gemm_shape.set(vars.is_main_diag,
-     // metrics.dm->num_vector_local, metrics.dm->num_vector_active,
-     // env_.proc_num_vector(), vars.j_block);
-
       GemmShape2Way gemm_shape(vars.is_main_diag,
         metrics.dm->num_vector_local, metrics.dm->num_vector_active,
         env_.proc_num_vector(), vars.j_block);
 
       GemmShapes gemm_shapes(&gemm_shape);
-
 
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
@@ -665,8 +649,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //========== MPI sends - WAIT
 
     if (vars_next.is_compute_step && vars_next.needs_comm)
-      comm_request_send.wait();
-      //gm_send_vectors_wait(&(mpi_requests[0]), &env_);
+      comm_vectors_send.wait();
 
   //========================================
   } // step_num

@@ -68,6 +68,8 @@ static void finalize_czek_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
+  typedef GMFloat Float_t;
+
   // NOTE: here and elsewhere, vector_sums_left and vector_sums_right
   // may sometimes be aliases.  Since they are read-only, there should
   // be no danger of the compiler generating incorrect code.
@@ -89,16 +91,16 @@ static void finalize_czek_(
     // ----------------------------------
 
     for (int j = 0; j < nvl; ++j) {
-      const GMFloat vs_j = vs_r->sum(j);
+      const Float_t vs_j = vs_r->sum(j);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numer = Metrics_elt_const_2<GMFloat>(*metrics,
+        const Float_t numer = Metrics_elt_const_2<Float_t>(*metrics,
           i, j, j_block, *env);
-        const GMFloat vs_i = vs_l->sum(i);
-        const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
-        const GMFloat multiplier = (GMFloat)2;
-        const GMFloat value = (multiplier * numer) / denom;
-        Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
+        const Float_t vs_i = vs_l->sum(i);
+        const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+        const Float_t multiplier = (Float_t)2;
+        const Float_t value = (multiplier * numer) / denom;
+        Metrics_elt_2<Float_t>(*metrics, i, j, j_block, *env) = value;
       } // for i
       metrics->num_metric_items_local_computed_inc(i_max);
     }   // for j
@@ -110,16 +112,16 @@ static void finalize_czek_(
     // ----------------------------------
 
     for (int j = 0; j < nvl; ++j) {
-      const GMFloat vs_j = vs_r->sum(j);
+      const Float_t vs_j = vs_r->sum(j);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numer = Metrics_elt_const_2<GMFloat>(*metrics,
+        const Float_t numer = Metrics_elt_const_2<Float_t>(*metrics,
           i, j, env->proc_num_vector(), *env);
-        const GMFloat vs_i = vs_l->sum(i);
-        const GMFloat denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
-        const GMFloat multiplier = (GMFloat)2;
-        const GMFloat value = (multiplier * numer) / denom;
-        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) =
+        const Float_t vs_i = vs_l->sum(i);
+        const Float_t denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
+        const Float_t multiplier = static_cast<Float_t>(2);
+        const Float_t value = (multiplier * numer) / denom;
+        Metrics_elt_2<Float_t>(*metrics, i, j, env->proc_num_vector(), *env) =
           value;
       } // for i
       metrics->num_metric_items_local_computed_inc(i_max);
@@ -133,23 +135,16 @@ static void finalize_czek_(
       COMET_INSIST(!matB_cbuf->do_compress());
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
-        const GMFloat vs_j = vs_r->sum(j);
+        const Float_t vs_j = vs_r->sum(j);
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
-          const GMFloat numer =
-            matB_cbuf->elt_const<GMFloat>(i, j);
-          const GMFloat vs_i = vs_l->sum(i);
-          const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
-          const GMFloat multiplier = (GMFloat)2;
-          const GMFloat value = (multiplier * numer) / denom;
-
-//if (i==0 && j==4)
-//printf("1 %.20e %.20e %.20e\n",
-//(double)numer,
-//(double)denom,
-//(double)value);
-
-          Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
+          const Float_t numer =
+            matB_cbuf->elt_const<Float_t>(i, j);
+          const Float_t vs_i = vs_l->sum(i);
+          const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+          const Float_t multiplier = static_cast<Float_t>(2);
+          const Float_t value = (multiplier * numer) / denom;
+          Metrics_elt_2<Float_t>(*metrics, i, j, j_block, *env) = value;
         } // for i
       }   // for j
       for (int j = 0; j < nvl; ++j) {
@@ -163,14 +158,14 @@ static void finalize_czek_(
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
-          const GMFloat vs_j = vs_r->sum(j);
-          const GMFloat numer =
-            matB_cbuf->elt_const<GMFloat>(i, j);
-          const GMFloat vs_i = vs_l->sum(i);
-          const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
-          const GMFloat multiplier = (GMFloat)2;
-          const GMFloat value = (multiplier * numer) / denom;
-          Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
+          const Float_t vs_j = vs_r->sum(j);
+          const Float_t numer =
+            matB_cbuf->elt_const<Float_t>(i, j);
+          const Float_t vs_i = vs_l->sum(i);
+          const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+          const Float_t multiplier = static_cast<Float_t>(2);
+          const Float_t value = (multiplier * numer) / denom;
+          Metrics_elt_2<Float_t>(*metrics, i, j, j_block, *env) = value;
         } // for i
       }   // for j
       metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
@@ -183,17 +178,16 @@ static void finalize_czek_(
     COMET_INSIST(!matB_cbuf->do_compress());
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
-      const GMFloat vs_j = vs_r->sum(j);
+      const Float_t vs_j = vs_r->sum(j);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numer =
-          matB_cbuf->elt_const<GMFloat>(i, j);
-//printf("numer %f\n", numer);
-        const GMFloat vs_i = vs_l->sum(i);
-        const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
-        const GMFloat multiplier = (GMFloat)2;
-        const GMFloat value = (multiplier * numer) / denom;
-        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) =
+        const Float_t numer =
+          matB_cbuf->elt_const<Float_t>(i, j);
+        const Float_t vs_i = vs_l->sum(i);
+        const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+        const Float_t multiplier = static_cast<Float_t>(2);
+        const Float_t value = (multiplier * numer) / denom;
+        Metrics_elt_2<Float_t>(*metrics, i, j, env->proc_num_vector(), *env) =
           value;
       } // for i
     }   // for j
@@ -224,6 +218,8 @@ static void finalize_ccc_duo_(
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
+
+  //typedef GMFloat Float_t;
 
   const int nvl = metrics->num_vector_local;
   const VectorSums* const vs_l = vector_sums_left;
@@ -626,9 +622,6 @@ static void finalize_ccc_duo_(
               CoordsInfo::is_active(
                 metrics->coords_value(Metrics_index_2(*metrics, i, j, j_block, *env)),
                 *metrics, *env)) {
-//printf("B %i %i %i %i %i %i %i\n",
-//env->proc_num_vector(),
-//i, j, j_block, (int)metrics->num_vector_active, (int)nvl, (int)metrics->dm->num_vector_active_local) ;
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
             const GMTally1 ci = env->sparse() ? vs_l->count(i) :

@@ -67,6 +67,8 @@ static void compute_nums_nonlinalg_czek_start_(
   COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(!env->is_using_linalg());
 
+  typedef GMFloat Float_t;
+
   // ----------------------------------
   if (env->all2all()) {
     // ----------------------------------
@@ -79,14 +81,14 @@ static void compute_nums_nonlinalg_czek_start_(
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
       for (int i = 0; i < i_max; ++i) {
-        GMFloat metric = 0;
+        Float_t metric = 0;
         for (int f = 0; f < (int)vectors_left->dm()->num_field_local; ++f) {
-          const GMFloat value1 = vectors_left->elt_float_const(f, i);
-          const GMFloat value2 = vectors_right->elt_float_const(f, j);
+          const Float_t value1 = vectors_left->elt_float_const(f, i);
+          const Float_t value2 = vectors_right->elt_float_const(f, j);
           metric += value1 < value2 ? value1 : value2;
         } // for k
         // Update metrics array.
-        Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = metric;
+        Metrics_elt_2<Float_t>(*metrics, i, j, j_block, *env) = metric;
       } // for i
     }   // for j
 
@@ -102,14 +104,14 @@ static void compute_nums_nonlinalg_czek_start_(
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
-        GMFloat metric = 0;
+        Float_t metric = 0;
         for (int f = 0; f < (int)vectors_left->dm()->num_field_local; ++f) {
-          const GMFloat value1 = vectors_left->elt_float_const(f, i);
-          const GMFloat value2 = vectors_right->elt_float_const(f, j);
+          const Float_t value1 = vectors_left->elt_float_const(f, i);
+          const Float_t value2 = vectors_right->elt_float_const(f, j);
           metric += value1 < value2 ? value1 : value2;
         } // for k
         // Update metrics array.
-        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) =
+        Metrics_elt_2<Float_t>(*metrics, i, j, env->proc_num_vector(), *env) =
           metric;
       } // for i
     }   // for j

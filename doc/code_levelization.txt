@@ -62,6 +62,7 @@ Code levelization: subpackage dependencies
           Manage histograms of metrics values.
 
 6.   tc.hh
+     tc.i.hh
      tc_helpers.i.hh
      tc_in.i.hh
      tc_solve.i.hh

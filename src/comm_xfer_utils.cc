@@ -44,65 +44,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-namespace comm {
-
 //-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
-void send_vectors_start(const Vectors& vectors,
-                        int proc_num,
-                        int mpi_tag,
-                        CommRequest& request,
-                        CEnv& env) {
+void CommVectors::send_start(const Vectors& vectors,
+                             int proc_num,
+                             int mpi_tag,
+                             CEnv& env) {
   COMET_INSIST(proc_num >= 0 && proc_num < env.num_proc_repl_vector());
   COMET_INSIST(!(env.is_comm_gpu() && !vectors.has_buf()));
 
   const int tag_multiplier = BuildHas::DEBUG ? 2 : 1;
 
-  //printf("s0 %i\n", 0+tag_multiplier*mpi_tag);
   COMET_MPI_SAFE_CALL(MPI_Isend(
     env.is_comm_gpu() ?
       (void*)vectors.buf()->d :
       (void*)vectors.data(),
     vectors.num_packedfield_vector_local(), env.metrics_mpi_type(), proc_num,
-    0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &request.mpi_request()));
+    0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &mpi_request_));
 
   if (BuildHas::DEBUG) {
-    request.cksum_ = vectors.cksum();
+    cksum_ = vectors.cksum();
     COMET_MPI_SAFE_CALL(MPI_Isend(
-      (void*)&request.cksum_,
-      sizeof(request.cksum_), MPI_BYTE, proc_num,
-      1+2*mpi_tag, env.comm_repl_vector(), &request.mpi_request_cksum_));
+      (void*)&cksum_,
+      sizeof(cksum_), MPI_BYTE, proc_num,
+      1+2*mpi_tag, env.comm_repl_vector(), &mpi_request_cksum_));
   }
 }
 
 //-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
-void recv_vectors_start(const Vectors& vectors,
-                        int proc_num,
-                        int mpi_tag,
-                        CommRequest& request,
-                        CEnv& env) {
+void CommVectors::recv_start(const Vectors& vectors,
+                             int proc_num,
+                             int mpi_tag,
+                             CEnv& env) {
   COMET_INSIST(proc_num >= 0 && proc_num < env.num_proc_repl_vector());
   COMET_INSIST(!(env.is_comm_gpu() && !vectors.has_buf()));
 
   const int tag_multiplier = BuildHas::DEBUG ? 2 : 1;
 
-  //printf("r0 %i\n", 0+tag_multiplier*mpi_tag);
   COMET_MPI_SAFE_CALL(MPI_Irecv(
     env.is_comm_gpu() ?
       (void*)vectors.buf()->d :
       (void*)vectors.data(),
     vectors.num_packedfield_vector_local(), env.metrics_mpi_type(), proc_num,
-    0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &request.mpi_request()));
+    0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &mpi_request_));
 
   if (BuildHas::DEBUG) {
-  //printf("r1 %i\n", 1+2*mpi_tag);
     COMET_MPI_SAFE_CALL(MPI_Irecv(
-      (void*)&request.cksum_,
-      sizeof(request.cksum_), MPI_BYTE, proc_num,
-      1+2*mpi_tag, env.comm_repl_vector(), &request.mpi_request_cksum_));
+      (void*)&cksum_,
+      sizeof(cksum_), MPI_BYTE, proc_num,
+      1+2*mpi_tag, env.comm_repl_vector(), &mpi_request_cksum_));
   }
 }
 
@@ -167,8 +160,6 @@ void reduce_metrics_wait(MPI_Request& mpi_request,
 }
 
 //=============================================================================
-
-} // namespace comm
 
 } // namespace comet
 

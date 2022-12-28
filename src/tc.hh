@@ -255,9 +255,9 @@ void tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,
   const void* matB, int lddb, void* matC, int lddc,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
-  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
+  void* sums_I, void* sums_J, void* sums_K,
+  void* counts_I, void* counts_J, void* counts_K,
+  int J, int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
   GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug);
 
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env);

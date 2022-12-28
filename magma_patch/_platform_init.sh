@@ -181,9 +181,9 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
   local USE_CPUBLAS=ON
-  local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_ESSL_ROOT/include"
+  local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_ESSL_ROOT/include -DCOMET_USE_ESSL"
   #COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
-  COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS:STRING="-gencode;arch=compute_70,code=compute_70;-arch=sm_70;-DBLAS_H=\"essl.h\""'
+  COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS:STRING="-gencode;arch=compute_70,code=compute_70;-arch=sm_70;-DCOMET_USE_ESSL"'
   local COMET_CPUBLAS_LINK_OPTS=""
   local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
   local XLF_DIR2=$(module load xl 2>/dev/null ; echo $OLCF_XL_ROOT)/lib

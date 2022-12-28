@@ -69,6 +69,8 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
 
   matXitem_buf->lock_h();
 
+  typedef GMFloat Float_t;
+
   //--------------------
   if (env.metric_type() == MetricType::CZEK) {
   //--------------------
@@ -80,9 +82,9 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
     for (int I = I_min; I < I_max; ++I) {
       // Operate on columns x_i and x_j elementwise.
       for (int f = 0; f < npfl; ++f) {
-        const GMFloat a = vectors_I_buf->elt_const<GMFloat>(f, I);
-        const GMFloat b = vectors_J_buf->elt_const<GMFloat>(f, J);
-        matXitem_buf->elt<GMFloat>(f, I) = a < b ? a : b;
+        const Float_t a = vectors_I_buf->elt_const<Float_t>(f, I);
+        const Float_t b = vectors_J_buf->elt_const<Float_t>(f, J);
+        matXitem_buf->elt<Float_t>(f, I) = a < b ? a : b;
       }  //---for f---//
     }    //---for I---//
 
@@ -230,6 +232,8 @@ static void finalize_czek_(
 
   matB_cbuf->lock_h();
 
+  typedef GMFloat Float_t;
+
   const VectorSums* const vs_I = si->perm0(vs_i, vs_j, vs_k);
   const VectorSums* const vs_J = si->perm1(vs_i, vs_j, vs_k);
   const VectorSums* const vs_K = si->perm2(vs_i, vs_j, vs_k);
@@ -244,24 +248,24 @@ static void finalize_czek_(
     #pragma omp parallel for schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);
-        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);
-        const GMFloat min_KIK = matM_KIK_buf->elt_const<GMFloat>(K, I);
+        const Float_t min_IJ = matM_IJ_buf->elt_const<Float_t>(I, J);
+        const Float_t min_JK = matM_JK_buf->elt_const<Float_t>(J, K);
+        const Float_t min_KIK = matM_KIK_buf->elt_const<Float_t>(K, I);
         // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_cbuf->elt_const<GMFloat>(I, K);
-        const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
+        const Float_t min_IJK = matB_cbuf->elt_const<Float_t>(I, K);
+        const Float_t numer = min_IJ + min_JK + min_KIK - min_IJK;
         const int i = I;
         const int j = J;
         const int k = K;
         // Make arithmetic order-independent.
-        GMFloat smin, smid, smax;
+        Float_t smin, smid, smax;
         const auto si = vs_i->sum(i);
         const auto sj = vs_i->sum(j);
         const auto sk = vs_i->sum(k);
         utils::sort_3(smin, smid, smax, si, sj, sk);
-        const GMFloat denom = smin + smid + smax;
-        const GMFloat value = ((GMFloat)1.5) * numer / denom;
-        Metrics_elt_3<GMFloat>(*metrics, i, j, k,
+        const Float_t denom = smin + smid + smax;
+        const Float_t value = static_cast<Float_t>(1.5) * numer / denom;
+        Metrics_elt_3<Float_t>(*metrics, i, j, k,
           env.proc_num_vector(), env.proc_num_vector(), env) = value;
       } // K
     }   // I
@@ -273,23 +277,23 @@ static void finalize_czek_(
     #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);
-        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);
-        const GMFloat min_KIK = si->is_part3 ?
-          matM_KIK_buf->elt_const<GMFloat>(K, I) :
-          matM_KIK_buf->elt_const<GMFloat>(I, K);
+        const Float_t min_IJ = matM_IJ_buf->elt_const<Float_t>(I, J);
+        const Float_t min_JK = matM_JK_buf->elt_const<Float_t>(J, K);
+        const Float_t min_KIK = si->is_part3 ?
+          matM_KIK_buf->elt_const<Float_t>(K, I) :
+          matM_KIK_buf->elt_const<Float_t>(I, K);
         // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_cbuf->elt_const<GMFloat>(I, K);
-        const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
+        const Float_t min_IJK = matB_cbuf->elt_const<Float_t>(I, K);
+        const Float_t numer = min_IJ + min_JK + min_KIK - min_IJK;
         // Make arithmetic order-independent.
-        GMFloat smin, smid, smax;
+        Float_t smin, smid, smax;
         const auto sI = vs_I->sum(I);
         const auto sJ = vs_J->sum(J);
         const auto sK = vs_K->sum(K);
         utils::sort_3(smin, smid, smax, sI, sJ, sK);
-        const GMFloat denom = smin + smid + smax;
-        const GMFloat value = ((GMFloat)1.5) * numer / denom;
-        Metrics_elt_3<GMFloat>(*metrics, I, J, K,
+        const Float_t denom = smin + smid + smax;
+        const Float_t value = static_cast<Float_t>(1.5) * numer / denom;
+        Metrics_elt_3<Float_t>(*metrics, I, J, K,
           j_block, k_block, index_cache, env) = value;
       } // K
     }   // I
@@ -790,7 +794,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_ij_buf_ptr->from_accel();
 
-    comm::reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env_);
+    reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env_);
   }
 
   //--------------------
@@ -815,7 +819,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_jk_buf_ptr->from_accel();
 
-    comm::reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env_);
+    reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env_);
   }
 
   //--------------------
@@ -843,7 +847,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_kik_buf_ptr->from_accel();
 
-    comm::reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env_);
+    reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env_);
   }
 
   //----------------------------------------
@@ -1079,15 +1083,15 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Reduce along field procs - WAIT
 
     if (vars_prevprev.do_compute && env_.do_reduce()) {
-      comm::reduce_metrics_wait(mpi_requests[vars_prevprev.index_01],
-          &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), env_);
+      reduce_metrics_wait(mpi_requests[vars_prevprev.index_01],
+        &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), env_);
       matB_cbuf->attach(vars_prevprev.matB_buf);
     }
 
     //========== Reduce along field procs - START
 
     if (vars_prev.do_compute && env_.do_reduce())
-      mpi_requests[vars_prev.index_01] = comm::reduce_metrics_start(metrics,
+      mpi_requests[vars_prev.index_01] = reduce_metrics_start(metrics,
           &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), env_);
 
     //========== Compute numerators using ijk piece and (if needed) 2-way pieces

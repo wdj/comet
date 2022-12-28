@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined COMET_USE_HIP
 //#include "blis.h"
 #include "cblas.h"
+#elif defined COMET_USE_ESSL
+#include "essl.h"
 #else
 #include BLAS_H
 #endif
@@ -162,7 +164,7 @@ size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env) {
 // C to zero if C is filled with trash (e.g. NaNs).
 
 template<int TC_METHOD>
-static void tc_set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
+static void tc_set_matrix_zero_start_(void* matC, int lddc, int m, CEnv& env) {
   COMET_INSIST(matC);
 
   typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
@@ -204,9 +206,9 @@ template<int TC_METHOD>
 static void tc_gemm_start_impl_(
   int m, int n, int k,
   const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
-  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
+  void* sums_I, void* sums_J, void* sums_K,
+  void* counts_I, void* counts_J, void* counts_K,
+  int J, int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
   GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
 
   const int nvl = n;
@@ -228,15 +230,12 @@ static void tc_gemm_start_impl_(
   tc_compute_matX_counts(I_max, I_max_dim, nvl, npfl, nfal,
     (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
-  tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
+  tc_set_matrix_zero_start_<TC_METHOD>(matC, lddc, m, env);
 
   const int num_tc_steps = env.num_tc_steps();
 
-//double t1, t2;
   // Loop over steps of algorithm.
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
-
-//t1 = env.synced_time();
 
     // Select the block row of the left and right matrices for this step.
     const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
@@ -257,37 +256,67 @@ static void tc_gemm_start_impl_(
       npfl_thisstep, pfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
 
-//t2 = env.synced_time();
-//if (System::is_proc_num_0()) printf("1 %.20f %.20f\n", (t2-t1), (double)t2);
-//t1 = env.synced_time();
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
-//for (int i=0; i<10; ++i)
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
 
-//t2 = env.synced_time();
-//if (System::is_proc_num_0()) printf("2 %.20f %.20f\n", (t2-t1), (double)t2);
   } // for
 
   // Postprocess GEMM results.
 
-//t1 = env.synced_time();
-  if (env.is_threshold_tc()) {
+  if (!env.is_double_prec()) {
 
-    tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
-      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
-      J, step_2way, histograms, gemm_shapes, env, tc_debug);
+    typedef float Float_t;
 
-  } else {
+    if (env.is_threshold_tc())
+      tc_out_<TC_METHOD, Float_t, MetricFormat::SINGLE>(nvll, nvl, matC,
+        static_cast<Float_t*>(sums_I),
+        static_cast<Float_t*>(sums_J),
+        static_cast<Float_t*>(sums_K),
+        static_cast<Float_t*>(counts_I),
+        static_cast<Float_t*>(counts_J),
+        static_cast<Float_t*>(counts_K),
+        tc_bufs.matX_counts, J, step_2way, histograms,
+        gemm_shapes, env, tc_debug);
+    else
+      tc_out_<TC_METHOD, Float_t, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
+        static_cast<Float_t*>(sums_I),
+        static_cast<Float_t*>(sums_J),
+        static_cast<Float_t*>(sums_K),
+        static_cast<Float_t*>(counts_I),
+        static_cast<Float_t*>(counts_J),
+        static_cast<Float_t*>(counts_K),
+        tc_bufs.matX_counts, J, step_2way, histograms,
+        gemm_shapes, env, tc_debug);
 
-    tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
-      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
-      J, step_2way, histograms, gemm_shapes, env, tc_debug);
+  } else { // env.is_double_prec()
 
-  }
-//t2 = env.synced_time();
-//if (System::is_proc_num_0()) printf("3 %.20f %.20f\n", (t2-t1), (double)t2);
+    typedef double Float_t;
+
+    if (env.is_threshold_tc())
+      tc_out_<TC_METHOD, Float_t, MetricFormat::SINGLE>(nvll, nvl, matC,
+        static_cast<Float_t*>(sums_I),
+        static_cast<Float_t*>(sums_J),
+        static_cast<Float_t*>(sums_K),
+        static_cast<Float_t*>(counts_I),
+        static_cast<Float_t*>(counts_J),
+        static_cast<Float_t*>(counts_K),
+        tc_bufs.matX_counts, J, step_2way, histograms,
+        gemm_shapes, env, tc_debug);
+    else
+      tc_out_<TC_METHOD, Float_t, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
+        static_cast<Float_t*>(sums_I),
+        static_cast<Float_t*>(sums_J),
+        static_cast<Float_t*>(sums_K),
+        static_cast<Float_t*>(counts_I),
+        static_cast<Float_t*>(counts_J),
+        static_cast<Float_t*>(counts_K),
+        tc_bufs.matX_counts, J, step_2way, histograms,
+        gemm_shapes, env, tc_debug);
+
+  } // if (!env.is_double_prec())
+
 }
 
 //=============================================================================
@@ -301,11 +330,10 @@ void tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,
   const void* matB, int lddb, void* matC, int lddc,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
-  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
-  GemmShapes& gemm_shapes,
-  CEnv& env, TCDebug tc_debug) {
+  void* sums_I, void* sums_J, void* sums_K,
+  void* counts_I, void* counts_J, void* counts_K,
+  int J, int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
+  GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
   COMET_INSIST(ldda1 >= 0 && ldda2 >= 0 && lddb >= 0 && lddc >= 0);
@@ -321,44 +349,45 @@ void tc_gemm_start(
   // Select required template function instance.
 
   switch (env.tc_eff()) {
-    // --------------
+
     case TC::FP32: {
       tc_gemm_start_impl_<TC::FP32>(
         m, n, k, matA1, matA2, matB, matC, lddc,
-        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K,
+        J, nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
     } break;
-    // --------------
+
     case TC::FP16: {
       tc_gemm_start_impl_<TC::FP16>(
         m, n, k, matA1, matA2, matB, matC, lddc,
-        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K,
+        J, nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
     } break;
-    // --------------
+
     case TC::INT8: {
       tc_gemm_start_impl_<TC::INT8>(
         m, n, k, matA1, matA2, matB, matC, lddc,
-        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K,
+        J, nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
     } break;
-    // --------------
+
     case TC::B1: {
       tc_gemm_start_impl_<TC::B1>(
         m, n, k, matA1, matA2, matB, matC, lddc,
-        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K,
+        J, nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
     } break;
-    // --------------
+
     case TC::INT4: {
       tc_gemm_start_impl_<TC::INT4>(
         m, n, k, matA1, matA2, matB, matC, lddc,
-        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-        nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K,
+        J, nfal, step_2way, tc_bufs, histograms, gemm_shapes, env, tc_debug);
     } break;
-    // --------------
+
     default:
       COMET_INSIST(false && "Invalid tc type.");
+
   } // switch
 }
 
@@ -580,200 +609,6 @@ void TCBufs::deallocate() {
 
   is_allocated_ = false;
 }
-
-#if 0
-//-----------------------------------------------------------------------------
-/// \brief Initialize TCBufs object by allocating memory etc.
-
-void TCBufs::malloc(int num_vector_local,
-                    //int num_field_local,
-                    int num_packedfield_local,
-                    TCBufs& tc_bufs,
-                    CEnv& env) {
-  COMET_INSIST(num_vector_local >= 0);
-  COMET_INSIST(num_packedfield_local >= 0);
-  COMET_INSIST(!tc_bufs.tc_buf_left);
-  COMET_INSIST(!tc_bufs.tc_buf_right);
-
-  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO)
-    return;
-
-  // Calculate sizes.
-
-  const size_t nvl = num_vector_local;
-  const size_t npfl = num_packedfield_local;
-  const int d = tc_gemm_faxis_divisibility_required(env);
-  const size_t npfl_thisstep_max =
-    utils::ceil(npfl/d, (size_t)env.num_tc_steps()) * d;
-
-  const int sizeof_gemm_in_t =
-     env.tc_eff() == TC::FP32 ? sizeof(typename TCTraits<TC::FP32>::GemmIn_t) :
-     env.tc_eff() == TC::FP16 ? sizeof(typename TCTraits<TC::FP16>::GemmIn_t) :
-     env.tc_eff() == TC::INT8 ? sizeof(typename TCTraits<TC::INT8>::GemmIn_t) :
-     env.tc_eff() == TC::B1 ? sizeof(typename TCTraits<TC::B1>::GemmIn_t) :
-     env.tc_eff() == TC::INT4 ? sizeof(typename TCTraits<TC::INT4>::GemmIn_t) :
-     0;
-
-  const int nfpgi =
-     env.tc_eff() == TC::FP32 ? TCTraits<TC::FP32>::NFPGI :
-     env.tc_eff() == TC::FP16 ? TCTraits<TC::FP16>::NFPGI :
-     env.tc_eff() == TC::INT8 ? TCTraits<TC::INT8>::NFPGI :
-     env.tc_eff() == TC::B1 ? TCTraits<TC::B1>::NFPGI :
-     env.tc_eff() == TC::INT4 ? TCTraits<TC::INT4>::NFPGI :
-     0;
-  COMET_INSIST(TC::is_valid(env.tc_eff())); // must be updated if new method
-
-  const size_t nvlX2 = nvl * 2;
-
-  tc_bufs.tc_buf_size = nvlX2 * (npfl_thisstep_max * 64 / nfpgi) *
-                        sizeof_gemm_in_t;
-  tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
-
-  tc_bufs.matX_counts_size = env.is_using_xor() && env.num_way() == NumWay::_3 ?
-    nvlX2 * sizeof(uint32_t) : 1;
-
-  if (env.is_compute_method_gpu()) {
-
-    // Allocate buffers.
-
-#   if defined COMET_USE_CUDA
-      cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
-#   elif defined COMET_USE_HIP
-      hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
-#   endif
-    COMET_INSIST(System::accel_last_call_succeeded());
-    env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
-
-#   if defined COMET_USE_CUDA
-      cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
-#   elif defined COMET_USE_HIP
-      hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
-#   endif
-    COMET_INSIST(System::accel_last_call_succeeded());
-    env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
-
-#   if defined COMET_USE_CUDA
-      cudaMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
-#   elif defined COMET_USE_HIP
-      hipMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
-#   endif
-    COMET_INSIST(System::accel_last_call_succeeded());
-    env.gpu_mem_local_inc(tc_bufs.matX_counts_size);
-
-    // Set up accel blas handle.
-
-#   if defined COMET_USE_CUDA
-      cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
-      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
-      COMET_INSIST(System::accel_last_call_succeeded());
-
-      status = cublasSetStream(tc_bufs.accelblas_handle, env.stream_compute());
-      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
-                   "Error in cublasSetStream.");
-
-      status = cublasSetMathMode(tc_bufs.accelblas_handle,
-                                 CUBLAS_TENSOR_OP_MATH);
-      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
-                   "Error in cublasSetMathMode.");
-      COMET_INSIST(System::accel_last_call_succeeded());
-#   elif defined COMET_USE_HIP
-      int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
-      COMET_INSIST(status == rocblas_status_success &&
-               "Error in rocblas_create_handle.");
-      COMET_INSIST(System::accel_last_call_succeeded());
-
-      status = rocblas_set_stream(tc_bufs.accelblas_handle,
-                                  env.stream_compute());
-      COMET_INSIST(status == rocblas_status_success &&
-               "Error in rocblas_set_stream.");
-      COMET_INSIST(System::accel_last_call_succeeded());
-#   endif
-
-  } else { // compute_method
-
-    // Allocate buffers.
-
-    tc_bufs.tc_buf_left = ::malloc(tc_bufs.tc_buf_size);
-    COMET_INSIST(tc_bufs.tc_buf_left);
-    env.cpu_mem_local_inc(tc_bufs.tc_buf_size);
-    //memset((void*)tc_bufs.tc_buf_left, 0, tc_bufs.tc_buf_size);
-
-    tc_bufs.tc_buf_right = ::malloc(tc_bufs.tc_buf_size);
-    COMET_INSIST(tc_bufs.tc_buf_right);
-    env.cpu_mem_local_inc(tc_bufs.tc_buf_size);
-    //memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
-
-  } // compute_method
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Terminate TCBufs object by deallocating memory etc.
-
-void TCBufs::free(TCBufs& tc_bufs, CEnv& env) {
-  COMET_INSIST((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
-
-  if (!tc_bufs.tc_buf_left)
-    return;
-
-  if (env.is_compute_method_gpu()) {
-
-    // Free buffers.
-
-#   if defined COMET_USE_CUDA
-      cudaFree(tc_bufs.tc_buf_left);
-#   elif defined COMET_USE_HIP
-      hipFree(tc_bufs.tc_buf_left);
-#   endif
-    COMET_INSIST(System::accel_last_call_succeeded());
-    tc_bufs.tc_buf_left = NULL;
-    env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
-
-#   if defined COMET_USE_CUDA
-      cudaFree(tc_bufs.tc_buf_right);
-#   elif defined COMET_USE_HIP
-      hipFree(tc_bufs.tc_buf_right);
-#   endif
-    COMET_INSIST(System::accel_last_call_succeeded());
-    tc_bufs.tc_buf_right = NULL;
-    env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
-
-#   if defined COMET_USE_CUDA
-      cudaFree(tc_bufs.matX_counts);
-#   elif defined COMET_USE_HIP
-      hipFree(tc_bufs.matX_counts);
-#   endif
-    COMET_INSIST(System::accel_last_call_succeeded());
-    tc_bufs.matX_counts = NULL;
-    env.gpu_mem_local_dec(tc_bufs.matX_counts_size);
-
-    // Free accel blas handle.
-
-#   if defined COMET_USE_CUDA
-      cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
-      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
-                   "Error in cublasDestroy.");
-#   elif defined COMET_USE_HIP
-      int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
-      COMET_INSIST(status == rocblas_status_success &&
-             "Error in rocblas_destroy_handle.");
-#   endif
-    COMET_INSIST(System::accel_last_call_succeeded());
-
-  } else { // compute_method CPU
-
-    // Free buffers.
-
-    ::free(tc_bufs.tc_buf_left);
-    tc_bufs.tc_buf_left = NULL;
-    env.cpu_mem_local_dec(tc_bufs.tc_buf_size);
-
-    ::free(tc_bufs.tc_buf_right);
-    tc_bufs.tc_buf_right = NULL;
-    env.cpu_mem_local_dec(tc_bufs.tc_buf_size);
-
-  } // compute_method
-}
-#endif
 
 //=============================================================================
 

@@ -81,9 +81,9 @@ void LinAlg::gemm_start(
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
-        (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
-        (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(),
+        sums_I->active, sums_J->active, sums_K->active,
+        counts_I->active, counts_J->active, counts_K->active,
+        J, dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(),
         gemm_shapes, env, tc_debug);
   } else {
 
@@ -142,9 +142,10 @@ void LinAlg::gemm_wait(
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
-        (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
-        (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(), gemm_shapes, env, tc_debug);
+        sums_I->active, sums_J->active, sums_K->active,
+        counts_I->active, counts_J->active, counts_K->active,
+        J, dm.num_field_active_local, step_2way, dm.tc_bufs, *dm.histograms(),
+        gemm_shapes, env, tc_debug);
       // Unlock
       matA1->unlock_h();
       if (matA2 != matA1 && matA2 != matB)

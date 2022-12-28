@@ -83,6 +83,8 @@ static void compute_nonlinalg_czek_(
 
   // Initializations.
 
+  typedef GMFloat Float_t;
+
   const int nvl = metrics->num_vector_local;
   const int nfl = vectors_i->dm()->num_field_local;
 
@@ -112,26 +114,28 @@ static void compute_nonlinalg_czek_(
       for (int k = j+1; k < nvl; ++k) {
         for (int i = 0; i < j; ++i) {
           // Make arithmetic order-independent.
-          GMFloat smin, smid, smax;
-          const GMFloat si = vs_i->sum(i);
-          const GMFloat sj = vs_i->sum(j);
-          const GMFloat sk = vs_i->sum(k);
+          Float_t smin, smid, smax;
+          const Float_t si = vs_i->sum(i);
+          const Float_t sj = vs_i->sum(j);
+          const Float_t sk = vs_i->sum(k);
           utils::sort_3(smin, smid, smax, si, sj, sk);
-          const GMFloat denom = smin + smid + smax;
-          GMFloat numer = 0;
+          const Float_t denom = smin + smid + smax;
+          Float_t numer = 0;
           for (int f = 0; f < nfl; ++f) {
-            const GMFloat val1 = vectors_i->elt_float_const(f, i);
-            const GMFloat val2 = vectors_i->elt_float_const(f, j);
-            const GMFloat val3 = vectors_i->elt_float_const(f, k);
-            GMFloat min12 = val1 < val2 ? val1 : val2;
+            const Float_t val1 = vectors_i->elt_float_const(f, i);
+            const Float_t val2 = vectors_i->elt_float_const(f, j);
+            const Float_t val3 = vectors_i->elt_float_const(f, k);
+            Float_t min12 = val1 < val2 ? val1 : val2;
             numer += min12;
             numer += val1 < val3 ? val1 : val3;
             numer += val2 < val3 ? val2 : val3;
             numer -= min12 < val3 ? min12 : val3;
           } // for f
-          const GMFloat value = ((GMFloat)3) * numer / (((GMFloat)2) * denom);
 
-          Metrics_elt_3<GMFloat>(*metrics, i, j, k,
+          const Float_t value = static_cast<Float_t>(3) * numer /
+                               (static_cast<Float_t>(2) * denom);
+
+          Metrics_elt_3<Float_t>(*metrics, i, j, k,
             env->proc_num_vector(), env->proc_num_vector(), *env) = value;
         }
         metrics->num_metric_items_local_computed_inc(j);
@@ -165,27 +169,28 @@ static void compute_nonlinalg_czek_(
           const int k = si->unperm2(I, J, K);
 
           // Make arithmetic order-independent.
-          GMFloat smin, smid, smax;
-          const GMFloat si = vs_i->sum(i);
-          const GMFloat sj = vs_j->sum(j);
-          const GMFloat sk = vs_k->sum(k);
+          Float_t smin, smid, smax;
+          const Float_t si = vs_i->sum(i);
+          const Float_t sj = vs_j->sum(j);
+          const Float_t sk = vs_k->sum(k);
           utils::sort_3(smin, smid, smax, si, sj, sk);
-          const GMFloat denom = smin + smid + smax;
-          GMFloat numer = 0;
+          const Float_t denom = smin + smid + smax;
+          Float_t numer = 0;
           for (int f = 0; f < nfl; ++f) {
-            const GMFloat val1 = vectors_i->elt_float_const(f, i);
-            const GMFloat val2 = vectors_j->elt_float_const(f, j);
-            const GMFloat val3 = vectors_k->elt_float_const(f, k);
-            const GMFloat min_ij = val1 < val2 ? val1 : val2;
-            const GMFloat min_ik = val1 < val3 ? val1 : val3;
-            const GMFloat min_jk = val2 < val3 ? val2 : val3;
-            const GMFloat min_ijk = min_ij < val3 ? min_ij : val3;
+            const Float_t val1 = vectors_i->elt_float_const(f, i);
+            const Float_t val2 = vectors_j->elt_float_const(f, j);
+            const Float_t val3 = vectors_k->elt_float_const(f, k);
+            const Float_t min_ij = val1 < val2 ? val1 : val2;
+            const Float_t min_ik = val1 < val3 ? val1 : val3;
+            const Float_t min_jk = val2 < val3 ? val2 : val3;
+            const Float_t min_ijk = min_ij < val3 ? min_ij : val3;
             numer += min_ij + min_ik + min_jk - min_ijk;
           } // for f
 
-          const GMFloat value = ((GMFloat)3) * numer / (((GMFloat)2) * denom);
+          const Float_t value = static_cast<Float_t>(3) * numer /
+                               (static_cast<Float_t>(2) * denom);
 
-          Metrics_elt_3<GMFloat>(*metrics, I, J, K,
+          Metrics_elt_3<Float_t>(*metrics, I, J, K,
             j_block, k_block, index_cache, *env) = value;
         } //---I
         metrics->num_metric_items_local_computed_inc(I_max - I_min);
