@@ -790,7 +790,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_ij_buf_ptr->from_accel();
 
-    gm_reduce_metrics(&metrics, matM_ij_buf, matM_ij_buf_ptr, &env_);
+    comm::reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env_);
   }
 
   //--------------------
@@ -815,7 +815,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_jk_buf_ptr->from_accel();
 
-    gm_reduce_metrics(&metrics, matM_jk_buf, matM_jk_buf_ptr, &env_);
+    comm::reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env_);
   }
 
   //--------------------
@@ -843,7 +843,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_kik_buf_ptr->from_accel();
 
-    gm_reduce_metrics(&metrics, matM_kik_buf, matM_kik_buf_ptr, &env_);
+    comm::reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env_);
   }
 
   //----------------------------------------
@@ -1079,16 +1079,16 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Reduce along field procs - WAIT
 
     if (vars_prevprev.do_compute && env_.do_reduce()) {
-      gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]),
-          &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), &env_);
+      comm::reduce_metrics_wait(mpi_requests[vars_prevprev.index_01],
+          &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), env_);
       matB_cbuf->attach(vars_prevprev.matB_buf);
     }
 
     //========== Reduce along field procs - START
 
     if (vars_prev.do_compute && env_.do_reduce())
-      mpi_requests[vars_prev.index_01] = gm_reduce_metrics_start(&metrics,
-          &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), &env_);
+      mpi_requests[vars_prev.index_01] = comm::reduce_metrics_start(metrics,
+          &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), env_);
 
     //========== Compute numerators using ijk piece and (if needed) 2-way pieces
 

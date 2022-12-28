@@ -192,7 +192,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Do reduction across field procs if needed
 
-  gm_reduce_metrics(&metrics, &metrics_buf, metrics_buf_ptr, &env_);
+  comm::reduce_metrics(metrics, &metrics_buf, metrics_buf_ptr, env_);
 
   // Combine
 
@@ -447,15 +447,10 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
       // NOTE: the following order seems to help performance.
 
-      comm_recv_vectors_start(*vectors_recv, proc_recv,
-                              mpi_tag, comm_request_recv, env_);
-      comm_send_vectors_start(*vectors_send, proc_send,
-                              mpi_tag, comm_request_send, env_);
-
-      //mpi_requests[1] = gm_recv_vectors_start(vectors_recv,
-      //                                        proc_recv, mpi_tag, &env_);
-      //mpi_requests[0] = gm_send_vectors_start(vectors_send,
-      //                                        proc_send, mpi_tag, &env_);
+      comm::recv_vectors_start(*vectors_recv, proc_recv,
+                               mpi_tag, comm_request_recv, env_);
+      comm::send_vectors_start(*vectors_send, proc_send,
+                               mpi_tag, comm_request_send, env_);
     }
 
     //========== Send right matrix to GPU - WAIT.
@@ -490,7 +485,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
             //env_.stream_synchronize(env_.stream_fromgpu());
             vars.vector_sums_right->compute_accel(*vars.vectors_right, env_.stream_fromgpu());
             vars.vector_sums_right->from_accel();
-//fprintf(stderr, "HEY20 %e  %i\n", (double) vars.vector_sums_right->sum(0), step_num);
           }
         }
       } else { // ! env_.is_comm_gpu()
@@ -546,8 +540,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //========== Reduce along field procs
 
         if (env_.do_reduce()) {
-          gm_reduce_metrics(&metrics, metrics_buf_prev_ptr,
-                            vars_prev.metrics_buf, &env_);
+          comm::reduce_metrics(metrics, metrics_buf_prev_ptr,
+                               vars_prev.metrics_buf, env_);
           matB_buf_compressed.attach(*metrics_buf_prev_ptr);
         }
 

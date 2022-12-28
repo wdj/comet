@@ -144,7 +144,7 @@ private:
 
   //---------------------------------------------------------------------------
 
-  enum { SIZE = 3 };
+  enum {SIZE = 3};
 
   size_t data_[SIZE];
   bool is_overflowed_;

@@ -3,7 +3,7 @@
  * \file   comm_xfer_utils.cc
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Utilities for communication and CPU/GPU transfer of vectors, metrics.
+ * \brief  Utilities for communication and transfer of vectors, metrics.
  */
 //-----------------------------------------------------------------------------
 /*-----------------------------------------------------------------------------
@@ -44,14 +44,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+namespace comm {
+
 //-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
-void comm_send_vectors_start(const Vectors& vectors,
-                             int proc_num,
-                             int mpi_tag,
-                             CommRequest& request,
-                             CEnv& env) {
+void send_vectors_start(const Vectors& vectors,
+                        int proc_num,
+                        int mpi_tag,
+                        CommRequest& request,
+                        CEnv& env) {
   COMET_INSIST(proc_num >= 0 && proc_num < env.num_proc_repl_vector());
   COMET_INSIST(!(env.is_comm_gpu() && !vectors.has_buf()));
 
@@ -77,11 +79,11 @@ void comm_send_vectors_start(const Vectors& vectors,
 //-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
-void comm_recv_vectors_start(const Vectors& vectors,
-                             int proc_num,
-                             int mpi_tag,
-                             CommRequest& request,
-                             CEnv& env) {
+void recv_vectors_start(const Vectors& vectors,
+                        int proc_num,
+                        int mpi_tag,
+                        CommRequest& request,
+                        CEnv& env) {
   COMET_INSIST(proc_num >= 0 && proc_num < env.num_proc_repl_vector());
   COMET_INSIST(!(env.is_comm_gpu() && !vectors.has_buf()));
 
@@ -107,68 +109,66 @@ void comm_recv_vectors_start(const Vectors& vectors,
 //=============================================================================
 // MPI reduce operations
 
-void gm_reduce_metrics(GMMetrics* metrics,
-                       MirroredBuf* metrics_buf_target,
-                       MirroredBuf* metrics_buf_source,
-                       CEnv* env) {
-  COMET_INSIST(metrics && env);
-  COMET_INSIST(metrics_buf_target && metrics_buf_source);
+void reduce_metrics(GMMetrics& metrics,
+                    MirroredBuf* target,
+                    MirroredBuf* source,
+                    CEnv& env) {
+  COMET_INSIST(target && source);
 
-  if (!env->do_reduce())
+  if (!env.do_reduce())
     return;
 
-  const int nvl = metrics->num_vector_local;
+  const int nvl = metrics.num_vector_local;
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(metrics_buf_source->h,
-    metrics_buf_target->h, nvl * (size_t)nvl, env->metrics_mpi_type(), MPI_SUM,
-    env->comm_field()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(source->h,
+    target->h, nvl * (size_t)nvl, env.metrics_mpi_type(), MPI_SUM,
+    env.comm_field()));
 }
 
 //-----------------------------------------------------------------------------
 
-MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
-                                    MirroredBuf* metrics_buf_target,
-                                    MirroredBuf* metrics_buf_source,
-                                    CEnv* env) {
-  COMET_INSIST(metrics && env);
-  COMET_INSIST(metrics_buf_target && metrics_buf_source);
+MPI_Request reduce_metrics_start(GMMetrics& metrics,
+                                 MirroredBuf* target,
+                                 MirroredBuf* source,
+                                 CEnv& env) {
+  COMET_INSIST(target && source);
 
-  if (!env->do_reduce())
+  if (!env.do_reduce())
     return MPI_REQUEST_NULL;
 
-  const int nvl = metrics->num_vector_local;
+  const int nvl = metrics.num_vector_local;
 
-  metrics_buf_target->lock_h();
-  metrics_buf_source->lock_h();
+  target->lock_h();
+  source->lock_h();
 
   MPI_Request mpi_request;
-  COMET_MPI_SAFE_CALL(MPI_Iallreduce(metrics_buf_source->h,
-    metrics_buf_target->h, nvl * (size_t)nvl, env->metrics_mpi_type(), MPI_SUM,
-    env->comm_field(), &mpi_request));
+  COMET_MPI_SAFE_CALL(MPI_Iallreduce(source->h,
+    target->h, nvl * (size_t)nvl, env.metrics_mpi_type(), MPI_SUM,
+    env.comm_field(), &mpi_request));
 
   return mpi_request;
 }
 
 //-----------------------------------------------------------------------------
 
-void gm_reduce_metrics_wait(MPI_Request* mpi_request,
-                            MirroredBuf* metrics_buf_target,
-                            MirroredBuf* metrics_buf_source,
-                            CEnv* env) {
-  COMET_INSIST(mpi_request && env);
-
-  if (!env->do_reduce())
+void reduce_metrics_wait(MPI_Request& mpi_request,
+                         MirroredBuf* target,
+                         MirroredBuf* source,
+                         CEnv& env) {
+  if (!env.do_reduce())
     return;
 
   MPI_Status mpi_status;
 
-  COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
+  COMET_MPI_SAFE_CALL(MPI_Wait(&mpi_request, &mpi_status));
 
-  metrics_buf_target->unlock_h();
-  metrics_buf_source->unlock_h();
+  target->unlock_h();
+  source->unlock_h();
 }
 
 //=============================================================================
+
+} // namespace comm
 
 } // namespace comet
 

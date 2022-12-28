@@ -3,7 +3,7 @@
  * \file   comm_xfer_utils.hh
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Utilities for communication and CPU/GPU transfer of vectors, metrics.
+ * \brief  Utilities for communication and transfer of vectors, metrics.
  */
 //-----------------------------------------------------------------------------
 /*-----------------------------------------------------------------------------
@@ -41,9 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vectors.hh"
 #include "metrics.hh"
 
-//=============================================================================
+//-----------------------------------------------------------------------------
 
 namespace comet {
+
+//=============================================================================
 
 struct CommRequest {
 
@@ -69,53 +71,47 @@ struct CommRequest {
   MPI_Request& mpi_request() {
     return mpi_request_;
   }
-};
+}; // CommRequest
 
 //-----------------------------------------------------------------------------
 
-//MPI_Request gm_send_vectors_start(const Vectors* vectors, int proc_num, int mpi_tag,
-//                                  CEnv* env);
-
-//MPI_Request gm_recv_vectors_start(Vectors* vectors, int proc_num, int mpi_tag,
-//                                  CEnv* env);
-
-void comm_send_vectors_start(const Vectors& vectors,
-                             int proc_num,
-                             int mpi_tag,
-                             CommRequest& request,
-                             CEnv& env);
-
-void comm_recv_vectors_start(const Vectors& vectors,
-                             int proc_num,
-                             int mpi_tag,
-                             CommRequest& request,
-                             CEnv& env);
+namespace comm {
 
 //-----------------------------------------------------------------------------
-// Start/end MPI send/receive of vectors data
+// Start MPI send/receive of vectors data.
 
-//void gm_send_vectors_wait(MPI_Request* mpi_request, CEnv* env);
+void send_vectors_start(const Vectors& vectors,
+                        int proc_num,
+                        int mpi_tag,
+                        CommRequest& request,
+                        CEnv& env);
 
-//void gm_recv_vectors_wait(MPI_Request* mpi_request, CEnv* env);
+void recv_vectors_start(const Vectors& vectors,
+                        int proc_num,
+                        int mpi_tag,
+                        CommRequest& request,
+                        CEnv& env);
 
-//--------------------
+//-----------------------------------------------------------------------------
 
-void gm_reduce_metrics(GMMetrics* metrics,
-                       MirroredBuf* metrics_buf_target,
-                       MirroredBuf* metrics_buf_source,
-                       CEnv* env);
+void reduce_metrics(GMMetrics& metrics,
+                    MirroredBuf* target,
+                    MirroredBuf* source,
+                    CEnv& env);
 
-MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
-                                    MirroredBuf* metrics_buf_target,
-                                    MirroredBuf* metrics_buf_source,
-                                    CEnv* env);
+MPI_Request reduce_metrics_start(GMMetrics& metrics,
+                                 MirroredBuf* target,
+                                 MirroredBuf* source,
+                                 CEnv& env);
 
-void gm_reduce_metrics_wait(MPI_Request* mpi_request,
-                            MirroredBuf* metrics_buf_target,
-                            MirroredBuf* metrics_buf_source,
-                            CEnv* env);
+void reduce_metrics_wait(MPI_Request& mpi_request,
+                         MirroredBuf* target,
+                         MirroredBuf* source,
+                         CEnv& env);
 
 //=============================================================================
+
+} // namespace comm
 
 } // namespace comet
 
