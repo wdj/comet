@@ -115,9 +115,9 @@ static void compute_nonlinalg_czek_(
         for (int i = 0; i < j; ++i) {
           // Make arithmetic order-independent.
           Float_t smin, smid, smax;
-          const Float_t si = vs_i->sum(i);
-          const Float_t sj = vs_i->sum(j);
-          const Float_t sk = vs_i->sum(k);
+          const Float_t si = vs_i->sum<Float_t>(i);
+          const Float_t sj = vs_i->sum<Float_t>(j);
+          const Float_t sk = vs_i->sum<Float_t>(k);
           utils::sort_3(smin, smid, smax, si, sj, sk);
           const Float_t denom = smin + smid + smax;
           Float_t numer = 0;
@@ -170,9 +170,9 @@ static void compute_nonlinalg_czek_(
 
           // Make arithmetic order-independent.
           Float_t smin, smid, smax;
-          const Float_t si = vs_i->sum(i);
-          const Float_t sj = vs_j->sum(j);
-          const Float_t sk = vs_k->sum(k);
+          const Float_t si = vs_i->sum<Float_t>(i);
+          const Float_t sj = vs_j->sum<Float_t>(j);
+          const Float_t sk = vs_k->sum<Float_t>(k);
           utils::sort_3(smin, smid, smax, si, sj, sk);
           const Float_t denom = smin + smid + smax;
           Float_t numer = 0;
@@ -248,6 +248,8 @@ static void compute_nonlinalg_ccc_duo_(
   typedef MetricFormatTraits<MF> MFT;
 
   // Initializations.
+
+  typedef GMFloat Float_t;
 
   const int nvl = metrics->num_vector_local;
 
@@ -416,9 +418,9 @@ static void compute_nonlinalg_ccc_duo_(
 
           // Get denom
 
-          const auto si1 = (GMTally1)vs_i->sum(i);
-          const auto sj1 = (GMTally1)vs_j->sum(j);
-          const auto sk1 = (GMTally1)vs_k->sum(k);
+          const auto si1 = (GMTally1)vs_i->sum<Float_t>(i);
+          const auto sj1 = (GMTally1)vs_j->sum<Float_t>(j);
+          const auto sk1 = (GMTally1)vs_k->sum<Float_t>(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
 
           const int j_block_eff = env->all2all() ?
@@ -432,9 +434,9 @@ static void compute_nonlinalg_ccc_duo_(
           Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = si1_sj1_sk1;
           if (env->sparse()) {
-            const auto ci1 = (GMTally1)vs_i->count(i);
-            const auto cj1 = (GMTally1)vs_j->count(j);
-            const auto ck1 = (GMTally1)vs_k->count(k);
+            const auto ci1 = (GMTally1)vs_i->count<Float_t>(i);
+            const auto cj1 = (GMTally1)vs_j->count<Float_t>(j);
+            const auto ck1 = (GMTally1)vs_k->count<Float_t>(k);
             const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
@@ -447,11 +449,11 @@ static void compute_nonlinalg_ccc_duo_(
             COMET_ASSERT(!env->is_threshold_tc());
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
-            const GMTally1 ci = env->sparse() ? vs_i->count(i) :
+            const GMTally1 ci = env->sparse() ? vs_i->count<Float_t>(i) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 cj = env->sparse() ? vs_j->count(j) :
+            const GMTally1 cj = env->sparse() ? vs_j->count<Float_t>(j) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 ck = env->sparse() ? vs_k->count(k) :
+            const GMTally1 ck = env->sparse() ? vs_k->count<Float_t>(k) :
                                                 cbpe * cbpe * cbpe * nfa;
             Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
               i, j, k, j_block_eff, k_block_eff, *env);
@@ -748,9 +750,9 @@ static void compute_nonlinalg_ccc_duo_(
 
           // Get denom
 
-          const auto si1 = (GMTally1)vs_i->sum(i);
-          const auto sj1 = (GMTally1)vs_j->sum(j);
-          const auto sk1 = (GMTally1)vs_k->sum(k);
+          const auto si1 = (GMTally1)vs_i->sum<Float_t>(i);
+          const auto sj1 = (GMTally1)vs_j->sum<Float_t>(j);
+          const auto sk1 = (GMTally1)vs_k->sum<Float_t>(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
 
           const int j_block_eff = env->all2all() ?
@@ -763,9 +765,9 @@ static void compute_nonlinalg_ccc_duo_(
           Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = si1_sj1_sk1;
           if (env->sparse()) {
-            const auto ci1 = (GMTally1)vs_i->count(i);
-            const auto cj1 = (GMTally1)vs_j->count(j);
-            const auto ck1 = (GMTally1)vs_k->count(k);
+            const auto ci1 = (GMTally1)vs_i->count<Float_t>(i);
+            const auto cj1 = (GMTally1)vs_j->count<Float_t>(j);
+            const auto ck1 = (GMTally1)vs_k->count<Float_t>(k);
             const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
@@ -778,11 +780,11 @@ static void compute_nonlinalg_ccc_duo_(
             COMET_ASSERT(!env->is_threshold_tc());
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
-            const GMTally1 ci = env->sparse() ? vs_i->count(i) :
+            const GMTally1 ci = env->sparse() ? vs_i->count<Float_t>(i) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 cj = env->sparse() ? vs_j->count(j) :
+            const GMTally1 cj = env->sparse() ? vs_j->count<Float_t>(j) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 ck = env->sparse() ? vs_k->count(k) :
+            const GMTally1 ck = env->sparse() ? vs_k->count<Float_t>(k) :
                                                 cbpe * cbpe * cbpe * nfa;
             Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
               i, j, k, j_block_eff, k_block_eff, *env);
@@ -980,9 +982,9 @@ static void compute_nonlinalg_ccc_duo_(
 
           // Get denom
 
-          const auto si1 = (GMTally1)vs_i->sum(i);
-          const auto sj1 = (GMTally1)vs_j->sum(j);
-          const auto sk1 = (GMTally1)vs_k->sum(k);
+          const auto si1 = (GMTally1)vs_i->sum<Float_t>(i);
+          const auto sj1 = (GMTally1)vs_j->sum<Float_t>(j);
+          const auto sk1 = (GMTally1)vs_k->sum<Float_t>(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
 
           const int j_block_eff = env->all2all() ?
@@ -995,9 +997,9 @@ static void compute_nonlinalg_ccc_duo_(
           Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = si1_sj1_sk1;
           if (env->sparse()) {
-            const auto ci1 = (GMTally1)vs_i->count(i);
-            const auto cj1 = (GMTally1)vs_j->count(j);
-            const auto ck1 = (GMTally1)vs_k->count(k);
+            const auto ci1 = (GMTally1)vs_i->count<Float_t>(i);
+            const auto cj1 = (GMTally1)vs_j->count<Float_t>(j);
+            const auto ck1 = (GMTally1)vs_k->count<Float_t>(k);
             const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
@@ -1010,11 +1012,11 @@ static void compute_nonlinalg_ccc_duo_(
             COMET_ASSERT(!env->is_threshold_tc());
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
-            const GMTally1 ci = env->sparse() ? vs_i->count(i) :
+            const GMTally1 ci = env->sparse() ? vs_i->count<Float_t>(i) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 cj = env->sparse() ? vs_j->count(j) :
+            const GMTally1 cj = env->sparse() ? vs_j->count<Float_t>(j) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 ck = env->sparse() ? vs_k->count(k) :
+            const GMTally1 ck = env->sparse() ? vs_k->count<Float_t>(k) :
                                                 cbpe * cbpe * cbpe * nfa;
             Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
               i, j, k, j_block_eff, k_block_eff, *env);

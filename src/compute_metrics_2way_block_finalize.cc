@@ -91,12 +91,12 @@ static void finalize_czek_(
     // ----------------------------------
 
     for (int j = 0; j < nvl; ++j) {
-      const Float_t vs_j = vs_r->sum(j);
+      const Float_t vs_j = vs_r->sum<Float_t>(j);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
         const Float_t numer = Metrics_elt_const_2<Float_t>(*metrics,
           i, j, j_block, *env);
-        const Float_t vs_i = vs_l->sum(i);
+        const Float_t vs_i = vs_l->sum<Float_t>(i);
         const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const Float_t multiplier = (Float_t)2;
         const Float_t value = (multiplier * numer) / denom;
@@ -112,12 +112,12 @@ static void finalize_czek_(
     // ----------------------------------
 
     for (int j = 0; j < nvl; ++j) {
-      const Float_t vs_j = vs_r->sum(j);
+      const Float_t vs_j = vs_r->sum<Float_t>(j);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const Float_t numer = Metrics_elt_const_2<Float_t>(*metrics,
           i, j, env->proc_num_vector(), *env);
-        const Float_t vs_i = vs_l->sum(i);
+        const Float_t vs_i = vs_l->sum<Float_t>(i);
         const Float_t denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
         const Float_t multiplier = static_cast<Float_t>(2);
         const Float_t value = (multiplier * numer) / denom;
@@ -135,12 +135,12 @@ static void finalize_czek_(
       COMET_INSIST(!matB_cbuf->do_compress());
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
-        const Float_t vs_j = vs_r->sum(j);
+        const Float_t vs_j = vs_r->sum<Float_t>(j);
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const Float_t numer =
             matB_cbuf->elt_const<Float_t>(i, j);
-          const Float_t vs_i = vs_l->sum(i);
+          const Float_t vs_i = vs_l->sum<Float_t>(i);
           const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const Float_t multiplier = static_cast<Float_t>(2);
           const Float_t value = (multiplier * numer) / denom;
@@ -158,10 +158,10 @@ static void finalize_czek_(
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
-          const Float_t vs_j = vs_r->sum(j);
+          const Float_t vs_j = vs_r->sum<Float_t>(j);
           const Float_t numer =
             matB_cbuf->elt_const<Float_t>(i, j);
-          const Float_t vs_i = vs_l->sum(i);
+          const Float_t vs_i = vs_l->sum<Float_t>(i);
           const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const Float_t multiplier = static_cast<Float_t>(2);
           const Float_t value = (multiplier * numer) / denom;
@@ -178,12 +178,12 @@ static void finalize_czek_(
     COMET_INSIST(!matB_cbuf->do_compress());
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
-      const Float_t vs_j = vs_r->sum(j);
+      const Float_t vs_j = vs_r->sum<Float_t>(j);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const Float_t numer =
           matB_cbuf->elt_const<Float_t>(i, j);
-        const Float_t vs_i = vs_l->sum(i);
+        const Float_t vs_i = vs_l->sum<Float_t>(i);
         const Float_t denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const Float_t multiplier = static_cast<Float_t>(2);
         const Float_t value = (multiplier * numer) / denom;
@@ -219,7 +219,7 @@ static void finalize_ccc_duo_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
-  //typedef GMFloat Float_t;
+  typedef GMFloat Float_t;
 
   const int nvl = metrics->num_vector_local;
   const VectorSums* const vs_l = vector_sums_left;
@@ -363,7 +363,7 @@ static void finalize_ccc_duo_(
                   "Violation of algorithm computational invariant.");
               }
               //-----2-sum check.
-              const GMTally1 si1 = vs_l->sum(i);
+              const auto si1 = static_cast<GMTally1>(vs_l->sum<Float_t>(i));
               const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * si1);
               if (error2) {
@@ -386,7 +386,7 @@ static void finalize_ccc_duo_(
                   "Violation of algorithm computational invariant.");
               }
               //-----2-sum check.
-              const GMTally1 sj1 = vs_r->sum(j);
+              const auto sj1 = static_cast<GMTally1>(vs_r->sum<Float_t>(j));
               const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * sj1);
               if (error3) {
@@ -453,7 +453,7 @@ static void finalize_ccc_duo_(
                   "Violation of algorithm computational invariant.");
               }
               //-----2-sum check.
-              const GMTally1 si1 = vs_l->sum(i);
+              const auto si1 = static_cast<GMTally1>(vs_l->sum<Float_t>(i));
               const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * si1);
               if (error2) {
@@ -476,7 +476,7 @@ static void finalize_ccc_duo_(
                   "Violation of algorithm computational invariant.");
               }
               //-----2-sum check.
-              const GMTally1 sj1 = vs_r->sum(j);
+              const auto sj1 = static_cast<GMTally1>(vs_r->sum<Float_t>(j));
               const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
                                   (uint64_t)(cbpe * sj1);
               if (error3) {
@@ -527,8 +527,8 @@ static void finalize_ccc_duo_(
                            (uint64_t)r11 ==
                        (uint64_t)(cbpe * cbpe * metrics->num_field_active));
               //-----2-sum checks.
-              const GMTally1 si1 = vs_l->sum(i);
-              const GMTally1 sj1 = vs_r->sum(j);
+              const auto si1 = static_cast<GMTally1>(vs_l->sum<Float_t>(i));
+              const auto sj1 = static_cast<GMTally1>(vs_r->sum<Float_t>(j));
               COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 ==
                            (uint64_t)(cbpe * si1));
               COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 ==
@@ -557,16 +557,16 @@ static void finalize_ccc_duo_(
       COMET_INSIST(!matB_cbuf->do_compress());
 #     pragma omp parallel for schedule(dynamic,1000) if (!metrics->is_computing_histograms())
       for (int j = 0; j < nvl; ++j) {
-        const GMTally1 sj1 = vs_r->sum(j);
+        const auto sj1 = static_cast<GMTally1>(vs_r->sum<Float_t>(j));
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
-          const GMTally1 si1 = vs_l->sum(i);
+          const auto si1 = static_cast<GMTally1>(vs_l->sum<Float_t>(i));
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
 
           if (env->sparse()) {
-            const GMTally1 ci = vs_l->count(i);
-            const GMTally1 cj = vs_r->count(j);
+            const GMTally1 ci = vs_l->count<Float_t>(i);
+            const GMTally1 cj = vs_r->count<Float_t>(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
@@ -577,9 +577,9 @@ static void finalize_ccc_duo_(
                 *metrics, *env)) {
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
-            const GMTally1 ci = env->sparse() ? vs_l->count(i) :
+            const GMTally1 ci = env->sparse() ? vs_l->count<Float_t>(i) :
                                                 cbpe * cbpe * nfa;
-            const GMTally1 cj = env->sparse() ? vs_r->count(j) :
+            const GMTally1 cj = env->sparse() ? vs_r->count<Float_t>(j) :
                                                 cbpe * cbpe * nfa;
             Tally2x2<MF> ttable = Metrics_elt_2<Tally2x2<MF>>(*metrics,
               i, j, j_block, *env);
@@ -606,14 +606,14 @@ static void finalize_ccc_duo_(
 #     pragma omp parallel for schedule(dynamic,1000) if (!metrics->is_computing_histograms())
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
-          const GMTally1 si1 = vs_l->sum(i);
-          const GMTally1 sj1 = vs_r->sum(j);
+          const auto si1 = static_cast<GMTally1>(vs_l->sum<Float_t>(i));
+          const auto sj1 = static_cast<GMTally1>(vs_r->sum<Float_t>(j));
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
 
           if (env->sparse()) {
-            const GMTally1 ci = vs_l->count(i);
-            const GMTally1 cj = vs_r->count(j);
+            const GMTally1 ci = vs_l->count<Float_t>(i);
+            const GMTally1 cj = vs_r->count<Float_t>(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
@@ -624,9 +624,9 @@ static void finalize_ccc_duo_(
                 *metrics, *env)) {
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
-            const GMTally1 ci = env->sparse() ? vs_l->count(i) :
+            const GMTally1 ci = env->sparse() ? vs_l->count<Float_t>(i) :
                                                 cbpe * cbpe * nfa;
-            const GMTally1 cj = env->sparse() ? vs_r->count(j) :
+            const GMTally1 cj = env->sparse() ? vs_r->count<Float_t>(j) :
                                                 cbpe * cbpe * nfa;
             Tally2x2<MF> ttable = Metrics_elt_2<Tally2x2<MF>>(*metrics,
               i, j, j_block, *env);
@@ -650,16 +650,16 @@ static void finalize_ccc_duo_(
       COMET_INSIST(!matB_cbuf->do_compress());
 #     pragma omp parallel for schedule(dynamic,1000) if (!metrics->is_computing_histograms())
       for (int j = 0; j < nvl; ++j) {
-        const GMTally1 sj1 = vs_r->sum(j);
+        const auto sj1 = static_cast<GMTally1>(vs_r->sum<Float_t>(j));
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
-          const GMTally1 si1 = vs_l->sum(i);
+          const auto si1 = static_cast<GMTally1>(vs_l->sum<Float_t>(i));
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
 
           if (env->sparse()) {
-            const GMTally1 ci = vs_l->count(i);
-            const GMTally1 cj = vs_r->count(j);
+            const GMTally1 ci = vs_l->count<Float_t>(i);
+            const GMTally1 cj = vs_r->count<Float_t>(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
           } // if sparse
@@ -669,9 +669,9 @@ static void finalize_ccc_duo_(
               (size_t)j < metrics->dm->num_vector_active_local) {
             const int cbpe = env->counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
-            const GMTally1 ci = env->sparse() ? vs_l->count(i) :
+            const GMTally1 ci = env->sparse() ? vs_l->count<Float_t>(i) :
                                                 cbpe * cbpe * nfa;
-            const GMTally1 cj = env->sparse() ? vs_r->count(j) :
+            const GMTally1 cj = env->sparse() ? vs_r->count<Float_t>(j) :
                                                 cbpe * cbpe * nfa;
             Tally2x2<MF> ttable = Metrics_elt_2<Tally2x2<MF>>(*metrics,
               i, j, j_block, *env);

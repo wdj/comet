@@ -89,7 +89,6 @@ typedef size_t NV_t;
 typedef int64_t NML_t;
 typedef int32_t NF_t;
 
-//typedef size_t MetricItemCoords_t;
 typedef BasicTypes::BigUInt MetricItemCoords_t;
 
 //=============================================================================

@@ -259,9 +259,9 @@ static void finalize_czek_(
         const int k = K;
         // Make arithmetic order-independent.
         Float_t smin, smid, smax;
-        const auto si = vs_i->sum(i);
-        const auto sj = vs_i->sum(j);
-        const auto sk = vs_i->sum(k);
+        const auto si = vs_i->sum<Float_t>(i);
+        const auto sj = vs_i->sum<Float_t>(j);
+        const auto sk = vs_i->sum<Float_t>(k);
         utils::sort_3(smin, smid, smax, si, sj, sk);
         const Float_t denom = smin + smid + smax;
         const Float_t value = static_cast<Float_t>(1.5) * numer / denom;
@@ -287,9 +287,9 @@ static void finalize_czek_(
         const Float_t numer = min_IJ + min_JK + min_KIK - min_IJK;
         // Make arithmetic order-independent.
         Float_t smin, smid, smax;
-        const auto sI = vs_I->sum(I);
-        const auto sJ = vs_J->sum(J);
-        const auto sK = vs_K->sum(K);
+        const auto sI = vs_I->sum<Float_t>(I);
+        const auto sJ = vs_J->sum<Float_t>(J);
+        const auto sK = vs_K->sum<Float_t>(K);
         utils::sort_3(smin, smid, smax, sI, sJ, sK);
         const Float_t denom = smin + smid + smax;
         const Float_t value = static_cast<Float_t>(1.5) * numer / denom;
@@ -327,6 +327,8 @@ static void finalize_ccc_duo_(
 
   COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_tc()) &&
                "Case currently unimplemented.");
+
+  typedef GMFloat Float_t;
 
   matB_cbuf->lock_h();
 
@@ -631,9 +633,9 @@ static void finalize_ccc_duo_(
         if (!env.is_threshold_tc() &&
             step_2way == env.num_step_2way_for_3way() - 1) {
 
-          const auto si1 = (GMTally1)vs_i->sum(i);
-          const auto sj1 = (GMTally1)vs_j->sum(j);
-          const auto sk1 = (GMTally1)vs_k->sum(k);
+          const auto si1 = (GMTally1)vs_i->sum<Float_t>(i);
+          const auto sj1 = (GMTally1)vs_j->sum<Float_t>(j);
+          const auto sk1 = (GMTally1)vs_k->sum<Float_t>(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
 
           const int j_block_eff = env.all2all() ?
@@ -645,9 +647,9 @@ static void finalize_ccc_duo_(
             j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
 
           if (env.sparse()) {
-            const auto ci1 = (GMTally1)vs_i->count(i);
-            const auto cj1 = (GMTally1)vs_j->count(j);
-            const auto ck1 = (GMTally1)vs_k->count(k);
+            const auto ci1 = (GMTally1)vs_i->count<Float_t>(i);
+            const auto cj1 = (GMTally1)vs_j->count<Float_t>(j);
+            const auto ck1 = (GMTally1)vs_k->count<Float_t>(k);
             const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
@@ -660,11 +662,11 @@ static void finalize_ccc_duo_(
 
             const int cbpe = env.counted_bits_per_elt();
             const int nfa = metrics->num_field_active;
-            const GMTally1 ci = env.sparse() ? vs_i->count(i) :
+            const GMTally1 ci = env.sparse() ? vs_i->count<Float_t>(i) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 cj = env.sparse() ? vs_j->count(j) :
+            const GMTally1 cj = env.sparse() ? vs_j->count<Float_t>(j) :
                                                 cbpe * cbpe * cbpe * nfa;
-            const GMTally1 ck = env.sparse() ? vs_k->count(k) :
+            const GMTally1 ck = env.sparse() ? vs_k->count<Float_t>(k) :
                                                 cbpe * cbpe * cbpe * nfa;
             COMET_ASSERT(!is_halved);
             Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
