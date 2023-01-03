@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+#if 0
 //=============================================================================
 // System-related operations.
 
@@ -232,6 +233,7 @@ System::accelDeviceProp_t& System::get_device_prop() {
   }
   return device_prop;
 }
+#endif
 
 //=============================================================================
 // Constructor/destructor

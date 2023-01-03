@@ -52,48 +52,48 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+namespace System {
+
 //-----------------------------------------------------------------------------
-/// \brief Helper class for system functions.
+// System helper functions.
 
-struct System {
-  static int num_proc();
-  static int proc_num();
-  static bool is_proc_num_0() {return !proc_num();}
-  static int compute_capability();
-  static int pci_bus_id();
-  static int pci_domain_id();
-  static double time();
-  static bool accel_last_call_succeeded();
+int num_proc();
+int proc_num();
+static bool is_proc_num_0() {
+  return !proc_num();
+}
+int compute_capability();
+int pci_bus_id();
+int pci_domain_id();
+double time();
+bool accel_last_call_succeeded();
 
-  static bool is_in_parallel_region();
-#if 0
-  static bool is_in_parallel_region() {
-#   if COMET_USE_OPENMP
-      return omp_in_parallel();
-#   else
-      return false;
-#   endif
-  };
-#endif
-
-private:
-
-#if defined COMET_USE_CUDA
-  typedef cudaDeviceProp accelDeviceProp_t;
-#elif defined COMET_USE_HIP
-  typedef hipDeviceProp_t accelDeviceProp_t;
-#else
-  typedef int accelDeviceProp_t;
-#endif
-
-  static accelDeviceProp_t& get_device_prop();
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Are we in an openmp parallel region.
+ *
+ */
+static bool is_in_parallel_region() {
+# if COMET_USE_OPENMP
+    return omp_in_parallel();
+# else
+    return false;
+# endif
 };
+
+//-----------------------------------------------------------------------------
+
+} // namespace System
+
+//=============================================================================
 
 namespace utils {
 
 //-----------------------------------------------------------------------------
-/// \brief Minimum of two scalars, native implementation for speed.
-
+/*!
+ * \brief Minimum of two scalars, native implementation for speed.
+ *
+ */
 template<typename T>
 __host__ __device__
 T min(const T& i, const T& j) {
@@ -104,8 +104,10 @@ T min(const T& i, const T& j) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Maximum of two scalars, native implementation for speed.
-
+/*!
+ * \brief Maximum of two scalars, native implementation for speed.
+ *
+ */
 template<typename T>
 __host__ __device__
 T max(const T& i, const T& j) {
@@ -116,12 +118,14 @@ T max(const T& i, const T& j) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Truncate to integer the quotient of integers.
-
+/*!
+ * \brief Truncate the quotient of two nonnegative integers to an integer.
+ *
+ */
 template<typename T>
 T trunc(const T& i, const T& n) {
   COMET_ASSERT(n > 0);
-  COMET_ASSERT(i+1 >= 1);
+  COMET_ASSERT(i+1 >= 0+1);
 
   const T r = i / n;
   COMET_ASSERT(i >= r*n);
@@ -131,8 +135,10 @@ T trunc(const T& i, const T& n) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Integer floor of quotient of integers.
-
+/*!
+ * \brief Integer floor of quotient of integers.
+ *
+ */
 template<typename T>
 T floor(const T& i, const T& n) {
   COMET_STATIC_ASSERT(std::is_signed<T>::value);
@@ -146,8 +152,10 @@ T floor(const T& i, const T& n) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Integer ceiling of quotient of integers.
-
+/*!
+ * \brief Integer ceiling of quotient of integers.
+ *
+ */
 template<typename T>
 T ceil(const T& i, const T& n) {
   COMET_ASSERT(n > 0);
@@ -160,8 +168,10 @@ T ceil(const T& i, const T& n) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Mathematical modulus if int value.
-
+/*!
+ * \brief Mathematical modulus of integer value.
+ *
+ */
 template<typename T>
 T mod_i(const T& i, const T& n) {
   COMET_STATIC_ASSERT((std::is_same<T,int>::value));
@@ -175,15 +185,19 @@ T mod_i(const T& i, const T& n) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Faster version of true mod, needed for special situation.
-
-static int mod_fast(int i, int n) {
+/*!
+ * \brief Faster version of true modulus, needed for a special situation.
+ *
+ */
+static int mod_fast(const int& i, const int& n) {
   return (i + n) % n;
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Upper bound of random numbers from generator.
-
+/*!
+ * \brief Upper bound of random numbers from generator.
+ *
+ */
 static size_t randomize_max() {
 
   const size_t im = 714025;
@@ -191,10 +205,12 @@ static size_t randomize_max() {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Random number genrator.
-
+/*!
+ * \brief Random number genrator.
+ *
+ */
 template<typename T>
-static size_t randomize(T i) {
+static size_t randomize(const T& i) {
 
   const size_t im = 714025;
   const size_t ia = 4096;
@@ -203,10 +219,12 @@ static size_t randomize(T i) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Ceiling of log2 of an integer.
-
+/*!
+ * \brief Ceiling of log2 of an integer.
+ *
+ */
 template<class T>
-static int log2(T n) {
+static int log2(const T& n) {
   if (n <= 1)
     return 0;
 
@@ -229,10 +247,12 @@ static int log2(T n) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief N choose K function.
-
+/*!
+ * \brief N choose K function.
+ *
+ */
 template<class T>
-static T nchoosek(T n, int k) {
+static T nchoosek(const T& n, const int& k) {
   COMET_ASSERT(n+1 >= 0+1);
   COMET_ASSERT(k >= 0 && static_cast<T>(k) <= n);
 
@@ -243,7 +263,7 @@ static T nchoosek(T n, int k) {
     // Subtract 2 because of possible sign bit
     // and also edge case of 2^i - 1 limit.
     COMET_ASSERT(log2(numer) + log2(n - i) <=
-                 static_cast<int>(sizeof(T)*BITS_PER_BYTE - 2));
+                 static_cast<int>(sizeof(T)*BITS_PER_BYTE) - 2);
     numer *= (n - i);
     denom *= (i + 1);
   }
@@ -252,8 +272,10 @@ static T nchoosek(T n, int k) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Convert string representing unsigned integer to arithmetic type.
-
+/*!
+ * \brief Convert string representing unsigned integer to arithmetic type.
+ *
+ */
 template<class T>
 T strtoarith(char* const str) {
 
@@ -280,10 +302,12 @@ T strtoarith(char* const str) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Population count of 1-bits in 8-bit word.
-
+/*!
+ * \brief Count of 1-bits in 8-bit word, with templated version.
+ *
+ */
 __host__ __device__
-static int popc8(uint8_t x) {
+static int popc8(const uint8_t& x) {
   // Adapted from https://stackoverflow.com/questions/30688465/how-to-check-the-number-of-set-bits-in-an-8-bit-unsigned-char
   //x = x - ((x >> 1) & 0x55);
   //x = (x & 0x33) + ((x >> 2) & 0x33);
@@ -304,10 +328,12 @@ __host__ __device__
 static int popc(In_t x) {return popc8(x);}
 
 //-----------------------------------------------------------------------------
-/// \brief Population count of 1-bits in 32-bit word.
-
+/*!
+ * \brief Count of 1-bits in 32-bit word, with templated version.
+ *
+ */
 __host__ __device__
-static int popcs32(int32_t x) {
+static int popc32(int32_t x) {
 
   // Adapted from Hacker's Delight, 2nd ed.
    x = x - ((x >> 1) & 0x55555555);
@@ -321,13 +347,15 @@ static int popcs32(int32_t x) {
 
 template<>
 __host__ __device__
-int popc<int32_t>(int32_t x) {return popcs32(x);}
+int popc<int32_t>(int32_t x) {return popc32(x);}
 
 //-----------------------------------------------------------------------------
-/// \brief Population count of 1-bits in 32-bit word.
-
+/*!
+ * \brief Count of 1-bits in unsigned 32-bit word, with templated version.
+ *
+ */
 __host__ __device__
-static int popc32(uint32_t x) {
+static int popcu32(uint32_t x) {
 
   // Adapted from Hacker's Delight, 2nd ed.
    x = x - ((x >> 1) & 0x55555555);
@@ -341,11 +369,13 @@ static int popc32(uint32_t x) {
 
 template<>
 __host__ __device__
-int popc<uint32_t>(uint32_t x) {return popc32(x);}
+int popc<uint32_t>(uint32_t x) {return popcu32(x);}
 
 //-----------------------------------------------------------------------------
-/// \brief Population count of 1-bits in 64-bit word.
-
+/*!
+ * \brief Count of 1-bits in 64-bit word, with templated version.
+ *
+ */
 __host__ __device__
 static int popc64(uint64_t x) {
 
@@ -366,8 +396,10 @@ __host__ __device__
 int popc<uint64_t>(uint64_t x) {return popc64(x);}
 
 //-----------------------------------------------------------------------------
-/// \brief Fast sort of 3 values.
-
+/*!
+ * \brief Fast sort of 3 values.
+ *
+ */
 template<typename T>
 static __host__ __device__ void sort_3(T& min_, T& mid_, T& max_,
                                        const T& a, const T& b, const T& c) {
@@ -416,8 +448,10 @@ static __host__ __device__ void sort_3(T& min_, T& mid_, T& max_,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Atomic add with doubles.
-
+/*!
+ * \brief Atomic add with doubles.
+ *
+ */
 __host__ __device__ static double atomic_add(double* address, double value) {
 
 # if defined COMET_USE_CUDA && defined __CUDA_ARCH__
@@ -427,7 +461,10 @@ __host__ __device__ static double atomic_add(double* address, double value) {
 //# elif defined COMET_USE_HIP && defined __HIPCC__
 # elif defined COMET_USE_HIP && defined __HIP_DEVICE_COMPILE__
 
-    // TODO: fix this to work under HIP.
+    return atomicAdd(address, value);
+
+#if 0
+    // NOTE: this needs to be checked before using.
 
     double old = *address, assumed;
     do {
@@ -438,6 +475,7 @@ __host__ __device__ static double atomic_add(double* address, double value) {
       __double_as_longlong(value + assumed)));
     } while (assumed != old);
     return old;
+#endif
 
 # else
 
@@ -448,7 +486,6 @@ __host__ __device__ static double atomic_add(double* address, double value) {
 
 # endif
 }
-
 
 //=============================================================================
 

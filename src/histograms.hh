@@ -157,9 +157,8 @@ public:
 
     Elt_t& elt_this = elt(ptr, num_buckets, bucket_num_clamped, histogram_id);
 
-    // TODO: make this OMP 3.1 thread aware.
+    // TODO: make this OMP 3.1 thread aware. NOTE: is safe for now.
     utils::atomic_add(&elt_this, 1e0);
-
   }
 
   //----------

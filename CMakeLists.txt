@@ -26,6 +26,7 @@ SET(INCLUDE_DIRS
 
 SET(LIB_SOURCES
   src/assertions.cc
+  src/utils.cc
   src/env.cc
   src/magma_wrapper.cc
   src/mirrored_buf.cc

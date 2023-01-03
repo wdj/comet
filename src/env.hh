@@ -107,28 +107,6 @@ static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
 
 namespace comet {
 
-#if 0
-//-----------------------------------------------------------------------------
-/// \brief Helper class for system functions.
-
-struct System {
-  static int num_proc();
-  static int proc_num();
-  static bool is_proc_num_0() {return !proc_num();}
-  static int compute_capability();
-  static double time();
-  static bool accel_last_call_succeeded();
-
-  static bool is_in_parallel_region() {
-#   if COMET_USE_OPENMP
-      return omp_in_parallel();
-#   else
-      return false;
-#   endif
-  };
-};
-#endif
-
 //-----------------------------------------------------------------------------
 /// \brief Accelerator-related types.
 
