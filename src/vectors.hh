@@ -45,35 +45,50 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/*!
+ * \class Vectors
+ * \brief Store and manipulate sets of vectors used for computing metrics.
+ *
+ */
+//-----------------------------------------------------------------------------
+
+
+//-----------------------------------------------------------------------------
 // Vectors class declaration.
 
 class Vectors {
 
-  typedef GMFloat Float_t;
-
 public:
 
-  Vectors(CEnv& env);
+  // Constructors, destructors.
+  Vectors(GMDecompMgr& dm, CEnv& env);
   ~Vectors();
 
-  void allocate(int data_type_id, GMDecompMgr& dm);
-  void allocate_with_buf(int data_type_id, GMDecompMgr& dm);
+  void allocate();
+  void allocate_with_buf();
   void deallocate();
+
   void initialize();
   void initialize_pad();
+
   size_t cksum() const;
   void to_buf(MirroredBuf& vectors_buf) const;
 
   // Accessor functions.
 
   int num_vector_local() const {return num_vector_local_;}
+
   int num_packedfield_local() const {return num_packedfield_local_;}
+
   size_t num_packedfield_vector_local() const {
     return num_packedfield_vector_local_;
   }
+
   void* __restrict__ data() const {return data_;}
+
   bool has_buf() const {return has_buf_;}
-  GMDecompMgr* dm() const {return dm_;}
+
+  GMDecompMgr* dm() const {return &dm_;}
 
   MirroredBuf* buf() const {
     COMET_INSIST(has_buf_);
@@ -82,12 +97,16 @@ public:
 
   // Element accessors.
 
+  template<typename Float_t>
   inline Float_t& elt_float(int packedfield_local, int vector_local) {
+    COMET_ASSERT(env_.is_double_prec() == (8 == sizeof(Float_t)));
     return elt_<DataTypeId::FLOAT, Float_t>(packedfield_local, vector_local);
   }
 
+  template<typename Float_t>
   inline Float_t elt_float_const(int packedfield_local,
                                  int vector_local) const {
+    COMET_ASSERT(env_.is_double_prec() == (8 == sizeof(Float_t)));
     return elt_const_<DataTypeId::FLOAT, Float_t>(packedfield_local,
                                                   vector_local);
   }
@@ -105,10 +124,10 @@ public:
   __host__ __device__
   static size_t index(int packedfield_local,
                       int vector_local,
-                      int num_packedfield_local) {
+                      size_t num_packedfield_local_size_t_) {
     // NOTE this function accesses an entire packed value.
     const size_t index = packedfield_local +
-      num_packedfield_local * (size_t)vector_local;
+      num_packedfield_local_size_t_ * vector_local;
     return index;
   }
 
@@ -122,20 +141,21 @@ private:
   int num_field_local_;
   int num_vector_local_;
   int num_packedfield_local_;
+  size_t num_packedfield_local_size_t_;
   size_t num_packedfield_vector_local_;
   void* __restrict__ data_;
   size_t data_size_;
   bool has_buf_;
   MirroredBuf* buf_;
   CEnv& env_;
-  GMDecompMgr* dm_;
+  GMDecompMgr& dm_;
   bool is_allocated_;
   int data_type_id_;
 
-  enum {HAS_BUF_TRUE = true,
-        HAS_BUF_FALSE = false};
+  enum {HAS_BUF_TRUE_ = true,
+        HAS_BUF_FALSE_ = false};
 
-  void allocate_impl_(int data_type_id, GMDecompMgr& dm, bool has_buf);
+  void allocate_impl_(bool has_buf);
 
   // Helpers for accessor functions.
 
@@ -156,8 +176,7 @@ private:
     COMET_ASSERT(DTI == data_type_id_);
     COMET_ASSERT(packedfield_local >= 0);
     COMET_ASSERT(packedfield_local < num_packedfield_local_);
-    COMET_ASSERT(vector_local >= 0);
-    COMET_ASSERT(vector_local < num_vector_local_);
+    COMET_ASSERT(vector_local >= 0 && vector_local < num_vector_local_);
 
     return elt_const_<DTI,T>(index(packedfield_local, vector_local,
                              num_packedfield_local_));
@@ -167,39 +186,39 @@ private:
   T& elt_(size_t index) {
     COMET_ASSERT(DTI == data_type_id_);
     COMET_ASSERT(index+1 >= 0+1);
-    COMET_ASSERT(index < num_vector_local_ * (size_t)num_packedfield_local_);
+    COMET_ASSERT(index <
+      num_vector_local_ * static_cast<size_t>(num_packedfield_local_));
 
-    return ((T*)data_)[index];
+    return static_cast<T*>(data_)[index];
   }
 
   template<int DTI, class T>
   T elt_const_(size_t index) const {
     COMET_ASSERT(DTI == data_type_id_);
     COMET_ASSERT(index+1 >= 0+1);
-    COMET_ASSERT(index < num_vector_local_ * (size_t)num_packedfield_local_);
+    COMET_ASSERT(index <
+      num_vector_local_ * static_cast<size_t>(num_packedfield_local_));
 
-    return ((T*)data_)[index];
+    return static_cast<T*>(data_)[index];
   }
 };
 
-//=============================================================================
-// Accessors: Bits2, Bits2x64.
-
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Accessor: get a single 2-bit (seminibble) value.
+ *
+ */
 GMBits2 Vectors::bits2_get(int field_local,
                              int vector_local,
                              CEnv& env) const {
-  // This function gets a single 2-bit value.
-  COMET_ASSERT(field_local >= 0);
-  COMET_ASSERT(field_local < num_field_local_);
-  COMET_ASSERT(vector_local >= 0);
-  COMET_ASSERT(vector_local < num_vector_local_);
+  COMET_ASSERT(field_local >= 0 && field_local < num_field_local_);
+  COMET_ASSERT(vector_local >= 0 && vector_local < num_vector_local_);
   COMET_ASSERT(env.data_type_vectors() == DataTypeId::BITS2);
 
-  /*---The field address is expressible as a tuple:
-       which GMBits2x64 value,
-       which of the 2 (size2) vector data entries,
-       which of the 32 (size1) 2-bit (size0) fields in the data entry
-  ---*/
+  // The field address is expressible as a tuple:
+  // 1. which GMBits2x64 value,
+  // 2. which of the 2 (size2) vector data entries,
+  // 3. which of the 32 (size1) 2-bit (size0) fields in the data entry
 
   const int size0 = 2;
   const int size1 = 32;
@@ -209,34 +228,36 @@ GMBits2 Vectors::bits2_get(int field_local,
   int field_index1 = (field_local / size1) % size2;
   size_t field_index2 = field_local / (size1 * size2);
 
+  const auto ind = index(field_index2, num_packedfield_local_size_t_,
+                         vector_local);
   GMBits1_2x64* const __restrict__ address =
-      &(((GMBits2x64*)(data_))[field_index2 +
-                               num_packedfield_local_ *
-                               (size_t)vector_local]
-            .data[field_index1]);
+      &((static_cast<GMBits2x64*>(data_))[ind].data[field_index1]);
 
-  return (GMBits2)(((*address) >> (size0 * field_index0)) & ((GMBits1_2x64)3));
+  const auto b_11 = static_cast<GMBits1_2x64>(3);
+
+  return static_cast<GMBits2>(
+    ((*address) >> (size0 * field_index0)) & b_11);
 }
 
 //-----------------------------------------------------------------------------
-
+/*!
+ * \brief Accessor: set a 2-bit (seminibble) value.
+ *
+ */
 void Vectors::bits2_set(int field_local,
                           int vector_local,
                           GMBits2 value,
                           CEnv& env) {
   // This function sets a single 2-bit value.
-  COMET_ASSERT(field_local >= 0);
-  COMET_ASSERT(field_local < num_field_local_);
-  COMET_ASSERT(vector_local >= 0);
-  COMET_ASSERT(vector_local < num_vector_local_);
+  COMET_ASSERT(field_local >= 0 && field_local < num_field_local_);
+  COMET_ASSERT(vector_local >= 0 && vector_local < num_vector_local_);
   COMET_ASSERT(value+1 >= 1 && value < (1 << GM_BITS2_MAX_VALUE_BITS));
   COMET_ASSERT(env.data_type_vectors() == DataTypeId::BITS2);
 
-  /*---The field address is expressible as a tuple:
-       which GMBits2x64 value,
-       which of the 2 (size2) vector data entries,
-       which of the 32 (size1) 2-bit (size0) fields in the data entry
-  ---*/
+  // The field address is expressible as a tuple:
+  // 1. which GMBits2x64 value,
+  // 2. which of the 2 (size2) vector data entries,
+  // 3. which of the 32 (size1) 2-bit (size0) fields in the data entry
 
   const int size0 = 2;
   const int size1 = 32;
@@ -246,14 +267,16 @@ void Vectors::bits2_set(int field_local,
   const int field_index1 = (field_local / size1) % size2;
   const size_t field_index2 = field_local / (size1 * size2);
 
+  const auto ind = index(field_index2, num_packedfield_local_size_t_,
+                         vector_local);
   GMBits1_2x64* const __restrict__ address =
-      &(((GMBits2x64*)(data_))[field_index2 +
-                               num_packedfield_local_ *
-                               (size_t)vector_local]
-            .data[field_index1]);
+      &((static_cast<GMBits2x64*>(data_))[ind].data[field_index1]);
 
-  *address &= ~(((GMBits1_2x64)3) << (size0 * field_index0));
-  *address |= ((GMBits1_2x64)value) << (size0 * field_index0);
+  const auto b_11 = static_cast<GMBits1_2x64>(3);
+  const auto b_value = static_cast<GMBits1_2x64>(value);
+
+  *address &= ~(b_11 << (size0 * field_index0));
+  *address |= b_value << (size0 * field_index0);
 
   COMET_ASSERT(value == bits2_get(field_local, vector_local, env));
 }

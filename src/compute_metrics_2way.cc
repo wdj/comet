@@ -56,10 +56,10 @@ namespace comet {
 
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   : env_(env) 
-  , vectors_0_(env)
-  , vectors_1_(env)
+  , vectors_0_(dm, env)
+  , vectors_1_(dm, env)
   , vectors_01_{&vectors_0_, &vectors_1_}
-  , vectors_left_alt_(env)
+  , vectors_left_alt_(dm, env)
   , metrics_buf_0_(env)
   , metrics_buf_1_(env)
   , metrics_buf_01_{&metrics_buf_0_, &metrics_buf_1_}
@@ -74,11 +74,11 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
     return;
 
   for (int i = 0; i < NUM_BUF; ++i) {
-    vectors_01_[i]->allocate_with_buf(env_.data_type_vectors(), dm);
+    vectors_01_[i]->allocate_with_buf();
     metrics_buf_01_[i]->allocate(dm.num_vector_local, dm.num_vector_local);
   }
 
-  vectors_left_alt_.allocate_with_buf(env_.data_type_vectors(), dm);
+  vectors_left_alt_.allocate_with_buf();
 
   if (env_.do_reduce())
     metrics_tmp_buf_.allocate(dm.num_vector_local, dm.num_vector_local);

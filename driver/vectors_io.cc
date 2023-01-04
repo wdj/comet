@@ -86,12 +86,12 @@ void static VectorsIO_read_float(Vectors& vectors, const char* path,
     COMET_INSIST(0 == success && "File seek failure.");
 
     // Get first location in memory to store into.
-    IO_t* const loc_min_mem = &vectors.elt_float(fl_min, vl);
+    IO_t* const loc_min_mem = &vectors.elt_float<IO_t>(fl_min, vl);
 
     // Sanity check on vectors layout in memory.
     // NOTE: the following call is ok since has no side effects
     COMET_INSIST((fl_min+1 >= nfl ||
-        &vectors.elt_float(fl_min+1, vl) == loc_min_mem + 1)
+        &vectors.elt_float<IO_t>(fl_min+1, vl) == loc_min_mem + 1)
         && "Vector layout is incompatible with operation.");
 
     const size_t num_to_read = nfal;
@@ -294,7 +294,7 @@ void static VectorsIO_write_float(Vectors& vectors, const char* path,
   for (size_t vl = 0 ; vl < nval; ++vl) {
     for (size_t fl = 0 ; fl < nfal; ++fl) {
 
-      const IO_t outv = vectors.elt_float_const(fl, vl);
+      const IO_t outv = vectors.elt_float_const<IO_t>(fl, vl);
       const size_t num_to_write = 1;
       const size_t num_written_this = fwrite(&outv, sizeof(IO_t), num_to_write,
                                              file);
@@ -418,7 +418,7 @@ void VectorsIO::print(Vectors& vectors, CEnv& env) {
 
       for (int vl = 0; vl < nval; ++vl) {
         for (int fl = 0; fl < nfal; ++fl) {
-          const GMFloat value = vectors.elt_float_const(fl, vl);
+          const auto value = vectors.elt_float_const<GMFloat>(fl, vl);
             printf("vec_proc %i vec %i field_proc %i field %i value %.16e\n",
                    env.proc_num_vector(), vl,
                    env.proc_num_field(), fl, (double)value);

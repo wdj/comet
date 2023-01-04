@@ -1336,16 +1336,14 @@ double env_ccc_duo_multiplier<CBPE::NONE>(const CEnv& env) {
 //=============================================================================
 // Arrays and floating point
 
-void* gm_malloc(size_t n, CEnv* env);
-void gm_free(void* p, size_t n, CEnv* env);
+//void* gm_malloc(size_t n, CEnv* env);
+//void gm_free(void* p, size_t n, CEnv* env);
 
-GMFloat* GMFloat_malloc(size_t n, CEnv* env);
-void GMFloat_free(GMFloat* p, size_t n, CEnv* env);
+//GMFloat* GMFloat_malloc(size_t n, CEnv* env);
+//void GMFloat_free(GMFloat* p, size_t n, CEnv* env);
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);
-
-size_t gm_array_cksum(unsigned char* a, size_t n);
 
 //=============================================================================
 

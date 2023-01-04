@@ -108,7 +108,7 @@ void set_vectors_random_(Vectors* vectors, int verbosity, CEnv* env) {
           COMET_INSIST((size_t)float_value == rand_value);
           COMET_INSIST(float_value * nfa <
                          ((size_t)1)<<mantissa_digits<GMFloat>());
-          vectors->elt_float(fl, vl) = float_value;
+          vectors->elt_float<GMFloat>(fl, vl) = float_value;
         } // field_local
       }   // vector_local
     } break;
@@ -261,7 +261,7 @@ void set_vectors_analytic_(Vectors* vectors, int verbosity, CEnv* env) {
           // Store.
           COMET_INSIST(float_value * nfa >= 1);
           COMET_INSIST(float_value * nfa < tpi.max_float_);
-          vectors->elt_float(fl, vl) = float_value;
+          vectors->elt_float<GMFloat>(fl, vl) = float_value;
 
         } // field_local
       }   // vector_local

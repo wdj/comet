@@ -52,6 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+// Forward declaration.
+class CEnv;
+
 namespace System {
 
 //-----------------------------------------------------------------------------
@@ -486,6 +489,13 @@ __host__ __device__ static double atomic_add(double* address, double value) {
 
 # endif
 }
+
+//-----------------------------------------------------------------------------
+
+void* malloc(size_t n, CEnv& env);
+void free(void* p, size_t n, CEnv& env);
+
+size_t array_cksum(const unsigned char* const a, size_t n);
 
 //=============================================================================
 

@@ -248,9 +248,65 @@ bool accel_last_call_succeeded() {
   return true;
 }
 
-//=============================================================================
-
 } // namespace System
+
+//-----------------------------------------------------------------------------
+
+namespace utils {
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Memory allocation with memory usage tracking.
+ *
+ */
+void* malloc(size_t n, CEnv& env) {
+  COMET_INSIST(n+1 >= 1);
+
+  void* p = ::malloc(n);
+  COMET_INSIST(p &&
+    "Invalid pointer from malloc, possibly due to insufficient memory.");
+  env.cpu_mem_local_inc(n);
+  return p;
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Memory deallocation with memory usage tracking.
+ *
+ */
+void free(void* p, size_t n, CEnv& env) {
+  COMET_INSIST(p);
+  COMET_INSIST(n+1 >= 1);
+
+  ::free(p);
+  env.cpu_mem_local_dec(n);
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Compute checksum of a simple array.
+ *
+ */
+size_t array_cksum(const unsigned char* const a, size_t n) {
+  COMET_INSIST(a);
+  COMET_INSIST(n+1 >= 1);
+
+  size_t result = 0;
+  const size_t mask = (((size_t)1) << 32) - 1;
+
+# pragma omp parallel for schedule(dynamic,1000) reduction(+:result)
+  for (size_t i=0; i<n; ++i) {
+    result += (a[i] * i) & mask;
+  }
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+
+} // namespace utils
+
+//=============================================================================
 
 } // namespace comet
 

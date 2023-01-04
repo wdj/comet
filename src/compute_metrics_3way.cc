@@ -160,8 +160,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   const int nvl = metrics.num_vector_local;
   const int npfl = vectors.num_packedfield_local();
 
-  const int data_type = env->data_type_vectors();
-
   const int num_block = env->num_block_vector();
 
   const int i_block = env->proc_num_vector();
@@ -187,11 +185,11 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_j_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
 
-  Vectors vectors_j_value_0(env_);
-  Vectors vectors_j_value_1(env_);
+  Vectors vectors_j_value_0(*vectors.dm(), env_);
+  Vectors vectors_j_value_1(*vectors.dm(), env_);
   Vectors* const vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
-  vectors_j[0]->allocate(data_type, *vectors.dm());
-  vectors_j[1]->allocate(data_type, *vectors.dm());
+  vectors_j[0]->allocate();
+  vectors_j[1]->allocate();
 
   MirroredBuf vectors_j_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
@@ -203,11 +201,11 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_k_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
 
-  Vectors vectors_k_value_0(env_);
-  Vectors vectors_k_value_1(env_);
+  Vectors vectors_k_value_0(*vectors.dm(), env_);
+  Vectors vectors_k_value_1(*vectors.dm(), env_);
   Vectors* const vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
-  vectors_k[0]->allocate(data_type, *vectors.dm());
-  vectors_k[1]->allocate(data_type, *vectors.dm());
+  vectors_k[0]->allocate();
+  vectors_k[1]->allocate();
 
   MirroredBuf vectors_k_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_k_buf = &vectors_k_buf_value;

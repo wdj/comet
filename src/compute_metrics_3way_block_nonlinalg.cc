@@ -122,9 +122,9 @@ static void compute_nonlinalg_czek_(
           const Float_t denom = smin + smid + smax;
           Float_t numer = 0;
           for (int f = 0; f < nfl; ++f) {
-            const Float_t val1 = vectors_i->elt_float_const(f, i);
-            const Float_t val2 = vectors_i->elt_float_const(f, j);
-            const Float_t val3 = vectors_i->elt_float_const(f, k);
+            const Float_t val1 = vectors_i->elt_float_const<Float_t>(f, i);
+            const Float_t val2 = vectors_i->elt_float_const<Float_t>(f, j);
+            const Float_t val3 = vectors_i->elt_float_const<Float_t>(f, k);
             Float_t min12 = val1 < val2 ? val1 : val2;
             numer += min12;
             numer += val1 < val3 ? val1 : val3;
@@ -177,9 +177,9 @@ static void compute_nonlinalg_czek_(
           const Float_t denom = smin + smid + smax;
           Float_t numer = 0;
           for (int f = 0; f < nfl; ++f) {
-            const Float_t val1 = vectors_i->elt_float_const(f, i);
-            const Float_t val2 = vectors_j->elt_float_const(f, j);
-            const Float_t val3 = vectors_k->elt_float_const(f, k);
+            const Float_t val1 = vectors_i->elt_float_const<Float_t>(f, i);
+            const Float_t val2 = vectors_j->elt_float_const<Float_t>(f, j);
+            const Float_t val3 = vectors_k->elt_float_const<Float_t>(f, k);
             const Float_t min_ij = val1 < val2 ? val1 : val2;
             const Float_t min_ik = val1 < val3 ? val1 : val3;
             const Float_t min_jk = val2 < val3 ? val2 : val3;

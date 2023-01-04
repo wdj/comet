@@ -581,8 +581,8 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Allocate vectors.
 
   timer.start();
-  Vectors vectors(env);
-  vectors.allocate(env.data_type_vectors(), dm);
+  Vectors vectors(dm, env);
+  vectors.allocate();
   timer.add_elapsed(counters_.vctime);
 
   // Set vectors.

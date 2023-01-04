@@ -83,8 +83,8 @@ static void compute_nums_nonlinalg_czek_start_(
       for (int i = 0; i < i_max; ++i) {
         Float_t metric = 0;
         for (int f = 0; f < (int)vectors_left->dm()->num_field_local; ++f) {
-          const Float_t value1 = vectors_left->elt_float_const(f, i);
-          const Float_t value2 = vectors_right->elt_float_const(f, j);
+          const Float_t value1 = vectors_left->elt_float_const<Float_t>(f, i);
+          const Float_t value2 = vectors_right->elt_float_const<Float_t>(f, j);
           metric += value1 < value2 ? value1 : value2;
         } // for k
         // Update metrics array.
@@ -106,8 +106,8 @@ static void compute_nums_nonlinalg_czek_start_(
       for (int i = 0; i < i_max; ++i) {
         Float_t metric = 0;
         for (int f = 0; f < (int)vectors_left->dm()->num_field_local; ++f) {
-          const Float_t value1 = vectors_left->elt_float_const(f, i);
-          const Float_t value2 = vectors_right->elt_float_const(f, j);
+          const Float_t value1 = vectors_left->elt_float_const<Float_t>(f, i);
+          const Float_t value2 = vectors_right->elt_float_const<Float_t>(f, j);
           metric += value1 < value2 ? value1 : value2;
         } // for k
         // Update metrics array.

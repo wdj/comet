@@ -1250,6 +1250,7 @@ void CEnv::set_num_proc_(int num_proc_vector,
 //=============================================================================
 // Memory, arrays and floating point
 
+#if 0
 void* gm_malloc(size_t n, CEnv* env) {
   COMET_INSIST(env);
   COMET_INSIST(n+1 >= 1);
@@ -1289,6 +1290,7 @@ void GMFloat_free(GMFloat* p, size_t n, CEnv* env) {
 
   gm_free(p, n * sizeof(GMFloat), env);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -1321,6 +1323,7 @@ void GMFloat_check(GMFloat* const a, size_t n) {
 # endif
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 
 size_t gm_array_cksum(unsigned char* a, size_t n) {
@@ -1337,6 +1340,7 @@ size_t gm_array_cksum(unsigned char* a, size_t n) {
 
   return result;
 }
+#endif
 
 //=============================================================================
 

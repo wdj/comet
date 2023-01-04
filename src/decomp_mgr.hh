@@ -91,6 +91,8 @@ public:
   void attach_histograms(Histograms* histograms) {histograms_ = histograms;}
   Histograms* histograms() const {return histograms_;}
 
+  bool is_allocated() const {return is_allocated_;}
+
 //private:
 
   Histograms* histograms_;
@@ -100,29 +102,6 @@ public:
 //-----------------------------------------------------------------------------
 
 size_t gm_nvl_size_required(size_t size_requested, const CEnv& env);
-
-#if 0
-//-----------------------------------------------------------------------------
-// Set to null
-
-//GMDecompMgr GMDecompMgr_null();
-
-//-----------------------------------------------------------------------------
-// (Pseudo) constructor
-
-void GMDecompMgr_create(GMDecompMgr* dm,
-                        bool fields_by_local,
-                        bool vectors_by_local,
-                        size_t num_field_specifier,
-                        NV_t num_vector_specifier,
-                        int vectors_data_type_id,
-                        CEnv* env);
-
-//-----------------------------------------------------------------------------
-// (Pseudo) destructor
-
-void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env);
-#endif
 
 //-----------------------------------------------------------------------------
 // Accessor.
