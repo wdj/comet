@@ -715,6 +715,7 @@ public:
   void phase_num(int value) {phase_num_ = value;}
 
   bool is_double_prec() const {return BuildHas::DOUBLE_PREC;}
+  size_t sizeof_float() const {return is_double_prec() ? 8 : 4;}
 
   // CoMet Settings: threshold.
 
@@ -1336,13 +1337,6 @@ double env_ccc_duo_multiplier<CBPE::NONE>(const CEnv& env) {
 //=============================================================================
 // Arrays and floating point
 
-//void* gm_malloc(size_t n, CEnv* env);
-//void gm_free(void* p, size_t n, CEnv* env);
-
-//GMFloat* GMFloat_malloc(size_t n, CEnv* env);
-//void GMFloat_free(GMFloat* p, size_t n, CEnv* env);
-
-void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);
 
 //=============================================================================

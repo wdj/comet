@@ -67,8 +67,8 @@ double time() {
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  double result = ((double)tv.tv_sec + (double)tv.tv_usec * 1.e-6);
-
+  double result = static_cast<double>(tv.tv_sec) +
+                  static_cast<double>(tv.tv_usec) * 1.e-6;
   return result;
 }
 

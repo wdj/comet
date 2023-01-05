@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "float.h"
 #include "algorithm"
 #include "vector"
+#include "limits"
 
 #include "env.hh"
 #include "assertions.hh"
@@ -316,14 +317,16 @@ static int popc8(const uint8_t& x) {
   //x = (x & 0x33) + ((x >> 2) & 0x33);
   //return (((x + (x >> 4)) & 0x0F) * 0x01);
 
-  return (!!(((int)x)&  1)) +
-         (!!(((int)x)&  2)) +
-         (!!(((int)x)&  4)) +
-         (!!(((int)x)&  8)) +
-         (!!(((int)x)& 16)) +
-         (!!(((int)x)& 32)) +
-         (!!(((int)x)& 64)) +
-         (!!(((int)x)&128));
+  const auto ix = static_cast<int>(x);
+
+  return (!!(ix&  1)) +
+         (!!(ix&  2)) +
+         (!!(ix&  4)) +
+         (!!(ix&  8)) +
+         (!!(ix& 16)) +
+         (!!(ix& 32)) +
+         (!!(ix& 64)) +
+         (!!(ix&128));
 }
 
 template<typename In_t = uint8_t>
@@ -473,7 +476,7 @@ __host__ __device__ static double atomic_add(double* address, double value) {
     do {
       assumed = old; old =
         __longlong_as_double(
-          atomicCAS((unsigned long long int*)address,
+          atomicCAS(reinterpret_cast<unsigned long long int*>(address),
                     __double_as_longlong(assumed),
       __double_as_longlong(value + assumed)));
     } while (assumed != old);
@@ -487,6 +490,23 @@ __host__ __device__ static double atomic_add(double* address, double value) {
     *address += value;
     return value;
 
+# endif
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Fill an array with NaNs (for debug build only).
+ *
+ */
+template<typename Float_t>
+static void fill_nan(Float_t* a, size_t n) {
+  COMET_INSIST(a);
+  COMET_INSIST(n+1 >= 1);
+
+# ifdef COMET_ASSERTIONS_ON
+    const Float_t value = std::numeric_limits<Float_t>::quiet_NaN();
+    for (size_t i=0; i<n; ++i)
+      a[i] = value;
 # endif
 }
 

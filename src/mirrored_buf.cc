@@ -262,7 +262,7 @@ void MirroredBuf::deallocate() {
 
     if (use_linalg_) {
 
-      MagmaWrapper::free(this, env_);
+      MagmaWrapper::free(this, dim0, dim1, env_);
 
       env_.cpu_mem_local_dec(size_allocated_);
       if (env_.is_compute_method_gpu())

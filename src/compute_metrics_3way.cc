@@ -96,7 +96,6 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   // Numerator
   //---------------
 
-  //MagmaWrapper::initialize(env_);
   MagmaWrapper magma_wrapper(env_);
 
   {
@@ -140,8 +139,6 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   }
 
   }
-
-  //MagmaWrapper::finalize(env_);
 }
 
 //-----------------------------------------------------------------------------

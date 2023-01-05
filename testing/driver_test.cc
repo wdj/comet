@@ -2801,16 +2801,16 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-TEST(DriverTest, threshold) {
-  DriverTest_threshold_();
-}
-
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
 
 TEST(DriverTest, czek3) {
   DriverTest_czek3_();
+}
+
+TEST(DriverTest, threshold) {
+  DriverTest_threshold_();
 }
 
 #if 1

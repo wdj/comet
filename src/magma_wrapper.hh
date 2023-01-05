@@ -55,6 +55,12 @@ struct MagmaCloneId {
 };
 
 //-----------------------------------------------------------------------------
+/*!
+ * \class MagmaQueueHelper
+ * \brief Helper class for MagmaQueue class.
+ *
+ */
+//-----------------------------------------------------------------------------
 
 template<int CLONE_ID>
 struct MagmaQueueHelper {
@@ -146,6 +152,12 @@ struct MagmaQueueHelper<MagmaCloneId::MGEMM5>
 };
 
 //-----------------------------------------------------------------------------
+/*!
+ * \class MagmaQueue
+ * \brief Class to manage queues for submitting MAGMA operations.
+ *
+ */
+//-----------------------------------------------------------------------------
 
 template<int CLONE_ID>
 class MagmaQueue {
@@ -197,8 +209,13 @@ private:
 
 };
 
-//=============================================================================
-/// \brief Wrapper class to access MAGMA library variants.
+//-----------------------------------------------------------------------------
+/*!
+ * \class Vectors
+ * \brief Class to access MAGMA library variants.
+ *
+ */
+//-----------------------------------------------------------------------------
 
 class MagmaWrapper {
 
@@ -208,7 +225,7 @@ public:
   ~MagmaWrapper();
 
   static void malloc(MirroredBuf* buf, size_t dim0, size_t dim1, CEnv& env);
-  static void free(MirroredBuf* buf, CEnv& env);
+  static void free(MirroredBuf* buf, size_t dim0, size_t dim1, CEnv& env);
   static void set_matrix_start(MirroredBuf* buf, CEnv& env);
   static void set_matrix_wait(CEnv& env);
   static void get_matrix_start(MirroredBuf* buf, CEnv& env);
@@ -222,8 +239,8 @@ private:
 
   CEnv& env_;
 
-  static void initialize_(CEnv& env);
-  static void finalize_(CEnv& env);
+  void initialize_();
+  void finalize_();
 
   static void gemm_block_start(size_t m, size_t n, size_t k,
     const void* matA, size_t ldda, const void* matB, size_t lddb,

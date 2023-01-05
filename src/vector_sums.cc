@@ -187,7 +187,7 @@ void VectorSums::compute_float_(const Vectors& vectors) {
   for (int i = 0; i < num_vector_local_; ++i) {
     Float_t sum = 0;
     //#pragma omp parallel for reduction(+:sum)
-    for (int f = 0; f < (int)vectors.dm()->num_field_local; ++f) {
+    for (int f = 0; f < static_cast<int>(vectors.dm()->num_field_local); ++f) {
       const Float_t value = vectors.elt_float_const<Float_t>(f, i);
       sum += value;
     }

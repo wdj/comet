@@ -1250,64 +1250,6 @@ void CEnv::set_num_proc_(int num_proc_vector,
 //=============================================================================
 // Memory, arrays and floating point
 
-#if 0
-void* gm_malloc(size_t n, CEnv* env) {
-  COMET_INSIST(env);
-  COMET_INSIST(n+1 >= 1);
-
-  void* p = malloc(n);
-  COMET_INSIST(p &&
-           "Invalid pointer from malloc, possibly due to insufficient memory.");
-  env->cpu_mem_local_inc(n);
-  return p;
-}
-
-//-----------------------------------------------------------------------------
-
-void gm_free(void* p, size_t n, CEnv* env) {
-  COMET_INSIST(p && env);
-  COMET_INSIST(n+1 >= 1);
-
-  free(p);
-  env->cpu_mem_local_dec(n);
-}
-
-//-----------------------------------------------------------------------------
-
-GMFloat* GMFloat_malloc(size_t n, CEnv* env) {
-  COMET_INSIST(env);
-  COMET_INSIST(n+1 >= 1);
-
-  GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
-  GMFloat_fill_nan(p, n);
-  return p;
-}
-
-//-----------------------------------------------------------------------------
-
-void GMFloat_free(GMFloat* p, size_t n, CEnv* env) {
-  COMET_INSIST(p && env);
-
-  gm_free(p, n * sizeof(GMFloat), env);
-}
-#endif
-
-//-----------------------------------------------------------------------------
-
-void GMFloat_fill_nan(GMFloat* const a, size_t n) {
-  COMET_INSIST(a);
-  COMET_INSIST(n+1 >= 1);
-
-# ifdef COMET_ASSERTIONS_ON
-    GMFloat value = sqrt(-1);
-    for (size_t i=0; i<n; ++i) {
-      a[i] = value;
-    }
-# endif
-}
-
-//-----------------------------------------------------------------------------
-
 void GMFloat_check(GMFloat* const a, size_t n) {
   COMET_INSIST(a);
   COMET_INSIST(n+1 >= 1);
@@ -1322,25 +1264,6 @@ void GMFloat_check(GMFloat* const a, size_t n) {
     COMET_INSIST(no_nans_found);
 # endif
 }
-
-#if 0
-//-----------------------------------------------------------------------------
-
-size_t gm_array_cksum(unsigned char* a, size_t n) {
-  COMET_INSIST(a);
-  COMET_INSIST(n+1 >= 1);
-
-  size_t result = 0;
-  const size_t mask = (((size_t)1) << 32) - 1;
-
-# pragma omp parallel for schedule(dynamic,1000) reduction(+:result)
-  for (size_t i=0; i<n; ++i) {
-    result += (a[i] * i) & mask;
-  }
-
-  return result;
-}
-#endif
 
 //=============================================================================
 

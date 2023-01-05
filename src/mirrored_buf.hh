@@ -96,9 +96,9 @@ public:
   void from_accel();
 
   // TODO: make private; ? change active to a
-  void* __restrict__ h;
-  void* __restrict__ d;
-  void* __restrict__ active;
+  void* h;
+  void* d;
+  void* active;
   size_t dim0;
   size_t dim1;
   size_t num_elts_;
