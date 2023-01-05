@@ -48,23 +48,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/*!
+ * \class ComputeMetrics
+ * \brief Top-level class for computing metrics.
+ *
+ */
+//-----------------------------------------------------------------------------
 
 class ComputeMetrics {
 
 public:
 
+  // Constructors, destructors.
   ComputeMetrics(GMDecompMgr& dm, CEnv& env);
   ~ComputeMetrics();
+
+  // De/allocation.
+  void allocate();
   void deallocate();
 
+  // Compute the metrics.
   void compute(GMMetrics& metrics, Vectors& vectors);
 
+  // Constructor + compute + destructor.
   static void compute(GMMetrics& metrics, Vectors& vectors,
     CEnv& env);
 
 private:
 
   CEnv& env_;
+  GMDecompMgr& dm_;
   bool is_allocated_;
 
   ComputeMetrics2Way* compute_metrics_2way_;
@@ -72,9 +85,8 @@ private:
 
   void compute_stats_(GMMetrics& metrics);
 
-  bool can_run_() const {return env_.is_proc_active();}
-
-  // Convenience class for timing code blocks.
+  //----------
+  // Internal convenience class for timing code blocks.
 
   class CodeBlockTimer {
   public:
@@ -87,7 +99,13 @@ private:
   private:
     CEnv& env_;
     double time_begin_;
-  };
+
+    // Disallowed methods.
+
+    CodeBlockTimer(  const CodeBlockTimer&);
+    void operator=(const CodeBlockTimer&);
+  }; // CodeBlockTimer
+  //----------
 
   // Disallowed methods.
 

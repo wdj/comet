@@ -207,6 +207,11 @@ private:
   bool is_queue_initialized_;
   typename MagmaQueueHelper<CLONE_ID>::queue_t queue_;
 
+  // Disallowed methods.
+
+  MagmaQueue(const MagmaQueue&);
+  void operator=(const MagmaQueue&);
+
 };
 
 //-----------------------------------------------------------------------------
@@ -267,6 +272,11 @@ private:
   static bool use_mgemm5_(CEnv& env) {
     return env.metric_type() == MetricType::DUO;
   }
+
+  // Disallowed methods.
+
+  MagmaWrapper(const MagmaWrapper&);
+  void operator=(const MagmaWrapper&);
 
 }; // MagmaWrapper
 

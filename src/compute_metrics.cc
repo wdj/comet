@@ -45,38 +45,61 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief Constructor for ComputeMetrics class.
-
+/*!
+ * \brief Constructor.
+ *
+ */
 ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
   : env_(env)
+  , dm_(dm)
   , is_allocated_(false)
   , compute_metrics_2way_(NULL)
   , compute_metrics_3way_(NULL) {
 
-  if (! can_run_())
+  allocate();
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Destructor.
+ *
+ */
+ComputeMetrics::~ComputeMetrics() {
+
+  deallocate();
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Allocations.
+ *
+ */
+void ComputeMetrics::allocate() {
+
+  if (!env_.is_proc_active())
+    return;
+
+  if (is_allocated_)
     return;
 
   CodeBlockTimer timer(env_);
 
   if (env_.num_way() == NumWay::_2)
-    compute_metrics_2way_ = new ComputeMetrics2Way(dm, env_);
+    compute_metrics_2way_ = new ComputeMetrics2Way(dm_, env_);
   else
-    compute_metrics_3way_ = new ComputeMetrics3Way(dm, env);
+    compute_metrics_3way_ = new ComputeMetrics3Way(dm_, env_);
 
   is_allocated_ = true;
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Destructor for ComputeMetrics class.
-
-ComputeMetrics::~ComputeMetrics() {
-  deallocate();
-}
-
-//-----------------------------------------------------------------------------
-
+/*!
+ * \brief Deallocations.
+ *
+ */
 void ComputeMetrics::deallocate() {
-  if (! can_run_())
+
+  if (!env_.is_proc_active())
     return;
 
   if (!is_allocated_)
@@ -91,11 +114,13 @@ void ComputeMetrics::deallocate() {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Function to compute 2-way or 3-way metrics.
-
+/*!
+ * \brief Compute 2-way or 3-way metrics.
+ *
+ */
 void ComputeMetrics::compute(GMMetrics& metrics, Vectors& vectors) {
 
-  if (! can_run_())
+  if (! env_.is_proc_active())
     return;
 
   COMET_INSIST(is_allocated_);
@@ -103,7 +128,7 @@ void ComputeMetrics::compute(GMMetrics& metrics, Vectors& vectors) {
   {
     CodeBlockTimer timer(env_);
 
-    if (env_.num_way() == 2)
+    if (env_.num_way() == NumWay::_2)
       compute_metrics_2way_->compute(metrics, vectors);
     else // (env_.num_way() == NumWay::_3)
       compute_metrics_3way_->compute(metrics, vectors);
@@ -113,8 +138,10 @@ void ComputeMetrics::compute(GMMetrics& metrics, Vectors& vectors) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Internal function to calculate misc. statistics for the run.
-
+/*!
+ * \brief Calculate misc. statistics for the run.
+ *
+ */
 void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 
   //--------------------
@@ -205,8 +232,10 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Convenience function for constructor, compute, destructor.
-
+/*!
+ * \brief Convenience function for constructor + compute + destructor.
+ *
+ */
 void ComputeMetrics::compute(GMMetrics& metrics, Vectors& vectors,
   CEnv& env) {
 

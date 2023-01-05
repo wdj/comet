@@ -54,18 +54,18 @@ namespace comet {
  *
  */
 Vectors::Vectors(GMDecompMgr& dm, CEnv& env)
-  : num_field_local_(0)
+  : env_(env)
+  , dm_(dm) 
+  , is_allocated_(false)
+  , has_buf_(false)
+  , num_field_local_(0)
   , num_vector_local_(0)
   , num_packedfield_local_(0)
   , num_packedfield_local_size_t_(0)
   , num_packedfield_vector_local_(0)
   , data_(NULL)
   , data_size_(0)
-  , has_buf_(false)
   , buf_(NULL)
-  , env_(env)
-  , dm_(dm) 
-  , is_allocated_(false)
   , data_type_id_(env.data_type_vectors()) {
   }
 

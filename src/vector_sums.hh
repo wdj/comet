@@ -145,7 +145,7 @@ private:
 
   // Disallowed methods.
 
-  VectorSums(  const VectorSums&);
+  VectorSums(const VectorSums&);
   void operator=(const VectorSums&);
 
 }; // VectorSums

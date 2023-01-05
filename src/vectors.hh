@@ -134,18 +134,19 @@ public:
 
 private:
 
+  CEnv& env_;
+  GMDecompMgr& dm_;
+  bool is_allocated_;
+  bool has_buf_;
+
   int num_field_local_;
   int num_vector_local_;
   int num_packedfield_local_;
   size_t num_packedfield_local_size_t_;
   size_t num_packedfield_vector_local_;
-  void* __restrict__ data_;
+  void* data_;
   size_t data_size_;
-  bool has_buf_;
   MirroredBuf* buf_;
-  CEnv& env_;
-  GMDecompMgr& dm_;
-  bool is_allocated_;
   int data_type_id_;
 
   enum {HAS_BUF_TRUE_ = true,
@@ -197,6 +198,11 @@ private:
 
     return static_cast<T*>(data_)[index];
   }
+  // Disallowed methods.
+
+  Vectors(const Vectors&);
+  void operator=(const Vectors&);
+
 }; // class Vectors
 
 //-----------------------------------------------------------------------------
