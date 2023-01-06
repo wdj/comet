@@ -46,30 +46,6 @@ namespace comet {
 //=============================================================================
 // Accessors: value from (contig) index: derived
 
-#if 0
-//-----------------------------------------------------------------------------
-/// \brief Templatized access to the CCC or DUO formula.
-
-template<int COUNTED_BITS_PER_ELT>
-static double Metrics_ccc_duo_value(
-  GMMetrics& metrics,
-  const GMTally1 rijk,
-  const GMTally1 si,
-  const GMTally1 sj,
-  const GMTally1 sk,
-  const double recip_ci,
-  const double recip_cj,
-  const double recip_ck,
-  const double recip_sumcijk,
-  CEnv& env) {
-
-  return ccc_duo_value<COUNTED_BITS_PER_ELT, double>(
-    rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk,
-    env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env),
-    env.ccc_param());
-}
-#endif
-
 //-----------------------------------------------------------------------------
 /// \brief Check to ensure 128 bits is enough to store 3-way CCC value.
 
@@ -218,10 +194,11 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
   COMET_ASSERT(!env.is_shrink()); //FIX
 
+
+//TODO: replace most of this with high-level ccc_duo_value call, if appropriate.
+
+
   if (env.is_threshold_tc()) {
-//    if (env.is_shrink()) {
-//      return (FloatResult_t)Metrics_elt_const<float>(metrics, index, env);
-//    }
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
     const auto table = Metrics_elt_const<TTable_t>(metrics, index, env);
     TTable_t::TypeIn result = TTable_t::get(table, iE, jE, kE);
@@ -277,6 +254,10 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     // require computing and storing matX sum values somewhere and then using
     // them here.
 
+    // NOTE: this is never called under conditions in which the xor fixup
+    // must be done here - the CPU version does the xor fixup as part of
+    // the core metrics calc process.
+
     const GMTally1 cijk =
         GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
         GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
@@ -287,7 +268,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
     const Float_t recip_sumcijk = f_one / cijk;
 
-    result_floatcalc = ccc_duo_value<CBPE>(
+    result_floatcalc = formulas::ccc_duo_value<CBPE>(
       rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
 
   } else { // !env.sparse
@@ -306,7 +287,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
     const Float_t recip_sumcijk = (f_one / (CBPE*CBPE*CBPE)) * recip_m;
 
-    result_floatcalc = ccc_duo_value<CBPE>(
+    result_floatcalc = formulas::ccc_duo_value<CBPE>(
       rijk, si, sj, sk, recip_m, recip_m, recip_m, recip_sumcijk, env);
 
   } // if (env.sparse())
@@ -490,46 +471,46 @@ static bool Metrics_ccc_duo_threshold_detector_3(
 
     const Float_t recip_sumcijk = f_one / cijk;
 
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk000,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk000,
       si0, sj0, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 0, 0, 0, env)));
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk001,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk001,
       si0, sj0, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 0, 0, 1, env)));
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk010,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk010,
       si0, sj1, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 0, 1, 0, env)));
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk011,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk011,
       si0, sj1, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 0, 1, 1, env)));
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk100,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk100,
       si1, sj0, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 1, 0, 0, env)));
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk101,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk101,
       si1, sj0, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 1, 0, 1, env)));
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk110,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk110,
       si1, sj1, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 1, 1, 0, env)));
-    COMET_ASSERT((ccc_duo_value<CBPE>(rijk111,
+    COMET_ASSERT((formulas::ccc_duo_value<CBPE>(rijk111,
       si1, sj1, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ==
       (Metrics_ccc_duo_get_3<CBPE, Float_t>(metrics, index, 1, 1, 1, env)));
 
-    return env.pass_threshold(ccc_duo_value<CBPE>(rijk000,
+    return env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk000,
            si0, sj0, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
-           env.pass_threshold(ccc_duo_value<CBPE>(rijk001,
+           env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk001,
            si0, sj0, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
-           env.pass_threshold(ccc_duo_value<CBPE>(rijk010,
+           env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk010,
            si0, sj1, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
-           env.pass_threshold(ccc_duo_value<CBPE>(rijk011,
+           env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk011,
            si0, sj1, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
-           env.pass_threshold(ccc_duo_value<CBPE>(rijk100,
+           env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk100,
            si1, sj0, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
-           env.pass_threshold(ccc_duo_value<CBPE>(rijk101,
+           env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk101,
            si1, sj0, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
-           env.pass_threshold(ccc_duo_value<CBPE>(rijk110,
+           env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk110,
            si1, sj1, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
-           env.pass_threshold(ccc_duo_value<CBPE>(rijk111,
+           env.pass_threshold(formulas::ccc_duo_value<CBPE>(rijk111,
            si1, sj1, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env));
 
   } // if (env.sparse())

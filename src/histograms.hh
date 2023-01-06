@@ -98,8 +98,8 @@ struct HistogramID {
 
 class Histograms {
 
-// 2-way: LL, LH, HH, LL+HH (4)
-// 3-way: LLL, LLH, LHH, HHH, LLL+HHH (5)
+// NOTE: 2-way: LL, LH, HH, LL+HH (4)
+// NOTE: 3-way: LLL, LLH, LHH, HHH, LLL+HHH (5)
 
 public:
 
@@ -132,7 +132,7 @@ public:
   static __host__ __device__ Elt_t& elt(Elt_t* ptr, int num_buckets,
     int bucket_num, int histogram_num) {
     return ptr[bucket_num + num_buckets * histogram_num];
-  }
+  } // elt
 
   //----------
 
@@ -140,7 +140,7 @@ public:
   static __host__ __device__ Elt_t elt_const(Elt_t* ptr, int num_buckets,
     int bucket_num, int histogram_num) {
     return ptr[bucket_num + num_buckets * histogram_num];
-  }
+  } // elt_const
 
   //----------
 
@@ -159,7 +159,7 @@ public:
 
     // TODO: make this OMP 3.1 thread aware. NOTE: is safe for now.
     utils::atomic_add(&elt_this, 1e0);
-  }
+  } // add
 
   //----------
 
@@ -169,7 +169,7 @@ public:
     COMET_ASSERT(!is_computing_on_accel());
     COMET_ASSERT(is_allocated_);
     Histograms::add((Elt_t*)buf_.h, num_buckets_, value, histogram_id);
-  }
+  } // add
 
   //----------
 
@@ -189,10 +189,10 @@ public:
       for (int jE=0; jE<2; ++jE) {
 
         metric[iE][jE] = cbpe == CBPE::DUO ?
-          ccc_duo_value<CBPE::DUO, MF>(ttable, iE, jE, si1, sj1,
-                                       ci, cj, nfa, env_) :
-          ccc_duo_value<CBPE::CCC, MF>(ttable, iE, jE, si1, sj1,
-                                       ci, cj, nfa, env_);
+          formulas::ccc_duo_value<CBPE::DUO, MF>(ttable, iE, jE, si1, sj1,
+                                                 ci, cj, nfa, env_) :
+          formulas::ccc_duo_value<CBPE::CCC, MF>(ttable, iE, jE, si1, sj1,
+                                                 ci, cj, nfa, env_);
       }
     }
 
@@ -202,7 +202,7 @@ public:
     add(metric[1][1], HistogramID::HH);
     add(metric[0][0] + metric[1][1],
                       HistogramID::LLHH);
-  }
+  } // add
 
   //----------
 
@@ -222,10 +222,10 @@ public:
       for (int jE=0; jE<2; ++jE) {
         for (int kE=0; kE<2; ++kE) {
           metric[iE][jE][kE] = cbpe == CBPE::DUO ?
-            ccc_duo_value<CBPE::DUO, MF>(ttable, iE, jE, kE, si1, sj1, sk1,
-                                         ci, cj, ck,  nfa, env_) :
-            ccc_duo_value<CBPE::CCC, MF>(ttable, iE, jE, kE, si1, sj1, sk1,
-                                         ci, cj, ck,  nfa, env_);
+            formulas::ccc_duo_value<CBPE::DUO, MF>(ttable, iE, jE, kE,
+              si1, sj1, sk1, ci, cj, ck,  nfa, env_) :
+            formulas::ccc_duo_value<CBPE::CCC, MF>(ttable, iE, jE, kE,
+              si1, sj1, sk1, ci, cj, ck,  nfa, env_);
         }
       }
     }
@@ -240,7 +240,7 @@ public:
     add(metric[1][1][1], HistogramID::HHH);
     add(metric[0][0][0] + metric[1][1][1],
                          HistogramID::LLLHHH);
-  }
+  } // add
 
   //----------
 
@@ -248,7 +248,7 @@ public:
   Elt_t& elt(int bucket_num, int histogram_num) {
     COMET_ASSERT(is_allocated_);
     return Histograms::elt((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
-  }
+  } // elt
 
   //----------
 
@@ -256,7 +256,7 @@ public:
   Elt_t elt_const(int bucket_num, int histogram_num) const {
     COMET_ASSERT(is_allocated_);
     return Histograms::elt_const((Elt_t*)buf_.h, num_buckets_, bucket_num, histogram_num);
-  }
+  } // elt_const
 
   //----------
 
@@ -265,7 +265,7 @@ public:
     COMET_ASSERT(is_allocated_);
     return Histograms::elt((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
                            histogram_num);
-  }
+  } // elt_finalized
 
   //----------
 
@@ -275,13 +275,15 @@ public:
     COMET_ASSERT(is_allocated_);
     return Histograms::elt_const((Elt_t*)buf_finalized_.h, num_buckets_, bucket_num,
                            histogram_num);
-  }
+  } // elt_finalized_const
+
   //----------
 
   // Return the lowest real-number value assigned to specified bucket.
   Elt_t bucket_min(int bucket_num) const {
     COMET_ASSERT(is_allocated_);
-    return (Elt_t)(bucket_num) / RECIP_BUCKET_WIDTH;}
+    return (Elt_t)(bucket_num) / RECIP_BUCKET_WIDTH;
+  } // bucket_min
 
   //----------
 
@@ -293,7 +295,7 @@ public:
     buf_.deallocate();
     buf_finalized_.deallocate();
     is_allocated_ = false;
-  }
+  } // deallocate
 
 private:
 

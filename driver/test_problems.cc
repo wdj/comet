@@ -528,10 +528,10 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, int iE, int jE,
       (f_one / (cbpe * cbpe)) * recip_m;
 
     value = cbpe == CBPE::CCC ?
-      ccc_duo_value<CBPE::CCC>(rij, si, sj,
+      formulas::ccc_duo_value<CBPE::CCC>(rij, si, sj,
           recip_ci, recip_cj, recip_sumcij,
           env_ccc_duo_multiplier<CBPE::CCC>(env), env.ccc_param()) :
-      ccc_duo_value<CBPE::DUO>(rij, si, sj,
+      formulas::ccc_duo_value<CBPE::DUO>(rij, si, sj,
           recip_ci, recip_cj, recip_sumcij,
           env_ccc_duo_multiplier<CBPE::DUO>(env), env.ccc_param());
   } // is_zero_denom
@@ -647,9 +647,9 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
                                      (f_one / 8) * recip_m;
 
       value = cbpe == CBPE::CCC ?
-        ccc_duo_value<CBPE::CCC>(rijk, si, sj, sk,
+        formulas::ccc_duo_value<CBPE::CCC>(rijk, si, sj, sk,
                  recip_ci, recip_cj, recip_ck, recip_sumcijk, env) :
-        ccc_duo_value<CBPE::DUO>(rijk, si, sj, sk,
+        formulas::ccc_duo_value<CBPE::DUO>(rijk, si, sj, sk,
                  recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
 
     } // is_zero_denom

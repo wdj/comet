@@ -205,7 +205,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
     GMTally1 ci, cj;
     GMFloat2_decode(ci, cj, ci_cj);
 
-    result_floatcalc = ccc_duo_value<CBPE, MF>(ttable,
+    result_floatcalc = formulas::ccc_duo_value<CBPE, MF>(ttable,
       iE, jE, si1, sj1, ci, cj, metrics.num_field_active, env);
 
   } else { // !env.sparse
@@ -213,7 +213,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
     GMTally1 ci = CBPE * CBPE * metrics.num_field_active;
     GMTally1 cj = CBPE * CBPE * metrics.num_field_active;
 
-    result_floatcalc = ccc_duo_value<CBPE, MF>(ttable,
+    result_floatcalc = formulas::ccc_duo_value<CBPE, MF>(ttable,
       iE, jE, si1, sj1, ci, cj, metrics.num_field_active, env);
 
   } // if (env.sparse())
@@ -283,7 +283,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
       //                         !iE &&  jE ? (si0 + sj1 - rij) / 2 :
       //                                      (si0 + sj0 - rij) / 2;
 
-      result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
+      result_floatcalc = formulas::ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
         rij_true, si, sj, recip_ci, recip_cj, recip_sumcij, 
         env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
 
@@ -307,7 +307,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
       const GMTally1 rij_true = rij;
 
-      result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
+      result_floatcalc = formulas::ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
         rij_true, si, sj, recip_ci, recip_cj, recip_sumcij, 
         env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
 
@@ -327,7 +327,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
     const Float_t recip_sumcij = (f_one / (CBPE*CBPE)) * recip_m;
 
-    result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
+    result_floatcalc = formulas::ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
       rij, si, sj, recip_m, recip_m, recip_sumcij, 
       env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
 

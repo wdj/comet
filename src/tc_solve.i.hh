@@ -485,8 +485,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
+  //==========
   if (env.is_using_cutlass_mockup()) {
-  //if (tc_solve_use_mockup(env)) {
+  //==========
 
     //COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
@@ -517,7 +518,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
     const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
     const int num_threadblocks_1 = n;
 
+    //----------
     if (TC_METHOD == TC::INT4) {
+    //----------
 
       COMET_LAUNCH_KERNEL((tc_solve_int4_gemm_mockup_kernel
                            <GemmIn_t, GemmOut_t>),
@@ -526,7 +529,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
         (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
 
+    //----------
     } else if (env.is_using_xor()) { // && TC_METHOD == TC::B1
+    //----------
 
       COMET_LAUNCH_KERNEL((tc_solve_b1_gemm_mockup_kernel
                            <GemmIn_t, GemmOut_t, TCGemmOpXorPopc>),
@@ -535,7 +540,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
         (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
 
+    //----------
     } else { // !env.is_using_xor() // && TC_METHOD == TC::B1
+    //----------
 
       COMET_LAUNCH_KERNEL((tc_solve_b1_gemm_mockup_kernel
                            <GemmIn_t, GemmOut_t, TCGemmOpMultiplyAdd>),
@@ -544,12 +551,15 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
         (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
 
+    //----------
     } // if (TC_METHOD == TC::INT4)
+    //----------
 
     System::accel_last_call_succeeded();
 
-  //} else { // if (!tc_solve_use_mockup(env))
-  } else { // if (!env.is_using_cutlass_mockup()
+  //==========
+  } else { // !env.is_using_cutlass_mockup()
+  //==========
 
     COMET_INSIST(env.is_using_cutlass());
 
@@ -560,7 +570,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
       enum {TC_SUBMETHOD_B1 = TCSubmethod::_128_256};
 #   endif
 
+    //----------
     if (TC_METHOD == TC::INT8) {
+    //----------
 
       tc_solve_impl_cutlass<TC::INT8, TCSubmethod::_INT8, TCGemmOpMultiplyAddSaturate>(
         is_first, n, m, k, // NOTE: switching order of A, B.
@@ -569,7 +581,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         (int32_t*)matC, m,
         env.stream_compute());
 
+    //----------
     } else if (TC_METHOD == TC::INT4) {
+    //----------
 
       tc_solve_impl_cutlass<TC::INT4, TCSubmethod::_INT4, TCGemmOpMultiplyAddSaturate>(
         is_first, n, m, k, // NOTE: switching order of A, B.
@@ -578,7 +592,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         (int32_t*)matC, m,
         env.stream_compute());
 
+    //----------
     } else if (env.is_using_xor()) { // && TC_METHOD == TC::B1
+    //----------
 
       tc_solve_impl_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpXorPopc>(
         is_first, n, m, k, // NOTE: switching order of A, B.
@@ -587,7 +603,9 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         (int32_t*)matC, m,
         env.stream_compute());
 
+    //----------
     } else { // !env.is_using_xor() // && TC_METHOD == TC::B1
+    //----------
 
       tc_solve_impl_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpMultiplyAddTry>(
         is_first, n, m, k, // NOTE: switching order of A, B.
@@ -596,11 +614,15 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
         (int32_t*)matC, m,
         env.stream_compute());
 
+    //----------
     } // if (TC_METHOD == TC::INT8)
+    //----------
 
     System::accel_last_call_succeeded(); // extra precaution.
 
-  } // if
+  //==========
+  } // if (env.is_using_cutlass_mockup())
+  //==========
 }
 
 //-----------------------------------------------------------------------------

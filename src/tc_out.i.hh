@@ -673,7 +673,7 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
       // Apply CCC/DUO formula.
       const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cij;
       const double metric_entry = is_zero_denom ? 0e0 :
-        ccc_duo_value<CBPE, double>(
+        formulas::ccc_duo_value<CBPE, double>(
           rij, sI, sJ, recip_cI, recip_cJ,
           recip_sumcij, multiplier, param);
 
@@ -876,7 +876,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
         // Apply CCC/DUO formula.
         const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cK || 0 == cijk;
         const double metric_entry = is_zero_denom ? 0e0 :
-          ccc_duo_value<CBPE, double>(
+          formulas::ccc_duo_value<CBPE, double>(
             rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
             recip_sumcijk, multiplier, param);
 
