@@ -562,12 +562,12 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
   typedef magma_minproduct_int_t magma_generic_int_t;
   typedef magma_generic_int_t Int_t;
 
-  const auto m_ = safe_cast<Int_t>(m);
-  const auto n_ = safe_cast<Int_t>(n);
-  const auto k_ = safe_cast<Int_t>(k);
-  const auto ldda_ = safe_cast<Int_t>(ldda);
-  const auto lddb_ = safe_cast<Int_t>(lddb);
-  const auto lddc_ = safe_cast<Int_t>(lddc);
+  const auto m_ = safe_cast_insist<Int_t>(m);
+  const auto n_ = safe_cast_insist<Int_t>(n);
+  const auto k_ = safe_cast_insist<Int_t>(k);
+  const auto ldda_ = safe_cast_insist<Int_t>(ldda);
+  const auto lddb_ = safe_cast_insist<Int_t>(lddb);
+  const auto lddc_ = safe_cast_insist<Int_t>(lddc);
 
   // ISSUE: these MAGMA routines don't return an error code.
 
@@ -703,12 +703,12 @@ void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
 
   if (use_minproduct_(env)) { //--------------------
 
-    const auto m_ = safe_cast<int>(m);
-    const auto n_ = safe_cast<int>(n);
-    const auto k_ = safe_cast<int>(k);
-    const auto ldda_ = safe_cast<std::size_t>(ldda);
-    const auto lddb_ = safe_cast<std::size_t>(lddb);
-    const auto lddc_ = safe_cast<std::size_t>(lddc);
+    const auto m_ = safe_cast_insist<int>(m);
+    const auto n_ = safe_cast_insist<int>(n);
+    const auto k_ = safe_cast_insist<int>(k);
+    const auto ldda_ = safe_cast_insist<std::size_t>(ldda);
+    const auto lddb_ = safe_cast_insist<std::size_t>(lddb);
+    const auto lddc_ = safe_cast_insist<std::size_t>(lddc);
 
     if (env.is_double_prec())
       srPlusMinFP64TN(m_, n_, k_,

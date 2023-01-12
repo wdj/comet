@@ -47,99 +47,130 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//=============================================================================
-// Helper class to output metrics values to file.
-
-class MetricIO {
-public:
-
-  // NOTE: metrics always written in single precision; this could be changed.
-
+//--------------------
+/*!
+ * \class MetricForFileMixin
+ * \brief Define key types needed for MetricForFile.
+ *
+ */
+//--------------------
+struct MetricForFileMixin {
+  // NOTE: currently metrics are always written in single precision.
   typedef uint32_t IntForFile_t;
   typedef BasicTypes::FP32 FloatForFile_t;
+};
 
-  MetricIO(FILE* file, GMMetrics& metrics, CEnv& env);
-  ~MetricIO() {}
+//--------------------
+/*!
+ * \class MetricForFile
+ * \brief Helper class to hold one metric as stored in file.
+ *
+ */
+//--------------------
+template<int NUM_WAY>
+class MetricForFile : public MetricForFileMixin {
 
-  // Write a metric with indexing to file.
+  // Storage for the coords and value for the metric as stored in file.
+  // NOTE: because of read, this class cannot have storage for
+  // any other members except these two, exactly like this.
+  IntForFile_t coords_[NUM_WAY];
+  FloatForFile_t value_;
 
-  void write(NV_t iG, NV_t jG, GMFloat value) const;
-  void write(NV_t iG, NV_t jG, NV_t kG, GMFloat value) const;
-  void write(NV_t iG, NV_t jG, int iE, int jE, GMFloat value) const;
+  // Helper function.
+  bool is_bitwise_(const CEnv& env) const {
+    return env.is_metric_type_bitwise();
+  }
+
+public:
+
+  MetricForFile()
+    : coords_()
+    , value_(0)
+  {}
+
+  // Accessors.
+
+  NV_t iG(const CEnv& env) const {
+    const auto result = is_bitwise_(env) ? coords_[0] / 2 : coords_[0];
+    return static_cast<NV_t>(result);
+  }
+  NV_t jG(const CEnv& env) const {
+    const auto result = is_bitwise_(env) ? coords_[1] / 2 : coords_[1];
+    return static_cast<NV_t>(result);
+  }
+  NV_t kG(const CEnv& env) const {
+    COMET_ASSERT(NUM_WAY >= NumWay::_3);
+    const auto result = is_bitwise_(env) ? coords_[2] / 2 : coords_[2];
+    return static_cast<NV_t>(result);
+  }
+  int iE(const CEnv& env) const {
+    const auto result = is_bitwise_(env) ? coords_[0] % 2 : 0;
+    return static_cast<int>(result);
+  }
+  int jE(const CEnv& env) const {
+    const auto result = is_bitwise_(env) ? coords_[1] % 2 : 0;
+    return static_cast<int>(result);
+  }
+  int kE(const CEnv& env) const {
+    COMET_ASSERT(NUM_WAY >= NumWay::_3);
+    const auto result = is_bitwise_(env) ? coords_[2] % 2 : 0;
+    return static_cast<int>(result);
+  }
+  FloatForFile_t value() const {return value_;}
+
+  // Read a single metric from file.
+  void read(FILE* file, CEnv& env) {
+    const size_t num_read = fread(this, sizeof(*this), 1, file);
+    COMET_INSIST(1 == num_read);
+}
+
+private:
+
+  // Checks.
+  void check_() {
+    COMET_STATIC_ASSERT(NUM_WAY == NumWay::_2 || NUM_WAY == NumWay::_3);
+    COMET_STATIC_ASSERT(sizeof(MetricForFile<NUM_WAY>) ==
+      sizeof(IntForFile_t) * NUM_WAY + sizeof(FloatForFile_t));
+  }
+
+  // Disallowed methods.
+
+  MetricForFile(const MetricForFile&);
+  void operator=(const MetricForFile&);
+
+}; // MetricForFile
+
+//-----------------------------------------------------------------------------
+/*!
+ * \class SingleMetricIO
+ * \brief Helper class to read/write single metric at a time.
+ *
+ */
+//-----------------------------------------------------------------------------
+
+class SingleMetricIO : public MetricForFileMixin {
+
+public:
+
+  // Constructors, destructors.
+
+  SingleMetricIO(FILE* file, GMMetrics& metrics, CEnv& env);
+  ~SingleMetricIO() {}
+
+  // Write a single metric with indexing to file.
+
+  template<typename Float_t>
+  void write(NV_t iG, NV_t jG, Float_t value) const;
+
+  template<typename Float_t>
+  void write(NV_t iG, NV_t jG, NV_t kG, Float_t value) const;
+
+  template<typename Float_t>
+  void write(NV_t iG, NV_t jG, int iE, int jE, Float_t value) const;
+
+  template<typename Float_t>
   void write(NV_t iG, NV_t jG, NV_t kG,
-             int iE, int jE, int kE, GMFloat value) const;
-
-  // Internal helper class to hold one metric with indexing as stored in file.
-
-  template<int N>
-  struct MetricForFile {
-    IntForFile_t coords[N];
-    FloatForFile_t value;
-    NV_t iG(const CEnv& env) const {
-      const auto result = env.is_metric_type_bitwise() ? coords[0] / 2 : coords[0];
-      return static_cast<NV_t>(result);
-    }
-    NV_t jG(const CEnv& env) const {
-      const auto result = env.is_metric_type_bitwise() ? coords[1] / 2 : coords[1];
-      return static_cast<NV_t>(result);
-    }
-    NV_t kG(const CEnv& env) const {
-      COMET_ASSERT(N >= 3);
-      const auto result = env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
-      return static_cast<NV_t>(result);
-    }
-    int iE(const CEnv& env) const {
-      const auto result = env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
-      return static_cast<int>(result);
-    }
-    int jE(const CEnv& env) const {
-      const auto result = env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
-      return static_cast<int>(result);
-    }
-    int kE(const CEnv& env) const {
-      COMET_ASSERT(N >= 3);
-      const auto result = env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
-      return static_cast<int>(result);
-    }
-  private:
-    void check_() {
-      COMET_STATIC_ASSERT(N ==2 || N == 3);
-    }
-  }; // MetricForFile
-
-
-
-#if 0
-  template<int N>
-  struct MetricForFile {
-    IntForFile_t coords[N];
-    FloatForFile_t value;
-    IntForFile_t iG(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[0] / 2 : coords[0];
-    }
-    IntForFile_t jG(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[1] / 2 : coords[1];
-    }
-    IntForFile_t kG(const CEnv& env) const {
-      COMET_ASSERT(N >= 3);
-      return env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
-    }
-    IntForFile_t iE(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
-    }
-    IntForFile_t jE(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
-    }
-    IntForFile_t kE(const CEnv& env) const {
-      COMET_ASSERT(N >= 3);
-      return env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
-    }
-  }; // MetricForFile
-#endif
-
-
-
-
+             int iE, int jE, int kE, Float_t value) const;
 
   // Sizes.
 
@@ -153,14 +184,6 @@ public:
     return num_bytes_written_per_metric(env_);
   }
 
-  // Read a single metric from the file.
-
-  template<int N>
-  static void read(MetricForFile<N>& metric, FILE* file, CEnv& env) {
-    const size_t num_read = fread(&metric, sizeof(metric), 1, file);
-    COMET_INSIST(1 == num_read);
-  }
-
 private:
 
   CEnv& env_;
@@ -169,7 +192,7 @@ private:
   int num_way_;
   size_t mutable num_written_;
 
-  // Helper function to write a scalar to the file.
+  // Helper function to write a scalar value to the file.
 
   template<typename T>
   bool write_(T v, size_t& bytes_written) const {
@@ -179,24 +202,31 @@ private:
     return is_written_correctly;
   }
 
+  friend class MetricsIO;
+
   // Disallowed methods.
 
-  MetricIO(  const MetricIO&);
-  void operator=(const MetricIO&);
+  SingleMetricIO(  const SingleMetricIO&);
+  void operator=(const SingleMetricIO&);
 
 };
 
-//=============================================================================
-// Class to write metrics.
-
-class MetricsIO {
-
-  typedef MetricIO::FloatForFile_t FloatForFile_t;
+//-----------------------------------------------------------------------------
+/*!
+ * \class MetricsIO
+ * \brief Class to write metrics.
+ *
+ */
+//-----------------------------------------------------------------------------
+class MetricsIO : public MetricForFileMixin {
 
 public:
 
+  // Constructors, destructors.
+
   MetricsIO(const char* path_stub, int verbosity, CEnv& env);
   ~MetricsIO();
+
   void deallocate();
 
   void write(GMMetrics& metrics);
@@ -208,9 +238,8 @@ public:
 
 private:
 
+  // Set this false to close/reopen files between stages/phases.
   bool is_leaving_files_open_() {return true;}
-
-  //static FILE* open(const char* path_stub, CEnv& env, const char* mode = "wb");
 
   void open_(const char* mode = "wb");
   void close_();
@@ -224,7 +253,7 @@ private:
   bool is_allocated_;
 
   size_t bytes_(size_t num) const {
-    return num * MetricIO::num_bytes_written_per_metric(env_);
+    return num * SingleMetricIO::num_bytes_written_per_metric(env_);
   }
 
   bool is_path_stub_() const {return strlen(path_stub_str_.c_str()) > 0;}

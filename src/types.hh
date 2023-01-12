@@ -502,15 +502,43 @@ template<typename T> int mantissa_digits() {
 /// \brief Safely cast arithmetic value to strictly lower type size.
 
 template<typename TO, typename TI>
-static TO safe_cast(const TI v) {
-#if ! defined(NDEBUG)
-  static_assert(sizeof(TO) <= sizeof(TI), "");
-#endif
-  // ISSUE: this doesn't compile under CUDA:
-  // COMET_STATIC_ASSERT(sizeof(TO) < sizeof(TI)):
-  COMET_ASSERT(static_cast<TI>(static_cast<TO>(v)) == v);
-  return static_cast<TO>(v);
+static TO safe_cast_assert(const TI vi) {
+  const auto vo = static_cast<TO>(vi);
+  COMET_ASSERT(static_cast<TI>(vo) == vi);
+  return vo;
 }
+
+template<typename TO, typename TI>
+static TO safe_cast_insist(const TI vi) {
+  const auto vo = static_cast<TO>(vi);
+  COMET_INSIST(static_cast<TI>(vo) == vi);
+  return vo;
+}
+
+template<typename TO, typename TI>
+static bool safe_cast(TO& vo, const TI vi) {
+  vo = static_cast<TO>(vi);
+  return static_cast<TI>(vo) == vi;
+}
+
+template<typename TO, typename TI>
+static bool safe_cast_insist(TO& vo, const TI vi) {
+  vo = static_cast<TO>(vi);
+  COMET_INSIST(static_cast<TI>(vo) == vi);
+  return static_cast<TI>(vo) == vi;
+}
+
+
+//template<typename TO, typename TI>
+//static TO safe_cast(const TI v) {
+//#if ! defined(NDEBUG)
+//  static_assert(sizeof(TO) <= sizeof(TI), "");
+//#endif
+//  // ISSUE: this doesn't compile under CUDA:
+//  // COMET_STATIC_ASSERT(sizeof(TO) < sizeof(TI)):
+//  COMET_ASSERT(static_cast<TI>(static_cast<TO>(v)) == v);
+//  return static_cast<TO>(v);
+//}
 
 //=============================================================================
 

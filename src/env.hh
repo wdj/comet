@@ -706,10 +706,12 @@ public:
   double duo_multiplier() const {return duo_multiplier_;}
   double ccc_param() const {return ccc_param_;}
   int num_stage() const {return num_stage_;}
+  int& num_stage_ref() {return num_stage_;}
   void num_stage(int value) {num_stage_ = value;}
   int stage_num() const {return stage_num_;}
   void stage_num(int value) {stage_num_ = value;}
   int num_phase() const {return num_phase_;}
+  int& num_phase_ref() {return num_phase_;}
   void num_phase(int value) {num_phase_ = value;}
   int phase_num() const {return phase_num_;}
   void phase_num(int value) {phase_num_ = value;}

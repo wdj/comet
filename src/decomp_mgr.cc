@@ -140,7 +140,7 @@ void GMDecompMgr::allocate(bool fields_by_local,
   //--------------------
 
   if (vectors_by_local) {
-    dm->num_vector_local = safe_cast<int>(num_vector_specifier);
+    safe_cast_insist(dm->num_vector_local, num_vector_specifier);
     const size_t nvl_required =
       gm_nvl_size_required(dm->num_vector_local, env_);
     COMET_INSIST_INTERFACE(&env_, dm->num_vector_local == nvl_required &&

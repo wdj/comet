@@ -123,7 +123,9 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = utils::strtoarith<BasicTypes::BigUInt>(argv[i]);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
                              && "Invalid setting for num_field.");
-      options_.num_field_active = safe_cast<int>(value);
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.num_field_active, value)
+                             && "Invalid setting for num_field.");
+      //options_.num_field = safe_cast_insist<NF_t>(value);
       options_.is_inited_num_field_active = true;
       options_.is_inited_num_field_local = false;
 
@@ -138,7 +140,9 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = utils::strtoarith<BasicTypes::BigUInt>(argv[i]);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0 &&
                     "Invalid setting for num_field_local.");
-      options_.num_field_local = safe_cast<int>(value);
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.num_field_local, value)
+                             && "Invalid setting for num_field_local.");
+      //options_.num_field_local = safe_cast_insist<NF_t>(value);
       options_.is_inited_num_field_local = true;
       options_.is_inited_num_field_active = false;
 
@@ -153,7 +157,9 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = utils::strtoarith<BasicTypes::BigUInt>(argv[i]);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
                     && "Invalid setting for num_vector.");
-      options_.num_vector_active = safe_cast<NV_t>(value);
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.num_vector_active, value)
+                             && "Invalid setting for num_vector.");
+      //options_.num_vector_active = safe_cast_insist<NV_t>(value);
       options_.is_inited_num_vector_active = true;
       options_.is_inited_num_vector_local = false;
 
@@ -168,7 +174,9 @@ void Driver::finish_parsing(int argc, char** argv) {
       const auto value = utils::strtoarith<BasicTypes::BigUInt>(argv[i]);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0 &&
                     "Invalid setting for num_vector_local.");
-      options_.num_vector_local = safe_cast<int>(value);
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.num_vector_local, value)
+                             && "Invalid setting for num_vector_local.");
+      //options_.num_vector_local = safe_cast_insist<NV_t>(value);
       options_.is_inited_num_vector_local = true;
       options_.is_inited_num_vector_active = false;
 
@@ -179,9 +187,11 @@ void Driver::finish_parsing(int argc, char** argv) {
       ++i;
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for verbosity.");
       const auto value = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0 &&
-                    "Invalid setting for verbosity.");
-      options_.verbosity = safe_cast<int>(value);
+      COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
+                             && "Invalid setting for verbosity.");
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.verbosity, value)
+                             && "Invalid setting for verbosity.");
+      //options_.verbosity = safe_cast<int>(value);
 
     //--------------------
 
@@ -204,8 +214,10 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for num_stage.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 1
-                    && "Invalid setting for num_stage.");
-      env_.num_stage(safe_cast<int>(value));
+                             && "Invalid setting for num_stage.");
+      COMET_INSIST_INTERFACE(&env_, safe_cast(env_.num_stage_ref(), value)
+                             && "Invalid setting for num_stage.");
+      //env_.num_stage(safe_cast<int>(value));
       options_.stage_min = 0;
       options_.stage_max = env_.num_stage() - 1;
 
@@ -217,8 +229,10 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for stage_min.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
-                    && "Invalid setting for stage_min.");
-      options_.stage_min = safe_cast<int>(value);
+                             && "Invalid setting for stage_min.");
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.stage_min, value)
+                             && "Invalid setting for stage_min.");
+      //options_.stage_min = safe_cast<int>(value);
 
     //--------------------
 
@@ -228,8 +242,10 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for stage_max.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value < env_.num_stage()
-                    && "Invalid setting for stage_max.");
-      options_.stage_max = safe_cast<int>(value);
+                             && "Invalid setting for stage_max.");
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.stage_max, value)
+                             && "Invalid setting for stage_max.");
+      //options_.stage_max = safe_cast<int>(value);
 
     //--------------------
 
@@ -239,8 +255,10 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for num_phase.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 1
-                    && "Invalid setting for num_phase.");
-      env_.num_phase(safe_cast<int>(value));
+                             && "Invalid setting for num_phase.");
+      COMET_INSIST_INTERFACE(&env_, safe_cast(env_.num_phase_ref(), value)
+                             && "Invalid setting for num_phase.");
+      //env_.num_phase(safe_cast<int>(value));
       options_.phase_min = 0;
       options_.phase_max = env_.num_phase() - 1;
 
@@ -252,8 +270,10 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for phase_min.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value >= 0
-                    && "Invalid setting for phase_min.");
-      options_.phase_min = safe_cast<int>(value);
+                             && "Invalid setting for phase_min.");
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.phase_min, value)
+                             && "Invalid setting for phase_min.");
+      //options_.phase_min = safe_cast<int>(value);
 
     //--------------------
 
@@ -263,8 +283,10 @@ void Driver::finish_parsing(int argc, char** argv) {
       COMET_INSIST_INTERFACE(&env_, i < argc && "Missing value for phase_max.");
       const auto value = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(&env_, 0 == errno && value < env_.num_phase()
-                    && "Invalid setting for phase_max.");
-      options_.phase_max = safe_cast<int>(value);
+                             && "Invalid setting for phase_max.");
+      COMET_INSIST_INTERFACE(&env_, safe_cast(options_.phase_max, value)
+                             && "Invalid setting for phase_max.");
+      //options_.phase_max = safe_cast<int>(value);
 
     //--------------------
 
