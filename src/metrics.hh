@@ -434,14 +434,29 @@ static bool metrics_is_proc_repl_active(const GMMetrics& metrics,
 
 //=============================================================================
 
+//-----------------------------------------------------------------------------
+/*!
+ * \class MetricsArray
+ * \brief Helper class to designate which array (metrics proper, sums, counts.
+ *
+ */
+//-----------------------------------------------------------------------------
 struct MetricsArray {
   enum {_ = 0,
         S = 1,
         C = 2};
 };
 
+//-----------------------------------------------------------------------------
+/*!
+ * \class MetricsArrayData
+ * \brief Helper class to access selected metrics array.
+ *
+ */
+//-----------------------------------------------------------------------------
 template<int MA> struct MetricsArrayData;
 
+// Metrics proper.
 template<> struct MetricsArrayData<MetricsArray::_> {
   static size_t elt_size(const GMMetrics& metrics) {
    return metrics.data_elt_size;
@@ -449,6 +464,7 @@ template<> struct MetricsArrayData<MetricsArray::_> {
   static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data;}
 };
 
+// Sums.
 template<> struct MetricsArrayData<MetricsArray::S> {
   static size_t elt_size(const GMMetrics& metrics) {
     return metrics.data_S_elt_size;
@@ -456,6 +472,7 @@ template<> struct MetricsArrayData<MetricsArray::S> {
   static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data_S;}
 };
 
+// Counts.
 template<> struct MetricsArrayData<MetricsArray::C> {
   static size_t elt_size(const GMMetrics& metrics) {
     return metrics.data_C_elt_size;
@@ -463,22 +480,30 @@ template<> struct MetricsArrayData<MetricsArray::C> {
   static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data_C;}
 };
 
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Const accessor for direct access to metrics array.
+ *
+ */
 template<typename T, int MA = MetricsArray::_>
 static T Metrics_elt_const(const GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
-  //COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
   COMET_ASSERT(index+1>=1 && index < metrics.num_metric_items_local_allocated);
-  return ((T*)MetricsArrayData<MA>::p(metrics))[index];
+  return reinterpret_cast<T*>(MetricsArrayData<MA>::p(metrics))[index];
 }
 
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Accessor for direct access to metrics array.
+ *
+ */
 template<typename T, int MA = MetricsArray::_>
 static T& Metrics_elt(GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
-  //COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
   COMET_ASSERT(index+1>=1 && index < metrics.num_metric_items_local_allocated);
-  return ((T*)MetricsArrayData<MA>::p(metrics))[index];
+  return reinterpret_cast<T*>(MetricsArrayData<MA>::p(metrics))[index];
 }
 
 //=============================================================================

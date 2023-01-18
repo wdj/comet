@@ -329,10 +329,11 @@ void TestProblem::set_vectors_synthetic(Vectors* vectors, int problem_type,
 //=============================================================================
 // Compute metric value, analytic case, czek 2-way.
 
-static GMFloat metric_value_analytic_(NV_t vi, NV_t vj,
+template<typename Float_t>
+Float_t metric_value_analytic_(NV_t vi, NV_t vj,
                                       const TestProblemInfo& tpi) {
-  GMFloat float_n = 0;
-  GMFloat float_d = 0;
+  Float_t float_n = 0;
+  Float_t float_d = 0;
 
   size_t n = 0;
   size_t d = 0;
@@ -365,9 +366,9 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj,
   COMET_INSIST(n == (size_t)float_n);
   COMET_INSIST(d == (size_t)float_d);
 
-  const GMFloat multiplier = (GMFloat)2;
+  const Float_t multiplier = static_cast<Float_t>(2);
 
-  const GMFloat value = (multiplier * float_n) / float_d;
+  const Float_t value = (multiplier * float_n) / float_d;
 
   return value;
 }
@@ -375,11 +376,12 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj,
 //=============================================================================
 // Compute metric value, analytic case, czek 3-way.
 
-static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
-                                      const TestProblemInfo& tpi) {
+template<typename Float_t>
+Float_t metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
+                               const TestProblemInfo& tpi) {
 
-  GMFloat float_n = 0;
-  GMFloat float_d = 0;
+  Float_t float_n = 0;
+  Float_t float_d = 0;
 
   size_t n = 0;
   size_t d = 0;
@@ -423,9 +425,9 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
   COMET_INSIST(n == (size_t)float_n);
   COMET_INSIST(d == (size_t)float_d);
 
-  const GMFloat multiplier = (GMFloat)1.5;
+  const Float_t multiplier = static_cast<Float_t>(1.5);
 
-  const GMFloat value = (multiplier * float_n) / float_d;
+  const Float_t value = (multiplier * float_n) / float_d;
 
   return value;
 }
@@ -433,8 +435,9 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
 //=============================================================================
 // Compute metric value, analytic case, ccc/duo 2-way.
 
-static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, int iE, int jE,
-                                      const TestProblemInfo& tpi, CEnv& env) {
+template<typename Float_t>
+Float_t metric_value_analytic_(NV_t vi, NV_t vj, int iE, int jE,
+                               const TestProblemInfo& tpi, CEnv& env) {
 
   const int cbpe = env.counted_bits_per_elt();
   const double recip_m = 1. / tpi.nfa_;
@@ -536,13 +539,14 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, int iE, int jE,
           env_ccc_duo_multiplier<CBPE::DUO>(env), env.ccc_param());
   } // is_zero_denom
 
-  return value;
+  return static_cast<Float_t>(value);
 }
 
 //=============================================================================
 // Compute metric value, analytic case, ccc/duo 3-way.
 
-static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
+template<typename Float_t>
+Float_t metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
   int iE, int jE, int kE, const TestProblemInfo& tpi, CEnv& env) {
 
   const int cbpe = env.counted_bits_per_elt();
@@ -654,7 +658,7 @@ static GMFloat metric_value_analytic_(NV_t vi, NV_t vj, NV_t vk,
 
     } // is_zero_denom
 
-  return value;
+  return static_cast<Float_t>(value);
 }
 
 //=============================================================================
@@ -668,6 +672,8 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
   if (! env->is_proc_active())
     return;
+
+  typedef GMFloat Float_t;
 
   const NV_t nva = metrics->num_vector_active;
   const size_t nfa = metrics->num_field_active;
@@ -698,9 +704,9 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
           if (vi >= nva || vj >= nva)
             continue;
 
-          const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
+          const auto value = Metrics_elt_const<Float_t>(*metrics, index, *env);
 
-          GMFloat value_expected = metric_value_analytic_(vi, vj, tpi);
+          const auto value_expected = metric_value_analytic_<Float_t>(vi, vj, tpi);
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -717,6 +723,7 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
         } //---for index
 
       } //---if
+
       if (env->num_way() == NumWay::_3) {
 
 #       pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
@@ -727,9 +734,9 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
           if (vi >= nva || vj >= nva || vk >= nva)
             continue;
 
-          const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
+          const auto value = Metrics_elt_const<Float_t>(*metrics, index, *env);
 
-          GMFloat value_expected = metric_value_analytic_(vi, vj, vk, tpi);
+          const auto value_expected = metric_value_analytic_<Float_t>(vi, vj, vk, tpi);
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -765,16 +772,14 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
 
           // Get actual.
-          const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
+          const auto value = Metrics_ccc_duo_get_2<Float_t>(*metrics, index,
             entry_num, *env);
-          //const bool is_pass_threshold
-          //  = Metrics_is_pass_threshold(*metrics, index, iE, jE, *env);
 
           // Get expected.
-          const GMFloat value_expected_nothreshold
-            = metric_value_analytic_(iG, jG, iE, jE, tpi, *env);
+          const auto value_expected_nothreshold
+            = metric_value_analytic_<Float_t>(iG, jG, iE, jE, tpi, *env);
 
-          // if metric may be thresholded to zero before now, then check.
+          // if metric may have been thresholded to zero before now, then check.
           // NOTE: will never be here if is_shrink and entry failed threshold.
           // NOTE: if not is_thresold_tc, disregard thresholding issue
           // since actual is not thresholded yet.
@@ -788,8 +793,8 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
             for (int iE_ = 0; iE_ < 2; ++iE_) {
               for (int jE_ = 0; jE_ < 2; ++jE_) {
-                const GMFloat mva
-                  = metric_value_analytic_(iG, jG, iE_, jE_, tpi, *env);
+                const auto mva
+                  = metric_value_analytic_<Float_t>(iG, jG, iE_, jE_, tpi, *env);
                 // NOTE: GMFloat == float if we are here.
                 TTable_t::set(ttable, iE_, jE_, mva);
               }
@@ -798,8 +803,8 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
           } // if (env->is_threshold_tc())
 
-          const GMFloat value_expected = do_set_zero ?
-            (GMFloat)0 : value_expected_nothreshold;
+          const auto value_expected = do_set_zero ?
+            static_cast<Float_t>(0) : value_expected_nothreshold;
 
 #if 0
 //#ifdef COMET_USE_INT128
@@ -848,12 +853,12 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
           const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
 
           // Get actual.
-          const GMFloat value = Metrics_ccc_duo_get_3(*metrics, index,
+          const auto value = Metrics_ccc_duo_get_3<Float_t>(*metrics, index,
             entry_num, *env);
 
           // Get expected.
-          GMFloat value_expected_nothreshold
-            = metric_value_analytic_(iG, jG, kG, iE, jE, kE, tpi, *env);
+          const auto value_expected_nothreshold
+            = metric_value_analytic_<Float_t>(iG, jG, kG, iE, jE, kE, tpi, *env);
 
           // if metric may be thresholded to zero before now, then check.
           // NOTE: will never be here if is_shrink and entry failed threshold.
@@ -870,8 +875,8 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
             for (int iE_ = 0; iE_ < 2; ++iE_) {
               for (int jE_ = 0; jE_ < 2; ++jE_) {
                 for (int kE_ = 0; kE_ < 2; ++kE_) {
-                  const GMFloat mva
-                    = metric_value_analytic_(iG, jG, kG, iE_, jE_, kE_, tpi, *env);
+                  const auto mva
+                    = metric_value_analytic_<Float_t>(iG, jG, kG, iE_, jE_, kE_, tpi, *env);
                   // NOTE: GMFloat == float if we are here.
                   TTable_t::set(ttable, iE_, jE_, kE_, mva);
                 }
@@ -881,15 +886,8 @@ void TestProblem::check_metrics_analytic_(GMMetrics* metrics, Driver& driver,
 
           } // if (env->is_threshold_tc())
 
-          const GMFloat value_expected = do_set_zero ?
-            (GMFloat)0 : value_expected_nothreshold;
-
-//          // If threshold_tc, threshold this to match computed result.
-//          const bool do_set_zero = env->is_threshold_tc() &&
-//            //!env->pass_threshold((double)(float)value_expected_nothreshold);
-//            !env->thresholds().is_pass((double)(float)value_expected_nothreshold);
-//
-//          GMFloat value_expected = do_set_zero ? 0. : value_expected_nothreshold;
+          const auto value_expected = do_set_zero ?
+            static_cast<Float_t>(0) : value_expected_nothreshold;
 
 #if 0
 //#ifdef COMET_USE_INT128

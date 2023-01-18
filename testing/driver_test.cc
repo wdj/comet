@@ -1046,16 +1046,16 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
   if (env->is_proc_active()) {
 
     const double result00 =
-      Metrics_is_pass_threshold(*metrics, 0, 0, 0, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 0, *env) ?
       Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env) : 0;
     const double result01 =
-      Metrics_is_pass_threshold(*metrics, 0, 0, 1, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 1, *env) ?
       Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env) : 0;
     const double result10 =
-      Metrics_is_pass_threshold(*metrics, 0, 1, 0, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 0, *env) ?
       Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env) : 0;
     const double result11 =
-      Metrics_is_pass_threshold(*metrics, 0, 1, 1, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 1, *env) ?
       Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env) : 0;
 
     //const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
@@ -1725,29 +1725,29 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
 
   if (env->is_proc_active()) {
     const double result000 =
-      Metrics_is_pass_threshold(*metrics, 0, 0, 0, 0, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 0, 0, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env) : 0;
     const double result001 =
-      Metrics_is_pass_threshold(*metrics, 0, 0, 0, 1, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 0, 1, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env) : 0;
     const double result010 =
-      Metrics_is_pass_threshold(*metrics, 0, 0, 1, 0, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 1, 0, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env) : 0;
     const double result011 =
-      Metrics_is_pass_threshold(*metrics, 0, 0, 1, 1, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 1, 1, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env) : 0;
 
     const double result100 =
-      Metrics_is_pass_threshold(*metrics, 0, 1, 0, 0, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 0, 0, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env) : 0;
     const double result101 =
-      Metrics_is_pass_threshold(*metrics, 0, 1, 0, 1, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 0, 1, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env) : 0;
     const double result110 =
-      Metrics_is_pass_threshold(*metrics, 0, 1, 1, 0, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 1, 0, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env) : 0;
     const double result111 =
-      Metrics_is_pass_threshold(*metrics, 0, 1, 1, 1, *env) ?
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 1, 1, *env) ?
       Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env) : 0;
 
     //const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
@@ -2182,7 +2182,7 @@ void DriverTest_file_output_() {
         "--num_field 19 --num_vector 55 "
         "--num_way %i "
         "--all2all %s "
-        "--sparse yes "
+        "--sparse %s "
         "--problem_type random "
         "--threshold .60 "
         "--tc %i "
@@ -2203,20 +2203,23 @@ void DriverTest_file_output_() {
     for (int all2all : {1})
     for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
     for (int compute_method : {CM::CPU, CM::GPU}) {
+
+
       // Some cases take very long to run.
       if (comet::BuildHas::DOUBLE_PREC && NumWay::_3 == num_way &&
           COMET_COMPUTE_CAPABILITY >= 800) continue;
 
       const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
       const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
+      const char* sparse = MT::CZEK == metric_type ? "no" : "yes";
 
       sprintf(options1, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
-        TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
+        sparse, TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
 
       sprintf(options2, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
-        TC::AUTO, CM::str(compute_method), num_phase, num_stage,
+        sparse, TC::AUTO, CM::str(compute_method), num_phase, num_stage,
         "--output_file_stub DriverTest_file_output");
 
       test_2runs(options1, options2);
@@ -2236,7 +2239,7 @@ void DriverTest_file_output_() {
 
       const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
       const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
-      //const int num_phase = 1;
+      const char* sparse = MT::CZEK == metric_type ? "no" : "yes";
 
       char hfile_template[] =
           "--histograms_file DriverTest_file_output_histogram_%i.csv";
@@ -2247,11 +2250,11 @@ void DriverTest_file_output_() {
 
       sprintf(options1, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
-        TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
+        sparse, TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
 
       sprintf(options2, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
-        tc, CM::str(compute_method), num_phase, num_stage,
+        sparse, tc, CM::str(compute_method), num_phase, num_stage,
         hfile);
         //"--histograms_file DriverTest_file_output_histogram.csv");
 
@@ -2801,6 +2804,7 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
+#if 1
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
@@ -2812,6 +2816,7 @@ TEST(DriverTest, czek3) {
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
+#endif
 
 #if 1
 TEST(DriverTest, file_output) {

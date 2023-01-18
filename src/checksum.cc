@@ -194,7 +194,7 @@ double Checksum::metrics_elt(
         const MetricItemCoords_t coords = metrics.coords_value(index);
         const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
         const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
-        do_set_zero = ! Metrics_is_pass_threshold(metrics, index, iE, jE, env);
+        do_set_zero = ! Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, env);
       } // if (env->is_threshold_tc())
 
     } break;
@@ -214,7 +214,7 @@ double Checksum::metrics_elt(
         const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
         const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
         const int kE = CoordsInfo::getkE(coords, entry_num, metrics, env);
-        do_set_zero = ! Metrics_is_pass_threshold(metrics, index, iE, jE, kE,
+        do_set_zero = ! Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, kE,
           env);
       } // if (env->is_threshold_tc())
 

@@ -47,32 +47,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//--------------------
+//-----------------------------------------------------------------------------
 /*!
- * \class MetricForFileMixin
+ * \class MetricForFileTypes
  * \brief Define key types needed for MetricForFile.
  *
  */
-//--------------------
-struct MetricForFileMixin {
+//-----------------------------------------------------------------------------
+
+struct MetricForFileTypes {
+
   // NOTE: currently metrics are always written in single precision.
+  // If need to change, this is the place to do it.
   typedef uint32_t IntForFile_t;
   typedef BasicTypes::FP32 FloatForFile_t;
+
 };
 
-//--------------------
+//-----------------------------------------------------------------------------
 /*!
  * \class MetricForFile
  * \brief Helper class to hold one metric as stored in file.
  *
  */
-//--------------------
+//-----------------------------------------------------------------------------
+
 template<int NUM_WAY>
-class MetricForFile : public MetricForFileMixin {
+class MetricForFile : public MetricForFileTypes {
 
   // Storage for the coords and value for the metric as stored in file.
-  // NOTE: because of read, this class cannot have storage for
-  // any other members except these two, exactly like this.
+  // NOTE: because of the read call, this class cannot have storage for
+  // any other members except these two, in this order.
   IntForFile_t coords_[NUM_WAY];
   FloatForFile_t value_;
 
@@ -148,7 +153,7 @@ private:
  */
 //-----------------------------------------------------------------------------
 
-class SingleMetricIO : public MetricForFileMixin {
+class SingleMetricIO : public MetricForFileTypes {
 
 public:
 
@@ -206,7 +211,7 @@ private:
 
   // Disallowed methods.
 
-  SingleMetricIO(  const SingleMetricIO&);
+  SingleMetricIO(const SingleMetricIO&);
   void operator=(const SingleMetricIO&);
 
 };
@@ -218,7 +223,8 @@ private:
  *
  */
 //-----------------------------------------------------------------------------
-class MetricsIO : public MetricForFileMixin {
+
+class MetricsIO : public MetricForFileTypes {
 
 public:
 
@@ -230,7 +236,11 @@ public:
   void deallocate();
 
   void write(GMMetrics& metrics);
+
   void check_file(GMMetrics& metrics);
+
+  template<typename Float_t>
+  void check_file_impl_(GMMetrics& metrics);
 
   size_t num_written() const {return num_written_;}
 
@@ -248,8 +258,8 @@ private:
   const std::string path_stub_str_;
   FILE* file_;
   int verbosity_;
-  size_t num_written_;
-  size_t num_written_last_write_;
+  NML_t num_written_;
+  NML_t num_written_last_write_;
   bool is_allocated_;
 
   size_t bytes_(size_t num) const {
@@ -260,7 +270,7 @@ private:
 
   // Disallowed methods.
 
-  MetricsIO(   const MetricsIO&);
+  MetricsIO(const MetricsIO&);
   void operator=(const MetricsIO&);
 };
 

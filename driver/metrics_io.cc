@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdint"
 #include "string.h"
 //#include "errno.h"
+#include "typeinfo"
 
 #include "env.hh"
 #include "metrics.hh"
@@ -67,11 +68,17 @@ SingleMetricIO::SingleMetricIO(FILE* file, GMMetrics& metrics, CEnv& env)
   if (stdout == file_)
     return;
 
-  typedef size_t IndexMax_t;
+  // Check for adequate size for indexes.
+
+  typedef BasicTypes::BigUInt IndexMax_t;
   const auto index_max = static_cast<IndexMax_t>(metrics.num_vector_active) *
     (env_.is_metric_type_bitwise() ? 2 : 1) - 1;
   COMET_INSIST_INTERFACE(&env, index_max ==
      static_cast<IndexMax_t>(static_cast<IntForFile_t>(index_max)) &&
+                "Too many vectors for output format.");
+  // Check this also just to be sure - this check may be unnecessary.
+  COMET_INSIST_INTERFACE(&env, index_max ==
+     static_cast<IndexMax_t>(static_cast<NV_t>(index_max)) &&
                 "Too many vectors for output format.");
 }
 
@@ -92,6 +99,7 @@ void SingleMetricIO::write(NV_t iG, NV_t jG, Float_t value) const {
   const auto iG_for_file = safe_cast_assert<IntForFile_t>(iG);
   const auto jG_for_file = safe_cast_assert<IntForFile_t>(jG);
 
+  // Do the writes to the file.
   success = success && write_<IntForFile_t>(iG_for_file, bytes_written);
   success = success && write_<IntForFile_t>(jG_for_file, bytes_written);
   success = success && write_<FloatForFile_t>(value_for_file, bytes_written);
@@ -119,6 +127,7 @@ void SingleMetricIO::write(NV_t iG, NV_t jG, NV_t kG, Float_t value) const {
   const auto jG_for_file = safe_cast_assert<IntForFile_t>(jG);
   const auto kG_for_file = safe_cast_assert<IntForFile_t>(kG);
 
+  // Do the writes to the file.
   success = success && write_<IntForFile_t>(iG_for_file, bytes_written);
   success = success && write_<IntForFile_t>(jG_for_file, bytes_written);
   success = success && write_<IntForFile_t>(kG_for_file, bytes_written);
@@ -136,7 +145,7 @@ void SingleMetricIO::write(NV_t iG, NV_t jG, NV_t kG, Float_t value) const {
  */
 template<typename Float_t>
 void SingleMetricIO::write(NV_t iG, NV_t jG, int iE, int jE,
-                         Float_t value) const {
+                           Float_t value) const {
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
 
@@ -151,7 +160,7 @@ void SingleMetricIO::write(NV_t iG, NV_t jG, int iE, int jE,
  */
 template<typename Float_t>
 void SingleMetricIO::write(NV_t iG, NV_t jG, NV_t kG,
-                         int iE, int jE, int kE, Float_t value) const {
+                           int iE, int jE, int kE, Float_t value) const {
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(kE >= 0 && kE < 2);
@@ -169,9 +178,11 @@ void SingleMetricIO::write(NV_t iG, NV_t jG, NV_t kG,
  *
  */
 template<typename Float_t>
-static void MetricsIO_write_impl_(
-  GMMetrics& metrics, FILE* file, size_t& num_written_, CEnv& env) {
+static void MetricsIO_write_impl_(GMMetrics& metrics, FILE* file,
+                                  NML_t& num_written_, CEnv& env) {
   COMET_INSIST(file);
+  COMET_INSIST(env.is_double_prec() == (typeid(Float_t) == typeid(double)));
+  COMET_INSIST(!env.is_double_prec() == (typeid(Float_t) == typeid(float)));
 
   if (! env.is_proc_active())
     return;
@@ -179,6 +190,10 @@ static void MetricsIO_write_impl_(
   // Due to field-redundancy, only results from some processors are needed.
   if (env.proc_num_field() != 0)
     return;
+
+  const bool is_writing_to_stdout = stdout == file;
+
+  typedef double FloatForStdout_t;
 
   //--------------------
   if (env.data_type_metrics() == DataTypeId::FLOAT &&
@@ -189,22 +204,26 @@ static void MetricsIO_write_impl_(
 
     COMET_INSIST(!env.thresholds().is_multi());
 
+    // Loop over metric item candidates for write.
     for (NML_t index = 0; index < metrics.num_metrics_local; ++index) {
       const NV_t iG = Metrics_coords_getG(metrics, index, 0, env);
       const NV_t jG = Metrics_coords_getG(metrics, index, 1, env);
+      // Skip if in vector pad.
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active)
         continue;
 
+      // Directly access the metrics values array.
       const auto value = Metrics_elt_const<Float_t>(metrics, index, env);
 
+      // Do not write if doesn't pass threshold.
       if (!env.thresholds().is_pass(value))
         continue;
 
-      /// Output the value.
-      if (stdout == file)
+      // Output the value.
+      if (is_writing_to_stdout)
         fprintf(file, "element (%li,%li): value: %.17e\n",
-          iG, jG, static_cast<double>(value));
+          iG, jG, static_cast<FloatForStdout_t>(value));
       else
         writer.write(iG, jG, value);
 
@@ -214,31 +233,35 @@ static void MetricsIO_write_impl_(
 
   //--------------------
   } else if (env.data_type_metrics() == DataTypeId::FLOAT) {
+          // && env.num_way() == NumWay::_3
   //--------------------
-    COMET_INSIST(env.num_way() == NumWay::_3);
 
     SingleMetricIO writer(file, metrics, env);
 
     COMET_INSIST(!env.thresholds().is_multi());
 
+    // Loop over metric item candidates for write.
     for (NML_t index = 0; index < metrics.num_metrics_local; ++index) {
       const NV_t iG = Metrics_coords_getG(metrics, index, 0, env);
       const NV_t jG = Metrics_coords_getG(metrics, index, 1, env);
       const NV_t kG = Metrics_coords_getG(metrics, index, 2, env);
+      // Skip if in vector pad.
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active ||
           kG >= metrics.num_vector_active)
         continue;
 
+      // Directly access the metrics values array.
       const auto value = Metrics_elt_const<Float_t>(metrics, index, env);
 
+      // Do not write if doesn't pass threshold.
       if (!env.thresholds().is_pass(value))
         continue;
 
       // Output the value.
-      if (stdout == file)
+      if (is_writing_to_stdout)
         fprintf(file, "element (%li,%li,%li): value: %.17e\n",
-          iG, jG, kG, value);
+          iG, jG, kG, static_cast<FloatForStdout_t>(value));
       else
         writer.write(iG, jG, kG, value);
 
@@ -249,40 +272,41 @@ static void MetricsIO_write_impl_(
   //--------------------
   } else if (env.data_type_metrics() == DataTypeId::TALLY2X2) {
   //--------------------
+
     COMET_INSIST(env.num_way() == NumWay::_2);
     COMET_INSIST(env.is_metric_type_bitwise());
 
     SingleMetricIO writer(file, metrics, env);
 
-    // Loop over metric items.
+    // Loop over metric item candidates for write.
     for (NML_t index = 0; index < metrics.num_metric_items_local_computed;
          ++index) {
       const MetricItemCoords_t coords = metrics.coords_value(index);
       const NV_t iG = CoordsInfo::getiG(coords, metrics, env);
       const NV_t jG = CoordsInfo::getjG(coords, metrics, env);
+      // Skip if in vector pad.
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active)
         continue;
+
       // Loop over metric entries in this item.
       for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
         const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
 
-        //const GMFloat value = Metrics_ccc_duo_get_2(metrics,
-        //  index, iE, jE, env);
-        //TODO: obtain result here in correct precision !!!
-        const Float_t value = Metrics_ccc_duo_get_2(metrics,
-          index, entry_num, env);
+        // Extract or calculate the metric value.
+        const auto value = Metrics_ccc_duo_get_2<Float_t>(metrics, index,
+          entry_num, env);
 
         // For non-shrink case, metric not thresholded yet, so threshold.
-        if (!Metrics_is_pass_threshold(metrics, index, iE, jE, env))
+        if (!Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, env))
           continue;
 
         // Output the value.
-        if (stdout == file)
+        if (is_writing_to_stdout)
           fprintf(file, "element (%li,%li) (%i,%i): value: %.17e\n",
-            iG, jG, iE, jE, static_cast<double>(value));
+            iG, jG, iE, jE, static_cast<FloatForStdout_t>(value));
         else
           writer.write(iG, jG, iE, jE, value);
 
@@ -294,23 +318,26 @@ static void MetricsIO_write_impl_(
   //--------------------
   } else { // if (env.data_type_metrics() == DataTypeId::TALLY4X2)
   //--------------------
+
     COMET_INSIST(env.data_type_metrics() == DataTypeId::TALLY4X2);
     COMET_INSIST(env.num_way() == NumWay::_3);
     COMET_INSIST(env.is_metric_type_bitwise());
 
     SingleMetricIO writer(file, metrics, env);
 
-    // Loop over metric items.
+    // Loop over metric item candidates for write.
     for (NML_t index = 0; index < metrics.num_metric_items_local_computed;
          ++index) {
       const MetricItemCoords_t coords = metrics.coords_value(index);
       const NV_t iG = CoordsInfo::getiG(coords, metrics, env);
       const NV_t jG = CoordsInfo::getjG(coords, metrics, env);
       const NV_t kG = CoordsInfo::getkG(coords, metrics, env);
+      // Skip if in vector pad.
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active ||
           kG >= metrics.num_vector_active)
         continue;
+
       // Loop over metric entries in this item.
       for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
            ++entry_num) {
@@ -318,18 +345,18 @@ static void MetricsIO_write_impl_(
         const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
         const int kE = CoordsInfo::getkE(coords, entry_num, metrics, env);
 
-        //TODO: obtain result here in correct precision !!!
-        const Float_t value = Metrics_ccc_duo_get_3(metrics,
-          index, entry_num, env);
+        // Extract or calculate the metric value.
+        const auto value = Metrics_ccc_duo_get_3<Float_t>(metrics, index,
+          entry_num, env);
 
         // For non-shrink case, metric not thresholded yet, so threshold.
-        if (!Metrics_is_pass_threshold(metrics, index, iE, jE, kE, env))
+        if (!Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, kE, env))
           continue;
 
         // Output the value.
-        if (stdout == file)
+        if (is_writing_to_stdout)
           fprintf(file, "element (%li,%li,%li) (%i,%i,%i): value: %.17e\n",
-            iG, jG, kG, iE, jE, kE, static_cast<double>(value));
+            iG, jG, kG, iE, jE, kE, static_cast<FloatForStdout_t>(value));
         else
           writer.write(iG, jG, kG, iE, jE, kE, value);
 
@@ -348,9 +375,8 @@ static void MetricsIO_write_impl_(
  * \brief Write to file or print the metrics.
  *
  */
-static void MetricsIO_write_(
-  GMMetrics& metrics, FILE* file, size_t& num_written_, CEnv& env) {
-
+static void MetricsIO_write_(GMMetrics& metrics, FILE* file,
+                             NML_t& num_written_, CEnv& env) {
   if (!env.is_double_prec())
     MetricsIO_write_impl_<float>(metrics, file, num_written_, env);
   else
@@ -452,7 +478,8 @@ void MetricsIO::write(GMMetrics& metrics) {
  * \brief Check the metrics elements most recently written to the file.
  *
  */
-void MetricsIO::check_file(GMMetrics& metrics) {
+template<typename Float_t>
+void MetricsIO::check_file_impl_(GMMetrics& metrics) {
 
   if (! env_.is_proc_active())
     return;
@@ -484,7 +511,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   size_t num_incorrect = 0;
 
-  for (size_t index_f = 0; index_f < num_written_last_write_; ++index_f) {
+  for (NML_t index_f = 0; index_f < num_written_last_write_; ++index_f) {
 
     //--------------------
     if (env_.num_way() == NumWay::_2) {
@@ -492,71 +519,60 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
       // Read current metric from file.
 
-      MetricForFile<NumWay::_2> metric;
-      metric.read(file_, env_);
+      MetricForFile<NumWay::_2> metric_f;
+      metric_f.read(file_, env_);
 
-      const NV_t iG = metric.iG(env_);
-      const NV_t jG = metric.jG(env_);
-
-      const int iE = metric.iE(env_);
-      const int jE = metric.jE(env_);
+      const auto iG_f = metric_f.iG(env_);
+      const auto jG_f = metric_f.jG(env_);
+      const auto iE_f = metric_f.iE(env_);
+      const auto jE_f = metric_f.jE(env_);
 
       // Access current metric from memory.
 
       const auto metric_value = env_.is_shrink() ?
-        Metrics_ccc_duo_get_2(metrics, index_f, 0, env_) :
-        GMMetrics_get_2(metrics, iG, jG, iE, jE, env_);
+        // Extract lone metric entry for index.
+        Metrics_ccc_duo_get_2<Float_t>(metrics, index_f, 0, env_) :
+        // Extract or compute single table entry from metric.
+        GMMetrics_get_2<Float_t>(metrics, iG_f, jG_f, iE_f, jE_f, env_);
 
-      // Compare.
+      // Infer index represented by coords stored in file.
+      // NOTE: throws assertion if these global coords not on this rank.
+      // NOTE: may differ from index_f because the latter skips
+      // thresholded values and this may not.
+      const NML_t index_m = Metrics_index_2(metrics, iG_f, jG_f, env_);
 
-      const NML_t index = Metrics_index_2(metrics, iG, jG, env_);
+      // Compare indexing.
 
       bool do_coords_match = true;
-      if (env_.is_shrink()) {
-        MetricItemCoords_t coords = metrics.coords_value(index);
+
+      if (!env_.is_shrink()) {
+        // NOTE: the following is only valid for non-shrink case.
+        MetricItemCoords_t coords = metrics.coords_value(index_m);
         do_coords_match =
-          CoordsInfo::getiG(coords, metrics, env_) == iG &&
-          CoordsInfo::getjG(coords, metrics, env_) == jG;
+          CoordsInfo::getiG(coords, metrics, env_) == iG_f &&
+          CoordsInfo::getjG(coords, metrics, env_) == jG_f;
       }
 
-//FIXTHRESHOLD - how to handle not is_shrink case
-#if 0
-CASE 1: not threshold_tc. then MetricFormat::PACKED_DOUBLE. then need to access full table here (see earlier in file for how to do this). Note this is sort of inefficient, done 4-8 times when only need once.
-CASE 2: threshold_tc (MetricFormat::SINGLE), not is_shrink: just get table entry, as above, check for nonzero and whether equal
-CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to apply threshold
+      // NOTE: for is_shrink case, some metric entries may be
+      // unavailable to check thresholding (specif., if is_multi),
+      // so this call will not entirely check this case.
 
-      bool pass_threshold = true;
-      if (!env->is_shrink()) {
-        if (env->is_threshold_tc()) {
-          typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index_f, env);
-          pass_threshold = !env->thresholds().is_zero(ttable, iE, jE);
-            continue;
-        } else { // ! env->is_threshold_tc()
-          typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
-          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index_f, env);
-          pass_threshold = env->thresholds().is_pass(ttable, iE, jE);
-        } // if (env->is_threshold_tc())
-      } // if (!env->is_shrink())
+      const bool pass_threshold =
+        Metrics_is_pass_threshold_noshrink<Float_t>(metrics, index_m, iE_f, jE_f, env_);
 
-#endif
-
-      //const bool pass_threshold = env_.pass_threshold(metric_value);
-      //const bool pass_threshold = env_.thresholds().is_pass(metric_value);
-
-      const bool pass_threshold = Metrics_is_pass_threshold(metrics, index, iE, jE, env_);
-
-      const bool is_correct =
-        static_cast<FloatForFile_t>(metric_value) == metric.value() &&
-        pass_threshold && do_coords_match;
+      const bool is_correct = do_coords_match && pass_threshold && 
+        static_cast<FloatForFile_t>(metric_value) == metric_f.value();
 
       num_incorrect += !is_correct;
 
+      // Output some representative failures.
       if (num_incorrect < 10 && !is_correct)
-        fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu  %i %i actual %.17e expected %.17e pass_threshold %i\n",
-          iG, jG, iE, jE, static_cast<double>(metric_value),
-          static_cast<double>(metric.value()), pass_threshold);
+        fprintf(stderr, "Incorrect metric value in file: element %zu %zu "
+          " %i %i actual %.17e expected %.17e pass_threshold %i coords_match %i\n",
+          iG_f, jG_f, iE_f, jE_f,
+          static_cast<double>(metric_f.value()),
+          static_cast<double>(metric_value),
+          pass_threshold, do_coords_match);
 
     //--------------------
     } else { // if (env_.num_way() == NumWay::_3)
@@ -564,70 +580,57 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
 
       // Read current metric from file.
 
-      MetricForFile<NumWay::_3> metric;
-      metric.read(file_, env_);
+      MetricForFile<NumWay::_3> metric_f;
+      metric_f.read(file_, env_);
 
-      const NV_t iG = metric.iG(env_);
-      const NV_t jG = metric.jG(env_);
-      const NV_t kG = metric.kG(env_);
-
-      const int iE = metric.iE(env_);
-      const int jE = metric.jE(env_);
-      const int kE = metric.kE(env_);
+      const auto iG_f = metric_f.iG(env_);
+      const auto jG_f = metric_f.jG(env_);
+      const auto kG_f = metric_f.kG(env_);
+      const auto iE_f = metric_f.iE(env_);
+      const auto jE_f = metric_f.jE(env_);
+      const auto kE_f = metric_f.kE(env_);
 
       // Access current metric from memory.
 
       const auto metric_value = env_.is_shrink() ?
-        Metrics_ccc_duo_get_3(metrics, index_f, 0, env_) :
-        GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
+        // Extract lone metric entry for index.
+        Metrics_ccc_duo_get_3<Float_t>(metrics, index_f, 0, env_) :
+        GMMetrics_get_3<Float_t>(metrics, iG_f, jG_f, kG_f, iE_f, jE_f, kE_f, env_);
 
-      // Compare.
+      // Infer index represented by coords stored in file.
+      // NOTE: throws assertion if these global coords not on this rank.
+      // NOTE: may differ from index_f because the latter skips
+      // thresholded values and this may not.
+      const NML_t index_m = Metrics_index_3(metrics, iG_f, jG_f, kG_f, env_);
 
-      const NML_t index = Metrics_index_3(metrics, iG, jG, kG, env_);
+      // Compare indexing.
 
       bool do_coords_match = true;
-      if (env_.is_shrink()) {
-        MetricItemCoords_t coords = metrics.coords_value(index);
+
+      if (!env_.is_shrink()) {
+        // NOTE: the following is only valid for non-shrink case.
+        MetricItemCoords_t coords = metrics.coords_value(index_m);
         do_coords_match =
-          CoordsInfo::getiG(coords, metrics, env_) == iG &&
-          CoordsInfo::getjG(coords, metrics, env_) == jG &&
-          CoordsInfo::getkG(coords, metrics, env_) == kG;
+          CoordsInfo::getiG(coords, metrics, env_) == iG_f &&
+          CoordsInfo::getjG(coords, metrics, env_) == jG_f &&
+          CoordsInfo::getkG(coords, metrics, env_) == kG_f;
       }
 
-//FIXTHRESHOLD - how to handle not is_shrink case - see above for 2-way
+      const bool pass_threshold =
+        Metrics_is_pass_threshold_noshrink<Float_t>(metrics, index_m, iE_f, jE_f, kE_f, env_);
 
-#if 0
-      bool pass_threshold = true;
-      if (!env->is_shrink()) {
-        if (env->is_threshold_tc()) {
-          typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index_f, env);
-          pass_threshold = !env->thresholds().is_zero(ttable, iE, jE, kE);
-            continue;
-        } else { // ! env->is_threshold_tc()
-          typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
-          const auto ttable = Metrics_elt_const<TTable_t>(metrics, index_f, env);
-          pass_threshold = env->thresholds().is_pass(ttable, iE, jE, kE);
-        } // if (env->is_threshold_tc())
-      } // if (!env->is_shrink())
-
-#endif
-
-      //const bool pass_threshold = env_.pass_threshold(metric_value);
-      //const bool pass_threshold = env_.thresholds().is_pass(metric_value);
-      const bool pass_threshold = Metrics_is_pass_threshold(metrics, index, iE, jE, kE, env_);
-
-      const bool is_correct =
-        static_cast<FloatForFile_t>(metric_value) == metric.value() &&
-        pass_threshold && do_coords_match;
+      const bool is_correct = do_coords_match && pass_threshold && 
+        static_cast<FloatForFile_t>(metric_value) == metric_f.value();
 
       num_incorrect += !is_correct;
 
       if (!is_correct && num_incorrect < 10)
-        fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu %zu  %i %i %i actual %.17e expected %.17e pass_threshold %i\n",
-          iG, jG, kG, iE, jE, kE, static_cast<double>(metric_value),
-          static_cast<double>(metric.value()), pass_threshold);
+        fprintf(stderr, "Incorrect metric value in file: " "element %zu %zu %zu "
+          " %i %i %i actual %.17e expected %.17e pass_threshold %i coords_match %i\n",
+          iG_f, jG_f, kG_f, iE_f, jE_f, kE_f,
+          static_cast<double>(metric_f.value()),
+          static_cast<double>(metric_value),
+          pass_threshold, do_coords_match);
 
     //--------------------
     } // if (env_.num_way() == NumWay::_2)
@@ -642,7 +645,7 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
   // Test 2: count metrics (in memory) passing threshold, compare to num written.
   //----------------------------------------
 
-  size_t num_passed = 0;
+  NML_t num_passed = 0;
 
   //--------------------
   if (env_.num_way() == NumWay::_2) {
@@ -652,38 +655,15 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
          ++index) {
       const NV_t iG = Metrics_coords_getG(metrics, index, 0, env_);
       const NV_t jG = Metrics_coords_getG(metrics, index, 1, env_);
+      // Skip if in vector pad.
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active)
         continue;
-      if (env_.is_shrink()) {
-        num_passed += 1;
-      } else {
-//FIXTHRESHOLD - get metrics table, use for the individual comparisons
-        for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
-          for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
-            //const auto metric_value =
-            //  GMMetrics_get_2(metrics, index, iE, jE, env_);
-
-#if 0
-            bool pass_threshold = true;
-            if (env->is_threshold_tc()) {
-              typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-              const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-              pass_threshold = !env->thresholds().is_zero(ttable, iE, jE);
-                continue;
-            } else { // ! env->is_threshold_tc()
-              typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
-              const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-              pass_threshold = env->thresholds().is_pass(ttable, iE, jE);
-            } // if (env->is_threshold_tc())
-#endif
-
-            //num_passed += env_.pass_threshold(metric_value);
-            //num_passed += env_.thresholds().is_pass(metric_value);
-            num_passed += Metrics_is_pass_threshold(metrics, index, iE, jE, env_);
-          }
+      for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
+        for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
+          num_passed += Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, env_);
         }
-      } // if is_shrink
+      }
     } // for index
 
   //--------------------
@@ -695,41 +675,18 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
       const NV_t iG = Metrics_coords_getG(metrics, index, 0, env_);
       const NV_t jG = Metrics_coords_getG(metrics, index, 1, env_);
       const NV_t kG = Metrics_coords_getG(metrics, index, 2, env_);
+      // Skip if in vector pad.
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active ||
           kG >= metrics.num_vector_active)
         continue;
-      if (env_.is_shrink()) {
-        num_passed += 1;
-      } else {
-//FIXTHRESHOLD - get metrics table, use for the individual comparisons
-        for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
-          for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
-            for (int kE = 0; kE < env_.ijkE_max(); ++kE) {
-              //const auto metric_value =
-              //  GMMetrics_get_3(metrics, index, iE, jE, kE, env_);
-
-#if 0
-              bool pass_threshold = true;
-              if (env->is_threshold_tc()) {
-                typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-                const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-                pass_threshold = !env->thresholds().is_zero(ttable, iE, jE, kE);
-                  continue;
-              } else { // ! env->is_threshold_tc()
-                typedef Tally2x2<MetricFormat::PACKED_DOUBLE> TTable_t;
-                const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-                pass_threshold = env->thresholds().is_pass(ttable, iE, jE, kE);
-              } // if (env->is_threshold_tc())
-#endif
-
-              //num_passed += env_.pass_threshold(metric_value);
-              //num_passed += env_.thresholds().is_pass(metric_value);
-              num_passed += Metrics_is_pass_threshold(metrics, index, iE, jE, kE, env_);
-            }
+      for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
+        for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
+          for (int kE = 0; kE < env_.ijkE_max(); ++kE) {
+            num_passed += Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, kE, env_);
           }
         }
-      } // if is_shrink
+      }
     } // for index
 
   //--------------------
@@ -759,6 +716,30 @@ CASE 3: threshold_tc, is_shrink: file should match metrics exactly, no need to a
 
 //-----------------------------------------------------------------------------
 /*!
+ * \brief Check the metrics elements most recently written to the file.
+ *
+ */
+void MetricsIO::check_file(GMMetrics& metrics) {
+  if (!env_.is_double_prec())
+    check_file_impl_<float>(metrics);
+  else
+    check_file_impl_<double>(metrics);
+}
+
+//-----------------------------------------------------------------------------
+
+static int num_digits_needed(int n) {
+  COMET_ASSERT(n >= 1);
+  int r = 0;
+  for (int tmp = 1; ; tmp*=10, ++r) {
+    if (tmp > n)
+      break;
+  }
+  return r;
+}
+
+//-----------------------------------------------------------------------------
+/*!
  * \brief Open (one-per-rank set of) metrics files.
  *
  */
@@ -771,68 +752,46 @@ void MetricsIO::open_(const char* mode) {
 
   // Prepare to form filename.
 
+  const int num_digits_proc = num_digits_needed(env_.num_proc());
+  const int num_digits_phase = num_digits_needed(env_.num_phase());
+  const int num_digits_stage = num_digits_needed(env_.num_stage());
+
   const char* path_stub = path_stub_str_.c_str();
 
-  size_t len = strlen(path_stub);
-  char* path = (char*)malloc((len+100) * sizeof(char));
+  const size_t len = strlen(path_stub);
+  const size_t len_path_max = len + num_digits_proc + num_digits_phase
+    + num_digits_stage + 100;
+
+  char* path = (char*)malloc(len_path_max * sizeof(char));
   COMET_INSIST(path);
 
-  int num_digits_proc = 0;
-  for (int tmp = 1; ; tmp*=10, ++num_digits_proc) {
-    if (tmp > env_.num_proc()) {
-      break;
-    }
-  }
+  // Create a formt string for forming the filename.
+  // It will ensure the embedded numbers in the filenames have enough digits.
 
-  // Create a formt string for forming filename.
-  char format[100];
+  enum {LEN_FORMAT_MAX = 100};
+  char format[LEN_FORMAT_MAX];
 
   if (is_leaving_files_open_()) {
 
-    //sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
-    sprintf(format, "%%s"
-                    "_"
-                    "%%0" "%i" "i"
-                    ".bin",
-            num_digits_proc);
-    sprintf(path, format, path_stub, env_.proc_num());
+    // Filename only stores proc num.
 
-    //sprintf(path, "%s_%*i.bin", path_stub, num_digits_proc, env_.proc_num());
+    sprintf(format, "%%s" "_" "%%0" "%i" "i" ".bin", num_digits_proc);
+    sprintf(path, format, path_stub, env_.proc_num());
 
   } else { // ! is_leaving_files_open_()
 
-    int num_digits_phase = 0;
-    for (int tmp = 1; ; tmp*=10, ++num_digits_phase) {
-      if (tmp > env_.num_phase())
-        break;
-    }
+    // Filename stores proc num, phase num, stage num.
 
-    int num_digits_stage = 0;
-    for (int tmp = 1; ; tmp*=10, ++num_digits_stage) {
-      if (tmp > env_.num_stage())
-        break;
-    }
-
-    sprintf(format, "%%s"
-                    "_"
-                    "%%0" "%i" "i"
-                    "_"
-                    "%%0" "%i" "i"
-                    "_"
-                    "%%0" "%i" "i"
-                    ".bin",
+    sprintf(format, "%%s" "_" "%%0" "%i" "i"
+                          "_" "%%0" "%i" "i"
+                          "_" "%%0" "%i" "i" ".bin",
             num_digits_proc, num_digits_phase, num_digits_stage);
     sprintf(path, format, path_stub,
             env_.proc_num(), env_.phase_num(), env_.stage_num());
 
-    //sprintf(path, "%s_%*i_%*i_%*i.bin", path_stub,
-    //  num_digits_proc, env_.proc_num(),
-    //  num_digits_phase, env_.phase_num(),
-    //  num_digits_stage, env_.stage_num());
-
   } // is_leaving_files_open_()
 
-  // Do open
+  // Do the open.
 
   file_ = fopen(path, mode);
   COMET_INSIST(NULL != file_ && "Unable to open file.");
@@ -869,26 +828,24 @@ bool MetricsIO::can_write_file(const char* path_stub, CEnv& env) {
 
   // Form filename
 
-  size_t len = strlen(path_stub);
-  char* path = (char*)malloc((len+100) * sizeof(char));
+  const size_t len = strlen(path_stub);
+  const size_t len_path_max = len + 100;
+
+  char* path = (char*)malloc(len_path_max * sizeof(char));
   COMET_INSIST(path);
 
-  int num_digits = 0;
-  for (int tmp = 1; ; tmp*=10, ++num_digits) {
-    if (tmp > env.num_proc()) {
-      break;
-    }
-  }
+  const int num_digits_proc = num_digits_needed(env.num_proc());
 
-  char format[100];
-  sprintf(format, "%s0%ii.IO_TEST_FILE.bin", "%s_%", num_digits);
+  enum {LEN_FORMAT_MAX = 100};
+  char format[LEN_FORMAT_MAX];
+
+  sprintf(format, "%s0%ii.IO_TEST_FILE.bin", "%s_%", num_digits_proc);
 
   sprintf(path, format, path_stub, env.proc_num());
 
-  // Do open
+  // Do the open.
 
   FILE* const file = fopen(path, "wb");
-  //COMET_INSIST(file);
 
   bool result = NULL != file;
 

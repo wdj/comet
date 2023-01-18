@@ -377,6 +377,26 @@ static FloatResult_t Metrics_ccc_duo_get_3(
     metrics, index, iE, jE, kE, env);
 }
 
+//-----------------------------------------------------------------------------
+
+template<typename FloatResult_t>
+static FloatResult_t Metrics_ccc_duo_get_3(
+  GMMetrics& metrics, NML_t index, int entry_num, CEnv& env) {
+
+  return Metrics_ccc_duo_get_3<CBPE::NONE, FloatResult_t>(metrics, index,
+    entry_num, env);
+}
+
+//-----------------------------------------------------------------------------
+
+template<typename FloatResult_t>
+static FloatResult_t Metrics_ccc_duo_get_3(
+  GMMetrics& metrics, NML_t index, int iE, int jE, int kE, CEnv& env) {
+
+  return Metrics_ccc_duo_get_3<CBPE::NONE, FloatResult_t>(metrics, index,
+    iE, jE, kE, env);
+}
+
 #if 0
 //-----------------------------------------------------------------------------
 /// \brief Templatized Check if any table value may exceed threshold.
@@ -600,7 +620,8 @@ static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
 //=============================================================================
 // Accessors: value from index: get: 3-way.
 
-static GMFloat GMMetrics_get_3(GMMetrics& metrics,
+template<typename FloatResult_t>
+FloatResult_t GMMetrics_get_3(GMMetrics& metrics,
   NML_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(index >= 0 && index < metrics.num_metrics_local);
@@ -609,11 +630,10 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   COMET_ASSERT(kE >= 0 && kE < env.ijkE_max());
 
   COMET_ASSERT(!env.is_shrink()); //FIX
-  const GMFloat result =
+  const auto result =
     env.metric_type() == MetricType::CZEK ?
-      //Metrics_get<GMFloat>(metrics, index, env) :
-      Metrics_elt_const<GMFloat>(metrics, index, env) :
-      (GMFloat)Metrics_ccc_duo_get_3(metrics, index, iE, jE, kE, env);
+      Metrics_elt_const<FloatResult_t>(metrics, index, env) :
+      Metrics_ccc_duo_get_3<FloatResult_t>(metrics, index, iE, jE, kE, env);
 
   return result;
 }
@@ -621,7 +641,8 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 //=============================================================================
 // Accessors: value from (global) coord: get: 3-way.
 
-static GMFloat GMMetrics_get_3(GMMetrics& metrics,
+template<typename FloatResult_t>
+FloatResult_t GMMetrics_get_3(GMMetrics& metrics,
   NV_t iG, NV_t jG, NV_t kG, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
@@ -632,7 +653,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 
   const NML_t index = Metrics_index_3(metrics, iG, jG, kG, env);
 
-  const GMFloat result = GMMetrics_get_3(metrics, index, iE, jE, kE, env);
+  const auto result = GMMetrics_get_3<FloatResult_t>(metrics, index, iE, jE, kE, env);
 
   return result;
 }
@@ -640,7 +661,8 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 //=============================================================================
 // Accessors: determine whether pass threshold: 3-way.
 
-static bool Metrics_is_pass_threshold( GMMetrics& metrics,
+template<typename Float_t = GMFloat>
+bool Metrics_is_pass_threshold_noshrink(GMMetrics& metrics,
   NML_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
@@ -648,14 +670,18 @@ static bool Metrics_is_pass_threshold( GMMetrics& metrics,
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(kE >= 0 && kE < 2);
 
-  if (!env.is_metric_type_bitwise()) {
-    const auto metric_value = Metrics_elt_const<GMFloat>(metrics, index, env);
-    return env.thresholds().is_pass(metric_value);
-  }
-
   bool result = true;
 
-  // If is_shrink, then already thresholded out in TC package.
+  if (!env.is_metric_type_bitwise()) {
+    const auto metric_value = Metrics_elt_const<Float_t>(metrics, index, env);
+    result = env.thresholds().is_pass(metric_value);
+    return result;
+  }
+
+  // NOTE: If is_shrink, then it may not be possible on the CPU to check
+  // whether passed threshold (specif., if thresholds.is_multi()).
+  // So we will just mark as passed threshold, without the check.
+
   if (!env.is_shrink()) {
     if (env.is_threshold_tc()) {
 
@@ -670,17 +696,22 @@ static bool Metrics_is_pass_threshold( GMMetrics& metrics,
 
     } else { // ! env.is_threshold_tc()
 
-      // Convert to MetricFormat::SINGLE.
+      // Convert fromMetricFormat::PACKED_DOUBLE to MetricFormat::SINGLE.
+      // NOTE: for is_double / is_bitwise case, here we cast to float
+      // before doing thresholding test. This is consistent throughout
+      // (CHECK) so should work ok.
 
+      typedef MetricFormatTraits<MetricFormat::SINGLE>::TypeIn TypeIn;
       typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
       TTable_t ttable = TTable_t::null();
 
       for (int iE_ = 0; iE_ < 2; ++iE_) {
         for (int jE_ = 0; jE_ < 2; ++jE_) {
           for (int kE_ = 0; kE_ < 2; ++kE_) {
-            const GMFloat metric
-              = (GMFloat)GMMetrics_get_3(metrics, index, iE_, jE_, kE_, env);
-            TTable_t::set(ttable, iE_, jE_, kE_, metric);
+            const auto metric
+              = GMMetrics_get_3<Float_t>(metrics, index, iE_, jE_, kE_, env);
+            const auto metric_single = static_cast<TypeIn>(metric);
+            TTable_t::set(ttable, iE_, jE_, kE_, metric_single);
           }
         }
       }

@@ -179,7 +179,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
     typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
     const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
     TTable_t::TypeIn result = TTable_t::get(ttable, iE, jE);
-    return (FloatResult_t)result;
+    return static_cast<FloatResult_t>(result);
   }
 
   typedef double Float_t; // Perform all calcs in double until return.
@@ -354,7 +354,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
     }
   }
 
-  return (FloatResult_t)result_floatcalc;
+  return static_cast<FloatResult_t>(result_floatcalc);
 }
 
 //-----------------------------------------------------------------------------
@@ -395,6 +395,8 @@ static FloatResult_t Metrics_ccc_duo_get_2(
       metrics, index, iE, jE, env);
 }
 
+//-----------------------------------------------------------------------------
+
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
 static FloatResult_t Metrics_ccc_duo_get_2(
   GMMetrics& metrics, NML_t index, int entry_num, CEnv& env) {
@@ -412,6 +414,35 @@ static FloatResult_t Metrics_ccc_duo_get_2(
   return MetricsIndexCCCDUO2Helper<CBPE, FloatResult_t>::impl(  
     metrics, index, iE, jE, env);
 }
+
+//-----------------------------------------------------------------------------
+
+template<typename FloatResult_t>
+static FloatResult_t Metrics_ccc_duo_get_2(
+  GMMetrics& metrics, NML_t index, int entry_num, CEnv& env) {
+
+  return Metrics_ccc_duo_get_2<CBPE::NONE, FloatResult_t>(metrics, index,
+    entry_num, env);
+}
+
+//-----------------------------------------------------------------------------
+
+template<typename FloatResult_t>
+static FloatResult_t Metrics_ccc_duo_get_2(
+  GMMetrics& metrics, NML_t index, int iE, int jE, CEnv& env) {
+
+  return Metrics_ccc_duo_get_2<CBPE::NONE, FloatResult_t>(metrics, index,
+    iE, jE, env);
+}
+
+//-----------------------------------------------------------------------------
+
+//template<typename FloatResult_t>
+//static FloatResult_t Metrics_ccc_duo_get_2(
+//  GMMetrics& metrics, NML_t index, int iE, int jE, CEnv& env) {
+//    return MetricsIndexCCCDUO2Helper<CBPE::NONE, FloatResult_t>::impl(
+//      metrics, index, iE, jE, env);
+//}
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -600,17 +631,19 @@ static T Metrics_elt_const_2(GMMetrics& metrics, int i, int j, int j_block,
 //=============================================================================
 // Accessors: value from index: get: 2-way.
 
-static GMFloat GMMetrics_get_2(GMMetrics& metrics,
+template<typename FloatResult_t>
+FloatResult_t GMMetrics_get_2(GMMetrics& metrics,
   NML_t index, int iE, int jE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(index >= 0 && index < metrics.num_metrics_local);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
 
-  const GMFloat result =
+  COMET_ASSERT(!env.is_shrink()); //FIX
+  const auto result =
     env.metric_type() == MetricType::CZEK ?
-      Metrics_elt_const<GMFloat>(metrics, index, env) :
-      (GMFloat)Metrics_ccc_duo_get_2( metrics, index, iE, jE, env);
+      Metrics_elt_const<FloatResult_t>(metrics, index, env) :
+      Metrics_ccc_duo_get_2<FloatResult_t>(metrics, index, iE, jE, env);
 
   return result;
 }
@@ -618,17 +651,17 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 //=============================================================================
 // Accessors: value from (global) coord: get: 2-way.
 
-static GMFloat GMMetrics_get_2(GMMetrics& metrics,
+template<typename FloatResult_t>
+FloatResult_t GMMetrics_get_2(GMMetrics& metrics,
   NV_t iG, NV_t jG, int iE, int jE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
-
   // WARNING: these conditions are not exhaustive.
 
   const NML_t index = Metrics_index_2(metrics, iG, jG, env);
 
-  const GMFloat result = GMMetrics_get_2(metrics, index, iE, jE, env);
+  const auto result = GMMetrics_get_2<FloatResult_t>(metrics, index, iE, jE, env);
 
   return result;
 }
@@ -636,9 +669,10 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 //=============================================================================
 // Accessors: determine whether pass threshold: 2-way.
 
-static bool Metrics_is_pass_threshold(GMMetrics& metrics,
+template<typename Float_t = GMFloat>
+bool Metrics_is_pass_threshold_noshrink(GMMetrics& metrics,
   NML_t index, int iE, int jE, CEnv& env) {
-  COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
+  COMET_ASSERT(index+1 >= 0+1 && index < metrics.num_metrics_local);
   COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
@@ -646,12 +680,15 @@ static bool Metrics_is_pass_threshold(GMMetrics& metrics,
   bool result = true;
 
   if (!env.is_metric_type_bitwise()) {
-    const auto metric_value = Metrics_elt_const<GMFloat>(metrics, index, env);
+    const auto metric_value = Metrics_elt_const<Float_t>(metrics, index, env);
     result = env.thresholds().is_pass(metric_value);
     return result;
   }
 
-  // If is_shrink, then already thresholded out in TC package.
+  // NOTE: If is_shrink, then it may not be possible on the CPU to check
+  // whether passed threshold (specif., if thresholds.is_multi()).
+  // So we will just mark as passed threshold, without the check.
+
   if (!env.is_shrink()) {
     if (env.is_threshold_tc()) {
 
@@ -666,24 +703,29 @@ static bool Metrics_is_pass_threshold(GMMetrics& metrics,
 
     } else { // ! env.is_threshold_tc()
 
-      // Convert to MetricFormat::SINGLE.
+      // Convert fromMetricFormat::PACKED_DOUBLE to MetricFormat::SINGLE.
+      // NOTE: for is_double / is_bitwise case, here we cast to float
+      // before doing thresholding test. This is consistent throughout
+      // (CHECK) so should work ok.
 
+      typedef MetricFormatTraits<MetricFormat::SINGLE>::TypeIn TypeIn;
       typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
       TTable_t ttable = TTable_t::null();
 
       for (int iE_ = 0; iE_ < 2; ++iE_) {
         for (int jE_ = 0; jE_ < 2; ++jE_) {
-          const GMFloat metric
-            = (GMFloat)GMMetrics_get_2(metrics, index, iE_, jE_, env);
-          TTable_t::set(ttable, iE_, jE_, metric);
-        }
-      }
+          const auto metric
+            = GMMetrics_get_2<Float_t>(metrics, index, iE_, jE_, env);
+          const auto metric_single = static_cast<TypeIn>(metric);
+          TTable_t::set(ttable, iE_, jE_, metric_single);
+        } // for jE_
+      } // for iE_
 
       if (!env.thresholds().is_pass(ttable, iE, jE))
         result = false;
 
     } // if (env.is_threshold_tc())
-  } // if (!envs_shrink())
+  } // if (!env.is_shrink())
 
   return result;
 }

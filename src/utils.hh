@@ -232,14 +232,13 @@ static int log2(const T& n) {
   if (n <= 1)
     return 0;
 
-  size_t n_ = n - 1;
+  size_t n_residual = n - 1;
 
   int r = 0; 
   for ( ; r <= static_cast<int>(sizeof(T)*BITS_PER_BYTE); ++r) {
-    if (n_ == 0) {
+    if (0 == n_residual)
       break;
-    }
-    n_ >>= 1;
+    n_residual >>= 1;
   }
 
   COMET_ASSERT(r >= 1);
