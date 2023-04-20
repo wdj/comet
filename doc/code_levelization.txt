@@ -119,12 +119,12 @@ Code levelization: subpackage dependencies
           [3-way: index cache struct to reuse expensive index calcs]
 
 
-10a. vector_sums.hh (depends on 8a)
+10a. vector_sums.hh (depends on 9a)
      vector_sums.cc
           Compute the denominators needed by the methods
           [CCC: REF method computes 2-bits at a time, CPU whole word]
           [if num_proc_field > 1, need reduction]
-10b. checksum.hh (depends on 8b)
+10b. checksum.hh (depends on 9b)
      checksum.cc
           Utility to compute checksum of data in a metrics object
           [checksum per element is hashed-global-index times metric-value]
@@ -164,7 +164,7 @@ Code levelization: subpackage dependencies
           [allocate-once memory to reuse across calls, for speed]
 
 
-12a. compute_metrics_2way.hh (depends on 10a)
+12a. compute_metrics_2way.hh (depends on 11a)
      compute_metrics_2way.cc
           Calculate metrics, 2-way
           [pipeline loop over blocks]
@@ -172,7 +172,7 @@ Code levelization: subpackage dependencies
           [use "lock" mechanism to check for potential race conditions]
           [struct to keep track of current, next-step, lagged-step variables]
           [two options for order of operations, for speed]
-12b. compute_metrics_3way.hh (depends on 10b)
+12b. compute_metrics_3way.hh (depends on 11b)
      compute_metrics_3way.cc
           Calculate metrics, 3-way
           [pipeline loops over blocks (or blocks X slices)]

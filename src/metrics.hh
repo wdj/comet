@@ -95,7 +95,10 @@ struct GMMetrics {
 
   enum {NUM_SECTION_MAX = 6};
 
-  // Logical sizes.
+  //-----
+  // Sizes.
+  //-----
+
   int num_field_local;
   int num_field;
   size_t num_field_active;
@@ -104,10 +107,27 @@ struct GMMetrics {
   NV_t num_vector_active;
   int J_lo_part3_[NUM_SECTION_MAX];
   int J_wi_part3_[NUM_SECTION_MAX];
+
+  // Number of metrics to compute for this compute_metrics call, this rank.
   NML_t num_metrics_local;
+
+  // Same as num_metrics_local except excludes padding in number of vectors.
+  NML_t num_metrics_active_local;
+
+  // Same as num_metrics_local except measured in units of "metric item".
   NML_t num_metric_items_local;
+
+  // Amout of storage space allocated to store metric items.
   NML_t num_metric_items_local_allocated;
+
+//  // Number of metrics items currently buffered in memory.
+//  NML_t num_metric_items_local_buffered;
+
+  // Running total of number computed, this compute_metrics call, this rank.
+  NML_t num_metric_items_local_computed;
+
   // Helper values.
+
   double recip_m;
   NML_t index_offset_part2_;
   NML_t index_offset_part3_;
@@ -120,31 +140,37 @@ struct GMMetrics {
   int phase_block_start_part3_;
   int block_min_part2_;
   int num_steps_2way;
+
   // Data arrays.
-  void* __restrict__ data;
-  void* __restrict__ data_S;
-  void* __restrict__ data_C;
+
   size_t data_elt_size;
   size_t data_S_elt_size;
   size_t data_C_elt_size;
+  void* __restrict__ data;
+  void* __restrict__ data_S;
+  void* __restrict__ data_C;
   // Map of (contig) index to linearized Cartesian coords.
   MetricItemCoords_t* __restrict__ coords_;
-  // Accessor.
+  
+  // Accessors.
+
   MetricItemCoords_t coords_value(NML_t index) const {
     COMET_ASSERT(index+1 >= 1 && index < num_metric_items_local_allocated);
     return coords_[index];
   }
+
   // Counters.
-  NML_t num_metric_items_local_computed;
+
   void num_metric_items_local_computed_inc(size_t n) {
     num_metric_items_local_computed += n;
   }
+
   double shrink_achieved_local() const {
     double fuzz = 1;
     return num_metric_items_local == num_metric_items_local_computed ? 1 :
       num_metric_items_local / (num_metric_items_local_computed + fuzz);
   }
-  NML_t num_metrics_active_local;
+
   // Other.
   int data_type_id;
   GMDecompMgr* dm;

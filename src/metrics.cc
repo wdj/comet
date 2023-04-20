@@ -548,6 +548,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_metrics_local = 0;
   metrics->num_metric_items_local = 0;
   metrics->num_metric_items_local_allocated = 0;
+//  metrics->num_metric_items_local_buffered = 0;
   metrics->num_metric_items_local_computed = 0;
   metrics->num_metrics_active_local = 0;
 

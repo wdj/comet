@@ -220,7 +220,7 @@ void MagmaWrapper::finalize_() {
 
   } else if (use_mgemm2_(env_)) { //--------------------
 
-    MAGMA_SAFE_CALL(magma_mgemm3_finalize(), "Finalize error.");
+    MAGMA_SAFE_CALL(magma_mgemm2_finalize(), "Finalize error.");
     env_.queues_terminate<MagmaQueue<MagmaCloneId::MGEMM3>>();
 
   } else if (use_mgemm3_(env_)) { //--------------------

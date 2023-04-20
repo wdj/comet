@@ -1691,6 +1691,7 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
+  export HIP_PATH="$ROCM_PATH/hip"
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
@@ -1794,7 +1795,8 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=map_gpu:0,1,2,3,4,5,6,7"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=closest --gpus-per-node=8 -u"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N2 -n64 --cpus-per-task=2 --ntasks-per-node=32 --gpu-bind=closest --gpus-per-node=8 -u"
+    local COMET_TEST_COMMAND="env OMP_PROC_BIND=spread OMP_PLACES=sockets OMP_NUM_THREADS=7 srun -N8 -n64 --cpus-per-task=7 --ntasks-per-node=8 --gpus-per-task=1 --gpu-bind=single:1 -u"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
@@ -1829,6 +1831,7 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
+  export HIP_PATH="$ROCM_PATH/hip"
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
