@@ -1033,7 +1033,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
 
     if (NumWay::_2 == env.num_way()) {
 
-      if (is_computing_histograms)
+      if (is_computing_histograms) {
 
         COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF, Float_t,
                                ThresholdsHelper, HistogramsHelper2Way>),
@@ -1047,7 +1047,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           histograms.get_ptr(), histograms.num_buckets(),
           *gemm_shapes.gemm_shape_2way);
 
-      else
+      } else {
 
         COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF, Float_t,
                                                        ThresholdsHelper>),
@@ -1058,9 +1058,11 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           is_using_xor,
           thresholds_data, tc_debug);
 
+      } // if (is_computing_histograms)
+
     } else { // if (NumWay::_3 == env.num_way())
 
-      if (is_computing_histograms)
+      if (is_computing_histograms) {
 
         COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF, Float_t,
                                ThresholdsHelper, HistogramsHelper3Way>),
@@ -1075,7 +1077,7 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           histograms.get_ptr(), histograms.num_buckets(),
           *gemm_shapes.gemm_shape_3way);
 
-      else
+      } else {
 
         COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF, Float_t,
                                                        ThresholdsHelper>),
@@ -1086,6 +1088,8 @@ void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
           J, step_2way, param, multiplier,
           is_using_xor,
           thresholds_data, tc_debug);
+
+      } // if (is_computing_histograms)
 
     } // if env.num_way()
 

@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
 
   } // line_num
 
-  printf("%s metric number of elements validated: %ul of %ul: %s\n",
+  printf("%s metric number of elements validated: %zu of %zu: %s\n",
          metric_type_prec, num_validated, num_checked,
          num_validated == num_checked ? "=== PASSED ===" : "");
 

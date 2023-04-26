@@ -695,7 +695,7 @@ void MetricsIO::check_file_impl_(GMMetrics& metrics) {
 
   if (num_passed != num_written_last_write_)
     fprintf(stderr, "Incorrect number of metrics written: "
-      "actual %zu expected %zu\n", num_written_last_write_, num_passed);
+      "actual %lld expected %lld\n", num_written_last_write_, num_passed);
 
   COMET_INSIST(num_passed == num_written_last_write_ &&
                "Incorrect number of metrics written.");

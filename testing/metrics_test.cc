@@ -60,16 +60,19 @@ void MetricsTest_3way_num_metrics_local_() {
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
+  typedef comet::NV_t NV_t;
+  typedef comet::NML_t NML_t;
+
   const size_t num_proc_mock = 20;
-  const size_t nvl = 12;
+  const NV_t nvl = 12;
   const int num_stage = 2;
 
-  const auto num_vector = nvl * num_proc_mock;
+  const NV_t num_vector = nvl * num_proc_mock;
 
-  const auto num_metrics_local_expected = num_vector * (num_vector-1) *
+  const NML_t num_metrics_local_expected = num_vector * (NML_t)(num_vector-1) *
                                           (num_vector-2) / 6;
 
-  size_t num_metrics_local = 0;
+  NML_t num_metrics_local = 0;
 
   const char options_template[] = "--num_proc_vector %zu --verbosity 0 "
                                   "--num_vector_local %zu --num_field 1 "
@@ -96,7 +99,7 @@ void MetricsTest_3way_num_metrics_local_() {
     } // for
 
     printf("--------------------------------------- "
-           "Metrics elements found %lu, expected %" PRIu64 "."
+           "Metrics elements found %" PRId64 ", expected %" PRId64 "."
            " ---------------------------------------\n",
            num_metrics_local, num_metrics_local_expected);
 

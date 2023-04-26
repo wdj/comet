@@ -214,7 +214,7 @@ static void tc_gemm_start_impl_(
   const int nvl = n;
   const int npfl = k;
   const int d = tc_gemm_faxis_divisibility_required(env);
-  COMET_INSIST(npfl % d == 0);
+  COMET_INSIST(d > 0 && npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);

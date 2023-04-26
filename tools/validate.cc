@@ -442,11 +442,28 @@ int calculate_metric_elt(char* metric_type_prec, int num_way,
   // Permute labels to output each result with a uniform order of labels.
   // By convention assume output line nums increasing, e.g. "0 1" not "1 0".
 
+  //struct Perm {
+  //  Perm(int v0, int v1) : data{v0, v1, 0} {}
+  //  Perm(int v0, int v1, int v2) : data{v0, v1, v2} {}
+  //  int& operator[](int i) {return data[i];}
+  //  int data[NUM_WAY_MAX];
+  //};
+
   struct Perm {
-    Perm(int v0, int v1) : data{v0, v1, 0} {}
-    Perm(int v0, int v1, int v2) : data{v0, v1, v2} {}
-    int& operator[](int i) {return data[i];}
     int data[NUM_WAY_MAX];
+    //Perm(int v0, int v1) : data{v0, v1, 0} {}
+    Perm(int v0, int v1) {
+      data[0] = v0;
+      data[1] = v1;
+      data[2] = 0;
+    }
+    //Perm(int v0, int v1, int v2) : data{v0, v1, v2} {}
+    Perm(int v0, int v1, int v2) {
+      data[0] = v0;
+      data[1] = v1;
+      data[2] = v2;
+    }
+    int& operator[](int i) {return data[i];}
   };
 
   Perm perm = 2 == num_way
@@ -477,8 +494,11 @@ int calculate_metric_elt(char* metric_type_prec, int num_way,
   for (int way_num=0; way_num<num_way; ++way_num) {
     int iperm = perm[way_num];
     printf(" %s", line_label[iperm]);
-    if (!is_czek)
-      printf("_%c", allele_labels[iperm][bit_num[iperm]]);
+    if (!is_czek) {
+      char mystr[] = "_%c";
+      printf(mystr, // "_%c",
+             allele_labels[iperm][bit_num[iperm]]);
+    }
   } // for way_num
 
   printf(" %f\n", value);

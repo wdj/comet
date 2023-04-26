@@ -155,8 +155,8 @@ int main(int argc, char** argv) {
 
       // Get allele labels if needed.
 
-      allele_label[way_num][0] == no_allele;
-      allele_label[way_num][1] == no_allele;
+      allele_label[way_num][0] = no_allele;
+      allele_label[way_num][1] = no_allele;
       if (allele_label_file) {
         const int fseek_success = fseek(allele_label_file,
           (allele_label_len+1)*vector_num[way_num], SEEK_SET);
@@ -209,10 +209,20 @@ int main(int argc, char** argv) {
     // By convention assume output line nums increasing, e.g. "0 1" not "1 0".
 
     struct Perm {
-      Perm(int v0, int v1) : data{v0, v1, 0} {}
-      Perm(int v0, int v1, int v2) : data{v0, v1, v2} {}
-      int& operator[](int i) {return data[i];}
       int data[NUM_WAY_MAX];
+      //Perm(int v0, int v1) : data{v0, v1, 0} {}
+      Perm(int v0, int v1) {
+        data[0] = v0;
+        data[1] = v1;
+        data[2] = 0;
+      }
+      //Perm(int v0, int v1, int v2) : data{v0, v1, v2} {}
+      Perm(int v0, int v1, int v2) {
+        data[0] = v0;
+        data[1] = v1;
+        data[2] = v2;
+      }
+      int& operator[](int i) {return data[i];}
     };
 
     Perm perm = 2 == num_way

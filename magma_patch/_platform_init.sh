@@ -25,7 +25,7 @@ COMET_HOST="$(echo $(hostname -f) | \
 [[ $(hostname -f | sed -e 's/.*\.//') = "juwels" ]] && COMET_HOST="juwels"
 # [[ $(echo "$COMET_HOST" | sed -e 's/.*\.//') = "jwlogin" ]] && COMET_HOST="jwlogin"
 [[ "${NERSC_HOST:-}" = "perlmutter" ]] && COMET_HOST="perlmutter"
-[[ "$LMOD_SYSTEM_NAME" = "frontier" ]] && COMET_HOST="frontier"
+[[ "${LMOD_SYSTEM_NAME:-}" = "frontier" ]] && COMET_HOST="frontier"
 
 local COMET_PLATFORM=""
 [[ -n "${CRAYOS_VERSION:-}" ]] && COMET_PLATFORM=CRAY_XK7 # OLCF Titan, Chester
@@ -748,7 +748,7 @@ elif [ $COMET_PLATFORM = MACOS ] ; then
   local USE_GCC=OFF
   local COMET_C_COMPILER=$(which gcc) # presently unused
   local COMET_CXX_COMPILER=$(which g++) # presently unused
-  local COMET_CXX_SERIAL_COMPILER=g++
+  local COMET_CXX_SERIAL_COMPILER=$(which g++)
   local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++17"
 
   local USE_OPENMP=OFF

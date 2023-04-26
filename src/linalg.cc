@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief GEMM start, A matrix+column case.
+/// \brief GEMM start, general case (including A matrix+column case).
 
 void LinAlg::gemm_start(
   size_t m, size_t n, size_t k,
@@ -59,7 +59,7 @@ void LinAlg::gemm_start(
   int step_2way, GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
   GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
-  COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
+  COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
   if (!m || !n || !k)
     return;
@@ -112,7 +112,7 @@ void LinAlg::gemm_start(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GEMM wait, A matrix+column case.
+/// \brief GEMM wait, general case (including A matrix+column case).
 
 void LinAlg::gemm_wait(
   size_t m, size_t n, size_t k,
@@ -122,7 +122,7 @@ void LinAlg::gemm_wait(
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
   int step_2way, GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
-  COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
+  COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
   if (!m || !n || !k)
     return;

@@ -164,9 +164,14 @@ function main
     gunzip <mpi-stub.tar.gz | tar xf -
     pushd mpi-stub
     make CC=$CXX_COMPILER
+#rm lib/libmpi.a
+echo \
+/usr/bin/ranlib $BUILD_DIR/mpi-stub/lib/libmpi.a
+/usr/bin/ranlib $BUILD_DIR/mpi-stub/lib/libmpi.a
     popd
     COMET_MPI_COMPILE_OPTS="-I$BUILD_DIR/mpi-stub/include"
     COMET_MPI_LINK_OPTS="-L$BUILD_DIR/mpi-stub/lib -lmpi"
+    #COMET_MPI_LINK_OPTS="$BUILD_DIR/mpi-stub/src/mpi.o"
   else
     local C_COMPILER=$COMET_C_COMPILER
     local CXX_COMPILER=$COMET_CXX_COMPILER

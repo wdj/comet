@@ -98,10 +98,15 @@ static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
 #else
 # define COMET_LAUNCH_KERNEL(name, \
     numthreadblocks, threadblocksize, sharedmem, stream, ...) \
-    {numthreadblocks; \
-     threadblocksize; \
-     COMET_INSIST(false && "Attempt to launch kernel for non-accelerator build.");};
+    { \
+      numthreadblocks; \
+      threadblocksize; \
+      COMET_INSIST(false && "Attempt to launch kernel for non-accelerator build."); \
+    }
 #endif
+
+//      no_unused_variable_warning<const int>(numthreadblocks); \
+//      no_unused_variable_warning<const int>(threadblocksize); \
 
 //-----------------------------------------------------------------------------
 
