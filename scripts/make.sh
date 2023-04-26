@@ -3,6 +3,9 @@
 #
 # Build CoMet code.
 #
+# NOTE: it is recommended that this script not be called directly but
+# instead that the script make_all.sh be used.
+#
 #==============================================================================
 
 # Exit immediately on error.
@@ -34,15 +37,27 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function main
 {
+  # Initializations.
+
   # Location of this script.
-  #local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-  local SCRIPT_DIR=$(script_dir)
+  #local SCRIPT_DIR=$(script_dir)
+  local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
+
+  # make.
 
   time make -j4 VERBOSE=1
 
@@ -50,8 +65,27 @@ function main
     exit $?
   fi
 
+  # make install.
+
   time make install
-  exit $?
+
+  if [ $? != 0 ] ; then
+    exit $?
+  fi
+
+  # make and install the tools.
+
+  (cd $REPO_DIR && tar cf - tools) | tar xf -
+  pushd tools
+  make
+  for FILE in $(ls *.cc) ; do
+    cp $(basename $FILE .cc) ../install_dir/bin
+  done
+  for FILE in $(ls *.sh) ; do
+    cp $FILE ../install_dir/bin
+  done
+  popd
+
 } # main
 
 #==============================================================================

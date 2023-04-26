@@ -4,9 +4,34 @@
  * \author Wayne Joubert
  * \date   Fri Nov  6 18:18:21 EST 2015
  * \brief  Tester for driver.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "stdio.h"
 #include "stdlib.h"
@@ -14,7 +39,12 @@
 #include "math.h"
 #include "string"
 
-#include "gtest/gtest.h"
+#ifdef COMET_USE_GTEST
+# include "gtest/gtest.h"
+#else
+# define GTEST_API_
+# define EXPECT_EQ(a, b) COMET_INSIST((a) == (b));
+#endif
 
 #include "env.hh"
 #include "vectors.hh"
@@ -60,7 +90,7 @@ void DriverTest_perf_() {
 
     CEnv env(MPI_COMM_WORLD, options[i]);
 
-    perform_run(options[i], MPI_COMM_WORLD, &env);
+    Driver::perform_run(options[i], MPI_COMM_WORLD, env);
 
     const double ops = env.ops();
     const double ops_rate_proc = ops / (env.ctime() * env.num_proc());
@@ -79,15 +109,28 @@ void DriverTest_perf_() {
 
 //=============================================================================
 
+#ifdef COMET_USE_GTEST
+
 TEST(DriverTest, perf) {
   DriverTest_perf_();
 }
+
+#else
+
+int RUN_ALL_TESTS() {
+  DriverTest_perf_();
+  return 0;
+}
+
+#endif
 
 //=============================================================================
 
 GTEST_API_ int main(int argc, char** argv) {
 
-  ::testing::InitGoogleTest(&argc, argv);
+# ifdef COMET_USE_GTEST
+    ::testing::InitGoogleTest(&argc, argv);
+# endif
 
   COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
@@ -95,9 +138,11 @@ GTEST_API_ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   if (comm_rank != 0) {
-    ::testing::TestEventListeners& listeners =
-      ::testing::UnitTest::GetInstance()->listeners();
-    delete listeners.Release(listeners.default_result_printer());
+#   ifdef COMET_USE_GTEST
+      ::testing::TestEventListeners& listeners =
+        ::testing::UnitTest::GetInstance()->listeners();
+      delete listeners.Release(listeners.default_result_printer());
+#   endif
   }
 
   int result = RUN_ALL_TESTS();

@@ -39,22 +39,75 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function do_make
 {
   # Location of this script.
   local SCRIPT_DIR=$(script_dir)
+  #local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  #local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  cp ../$COMET_MAGMA_MAKE_INC make.inc
-  local _CMGA_=$COMET_MAGMA_GPU_ARCH
-  time env CUDA_DIR=$CUDA_ROOT \
-    GPU_TARGET=sm$_CMGA_ MIN_ARCH=350 \
-    NV_SM=" -gencode arch=compute_${_CMGA_},code=sm_${_CMGA_}" \
-    NV_COMP=" -gencode arch=compute_${_CMGA_},code=compute_${_CMGA_}" \
-  make lib CC=$COMET_CXX_SERIAL_COMPILER -j8
+  if [ ${USE_CUDA:-OFF} = ON ] ; then
+    cp ../$COMET_MAGMA_MAKE_INC make.inc
+    local _CMGA_=$COMET_MAGMA_GPU_ARCH
+    time env CUDA_DIR=$CUDA_ROOT \
+      GPU_TARGET=sm$_CMGA_ MIN_ARCH=350 \
+      NV_SM=" -gencode arch=compute_${_CMGA_},code=sm_${_CMGA_}" \
+      NV_COMP=" -gencode arch=compute_${_CMGA_},code=compute_${_CMGA_}" \
+    make lib CC=$COMET_CXX_SERIAL_COMPILER -j8
+  fi
+
+  if [ ${USE_HIP:-OFF} = ON ] ; then
+    cp make.inc-examples/make.inc.hip_openblas make.inc
+    if [ "${COMET_MAGMA_MAKE_INC:-}" != "" ] ; then
+      cp ../$COMET_MAGMA_MAKE_INC make.inc
+    fi
+    local _CMGA_=$COMET_MAGMA_GPU_ARCH
+
+    #sed -i -e 's/GPU_TARGET = gfx803 gfx900 gfx901/GPU_TARGET = gfx906 gfx908/' make.inc
+    sed -i -e "s/GPU_TARGET = gfx803 gfx900 gfx901/GPU_TARGET = $_CMGA_/" make.inc
+    #sed -i -e 's/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=gfx906,gfx908/' make.inc
+    #sed -i -e 's/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=gfx908,gfx90a/' make.inc
+    sed -i -e "s/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=$_CMGA_ -fno-legacy-pass-manager/" make.inc
+#    if [ ${USE_BLIS:-OFF} = ON ] ; then
+#      sed -i -e 's/lopenblas/lblis/' make.inc
+#      export OPENBLASDIR=$PWD/../../blis/blis
+    if [ ${USE_LAPACK:-OFF} = ON ] ; then
+      sed -i -e 's/lopenblas/lrefblas/' make.inc
+      sed -i -e 's/-frecursive/-frecursive -fPIC/' make.inc
+      export OPENBLASDIR=$PWD/../../lapack/lapack
+    else
+      #sed -i -e 's/lopenblas/lsci_cray/' make.inc
+      #export OPENBLASDIR=$CRAY_LIBSCI_PREFIX
+      export OPENBLASDIR=$OLCF_OPENBLAS_ROOT
+      export CPLUS_INCLUDE_PATH=$OLCF_ROCM_ROOT/include:${CPLUS_INCLUDE_PATH:-}
+    fi
+
+    env HIPDIR=$HIP_PATH make -f make.gen.hipMAGMA_*
+
+    # tools/codegen.py fails on non-ascii characters in files, thus:
+    sed -i -e '122d' magma_*blas_hip/zlarfg.hip.cpp
+    sed -i -e '93d' magma_*blas_hip/zlarfg-v2.hip.cpp
+    sed -i -e '100d' magma_*blas_hip/zlarfgx-v2.hip.cpp
+    sed -i -e '128d' magma_*blas_hip/zlarfgx-v2.hip.cpp
+    sed -i -e '595d' testing/magma_*_generate.cpp
+    sed -i -e '13d' sparse/blas/zgeellrtmv.cu
+    sed -i -e '115d' sparse/blas/zgeellrtmv.cu
+    sed -i -e '64d' sparse/blas/zgeellrtmv.cu
+    sed -i -e 's/.*#include .*cublas.h.*//' include/*.h
+
+    env HIPDIR=$HIP_PATH  make lib -j16
+  fi
 }
 
 #==============================================================================

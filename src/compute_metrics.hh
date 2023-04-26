@@ -4,12 +4,37 @@
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Top-level function to calculate metrics.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 
-#ifndef _comet_compute_metrics_hh_
-#define _comet_compute_metrics_hh_
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
+
+#ifndef _COMET_COMPUTE_METRICS_HH_
+#define _COMET_COMPUTE_METRICS_HH_
 
 #include "env.hh"
 #include "vectors.hh"
@@ -23,31 +48,45 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/*!
+ * \class ComputeMetrics
+ * \brief Top-level class for computing metrics.
+ *
+ */
+//-----------------------------------------------------------------------------
 
 class ComputeMetrics {
 
 public:
 
+  // Constructors, destructors.
   ComputeMetrics(GMDecompMgr& dm, CEnv& env);
   ~ComputeMetrics();
 
-  void compute(GMMetrics& metrics, GMVectors& vectors);
+  // De/allocation.
+  void allocate();
+  void deallocate();
 
-  static void compute(GMMetrics& metrics, GMVectors& vectors,
+  // Compute the metrics.
+  void compute(GMMetrics& metrics, Vectors& vectors);
+
+  // Constructor + compute + destructor.
+  static void compute(GMMetrics& metrics, Vectors& vectors,
     CEnv& env);
 
 private:
 
   CEnv& env_;
+  GMDecompMgr& dm_;
+  bool is_allocated_;
 
   ComputeMetrics2Way* compute_metrics_2way_;
   ComputeMetrics3Way* compute_metrics_3way_;
 
   void compute_stats_(GMMetrics& metrics);
 
-  bool can_run_() const {return env_.is_proc_active();}
-
-  // Convenience class for timing code blocks.
+  //----------
+  // Internal convenience class for timing code blocks.
 
   class CodeBlockTimer {
   public:
@@ -60,7 +99,13 @@ private:
   private:
     CEnv& env_;
     double time_begin_;
-  };
+
+    // Disallowed methods.
+
+    CodeBlockTimer(  const CodeBlockTimer&);
+    void operator=(const CodeBlockTimer&);
+  }; // CodeBlockTimer
+  //----------
 
   // Disallowed methods.
 
@@ -73,6 +118,8 @@ private:
 
 } // namespace comet
 
-#endif // _comet_compute_metrics_hh_
+//-----------------------------------------------------------------------------
+
+#endif // _COMET_COMPUTE_METRICS_HH_
 
 //-----------------------------------------------------------------------------

@@ -1,17 +1,43 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   tc_copyout.i.hh
+ * \file   tc_out.i.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, tc package: copying data from the accelerator.
- * \note   Copyright (C) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 
-#ifndef _comet_tc_copyout_i_hh_
-#define _comet_tc_copyout_i_hh_
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
+
+#ifndef _COMET_TC_OUT_I_HH_
+#define _COMET_TC_OUT_I_HH_
 
 #include "formulas.hh"
+#include "histograms.hh"
 
 //#include "env.hh"
 //#include "tc.hh"
@@ -56,8 +82,9 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i11 = ivo[ivo_offset1+1];
   const GemmOut_t i12 = ivo[ivo_offset1+2];
   const GemmOut_t i13 = ivo[ivo_offset1+3];
-//printf("%f %f %f %f %f %f %f %f\n", (float)i00, (float)i01, (float)i02, (float)i03, (float)i10, (float)i11, (float)i12, (float)i13);
-//printf("%i %i %i %i %i %i %i %i\n", (int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
+
+//printf("%i %i %i %i %i %i %i %i\n",
+//(int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
 
   // Apply the permutation:
 
@@ -78,17 +105,7 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i12p = i12;
   const GemmOut_t i13p = i13;
 
-//  // Use "shifter" to move a value to the upper half of the mantissa.
-//
-//  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
-//
-//  // Pack two 26-bit integers into mantissa of double.
-//
-//  const double o00 = (double)i00p + (double)i02p * shifter;
-//  const double o01 = (double)i01p + (double)i03p * shifter;
-//
-//  const double o10 = (double)i10p + (double)i12p * shifter;
-//  const double o11 = (double)i11p + (double)i13p * shifter;
+  // Pack two 26-bit integers into mantissa of double.
 
   MFType o00 = {}, o01 = {}, o10 = {}, o11 = {};
   MFT::encode(o00, i00p, i02p);
@@ -133,8 +150,8 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
 ///        The method can be explained as follows.
 ///        1. The input "left" and "right" matrices to the modified GEMM
 ///        can be thought of each as a group of column vectors.
-///        2. Each column (of 2-bit entries) is converted into two columns,
-///        with entries being the counts of 0 bits and 1 bits of the
+///        2. Each column (of 2-bit vector entries) is converted into two
+///        columns, with elements being the counts of 0 bits and 1 bits of the
 ///        original vectors.  Each pair of vectors is kept together
 ///        side-by-side in these new left and right matrices L and R.
 ///        3. The columns of L are permuted, to give L' = L P
@@ -201,11 +218,11 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
-  // always true, because of tc_gemm_divisibility_required()
+  // always true, because of tc_gemm_vaxis_divisibility_required()
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
   const int nvllD2 = nvll / 2;
 
-  typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
+  typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
   if (env.is_compute_method_gpu()) {
 
@@ -221,7 +238,7 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         nvl, nvll, nvllD2, vo);
 
-      System::accel_last_call_succeeded();
+      COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { // (!env.is_compute_method_gpu())
 
@@ -236,19 +253,310 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 }
 
 //=============================================================================
+
+class HistogramsHelperNone {
+public:
+
+  typedef Histograms::Elt_t Elt_t;
+
+  __host__ __device__ void add(double value, int indT_I, int indT_J, int indT_K = 0) {}
+
+  __host__ __device__ void finalize(Elt_t* histograms_ptr, int num_buckets) {}
+
+};
+
+//=============================================================================
+
+class HistogramsHelper2Way {
+
+  typedef HistogramID HID;
+  double entries[4];
+
+public:
+
+  typedef Histograms::Elt_t Elt_t;
+
+  __host__ __device__
+  void add(double value, int indT_I, int indT_J) {
+    entries[indT_J + 2 * indT_I] = value;
+  }
+
+  __host__ __device__
+  void finalize(Elt_t* histograms_ptr, int num_buckets) {
+    enum {LL=0, LH=1, HL=2, HH=3};
+
+    Histograms::add(histograms_ptr, num_buckets, entries[LL], HID::LL);
+    Histograms::add(histograms_ptr, num_buckets, entries[LH], HID::LH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HL], HID::LH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HH], HID::HH);
+    Histograms::add(histograms_ptr, num_buckets, entries[LL] + entries[HH],
+                                                              HID::LLHH);
+  }
+
+};
+
+//=============================================================================
+
+class HistogramsHelper3Way {
+  
+  typedef HistogramID HID;
+  double entries[8];
+
+public:
+
+  typedef Histograms::Elt_t Elt_t;
+
+  __host__ __device__
+  void add(double value, int indT_I, int indT_J, int indT_K) {
+    entries[4 * indT_I + 2 * indT_J + indT_K] = value;
+  }
+
+  __host__ __device__
+  void finalize(Elt_t* histograms_ptr, int num_buckets) {
+    enum {LLL=0, LLH=1, LHL=2, LHH=3, HLL=4, HLH=5, HHL=6, HHH=7};
+
+    Histograms::add(histograms_ptr, num_buckets, entries[LLL], HID::LLL);
+    Histograms::add(histograms_ptr, num_buckets, entries[LLH], HID::LLH);
+    Histograms::add(histograms_ptr, num_buckets, entries[LHL], HID::LLH);
+    Histograms::add(histograms_ptr, num_buckets, entries[LHH], HID::LHH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HLL], HID::LLH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HLH], HID::LHH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HHL], HID::LHH);
+    Histograms::add(histograms_ptr, num_buckets, entries[HHH], HID::HHH);    
+    Histograms::add(histograms_ptr, num_buckets, entries[LLL] + entries[HHH],
+                                                               HID::LLLHHH);
+  }
+
+};
+
+//=============================================================================
+
+template<int MF>
+class ThresholdsHelperNone {
+
+  typedef MetricFormatTraits<MF> MFT;
+  typedef typename MFT::Type MFType;
+  typedef typename MFT::TypeIn MFTypeIn;
+
+public:
+
+  typedef Thresholds::Elt_t Elt_t;
+  enum {NT = 1};
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, MFTypeIn& value0, MFTypeIn& value1) {} // NOOP
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, int jE, MFTypeIn& value0, MFTypeIn& value1) {} // NOOP
+
+  __host__ __device__
+  void finalize(const Thresholds::Data<NT> thresholds_data) {} // NOOP
+};
+
+//=============================================================================
+
+template<int MF>
+class ThresholdsHelperSingle {
+
+  typedef MetricFormatTraits<MF> MFT;
+  typedef typename MFT::Type MFType;
+  typedef typename MFT::TypeIn MFTypeIn;
+
+public:
+
+  typedef Thresholds::Elt_t Elt_t;
+  enum {NT = 1};
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, MFTypeIn& value0, MFTypeIn& value1) {
+    add_(thresholds_data, value0);
+    add_(thresholds_data, value1);
+  }
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, int jE, MFTypeIn& value0, MFTypeIn& value1) {
+    add_(thresholds_data, value0);
+    add_(thresholds_data, value1);
+  }
+
+  __host__ __device__
+  void finalize(const Thresholds::Data<NT> thresholds_data) {} // NOOP
+
+private:
+
+  __host__ __device__
+  void add_(const Thresholds::Data<NT> thresholds_data, MFTypeIn& value) {
+
+    // Check against threshold.
+    const bool pass_threshold = Thresholds::is_pass_active(
+      (Elt_t)value, thresholds_data.data[0]);
+
+    // Apply threshold.
+    if (!pass_threshold)
+      value = (MFTypeIn)0;
+  }
+};
+
+//=============================================================================
+
+template<int MF>
+class ThresholdsHelperMulti2Way {
+
+  typedef MetricFormatTraits<MF> MFT;
+  typedef typename MFT::Type MFType;
+  typedef typename MFT::TypeIn MFTypeIn;
+
+public:
+
+  typedef Thresholds::Elt_t Elt_t;
+  enum {NT = 4};
+
+  __host__ __device__
+  ThresholdsHelperMulti2Way()
+    : dvo_this_{} {}
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, MFTypeIn& value0, MFTypeIn& value1) {
+    dvo_this_[iE] = dvo_this;
+  }
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, int jE, MFTypeIn& value0, MFTypeIn& value1) {} // NOOP
+
+  __host__ __device__
+  void finalize(const Thresholds::Data<NT> thresholds_data) {
+
+    // Get table values.
+    MFTypeIn values[2][2]; // [iE][jE]
+    MFT::decode(values[0][0], values[0][1], *dvo_this_[0]);
+    MFT::decode(values[1][0], values[1][1], *dvo_this_[1]);
+
+    // Set non-pass table values to zero.
+    for (int iE = 0; iE < 2; ++iE) {
+      for (int jE = 0; jE < 2; ++jE) {
+        if (!Thresholds::is_pass(
+               thresholds_data.data[0], thresholds_data.data[1],
+               thresholds_data.data[2], thresholds_data.data[3],
+               iE, jE,
+               values[0][0], values[0][1],
+               values[1][0], values[1][1])) {
+          values[iE][jE] = (MFTypeIn)0;
+        }
+      }
+    }
+
+    // Store updated table values.
+    MFT::encode(*dvo_this_[0], values[0][0], values[0][1]);
+    MFT::encode(*dvo_this_[1], values[1][0], values[1][1]);
+  }
+
+private:
+
+  MFType* dvo_this_[2]; // [iE]
+};
+
+//=============================================================================
+
+template<int MF>
+class ThresholdsHelperMulti3Way {
+
+  typedef MetricFormatTraits<MF> MFT;
+  typedef typename MFT::Type MFType;
+  typedef typename MFT::TypeIn MFTypeIn;
+
+public:
+
+  typedef Thresholds::Elt_t Elt_t;
+  enum {NT = 5};
+
+  __host__ __device__
+  ThresholdsHelperMulti3Way()
+    : dvo_this_{} {}
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, MFTypeIn& value0, MFTypeIn& value1) {} // NOOP
+
+  __host__ __device__
+  void add(const Thresholds::Data<NT> thresholds_data, MFType* dvo_this,
+    int iE, int jE, MFTypeIn& value0, MFTypeIn& value1) {
+    dvo_this_[iE][jE] = dvo_this;
+  }
+
+  __host__ __device__
+  void finalize(const Thresholds::Data<NT> thresholds_data) {
+
+    // Get table values.
+    MFTypeIn values[2][2][2]; // [iE][jE][kE]
+    MFT::decode(values[0][0][0], values[0][0][1], *dvo_this_[0][0]);
+    MFT::decode(values[0][1][0], values[0][1][1], *dvo_this_[0][1]);
+    MFT::decode(values[1][0][0], values[1][0][1], *dvo_this_[1][0]);
+    MFT::decode(values[1][1][0], values[1][1][1], *dvo_this_[1][1]);
+
+    // Set non-pass table values to zero.
+    for (int iE = 0; iE < 2; ++iE) {
+      for (int jE = 0; jE < 2; ++jE) {
+        for (int kE = 0; kE < 2; ++kE) {
+          if (!Thresholds::is_pass(
+                 thresholds_data.data[0], thresholds_data.data[1],
+                 thresholds_data.data[2], thresholds_data.data[3],
+                 thresholds_data.data[4],
+                 iE, jE, kE,
+                 values[0][0][0], values[0][0][1],
+                 values[0][1][0], values[0][1][1],
+                 values[1][0][0], values[1][0][1],
+                 values[1][1][0], values[1][1][1])) {
+            values[iE][jE][kE] = (MFTypeIn)0;
+          }
+        }
+      }
+    }
+
+    // Store updated table values.
+    MFT::encode(*dvo_this_[0][0], values[0][0][0], values[0][0][1]);
+    MFT::encode(*dvo_this_[0][1], values[0][1][0], values[0][1][1]);
+    MFT::encode(*dvo_this_[1][0], values[1][0][0], values[1][0][1]);
+    MFT::encode(*dvo_this_[1][1], values[1][1][0], values[1][1][1]);
+  }
+
+private:
+
+  MFType* dvo_this_[2][2]; // [iE][jE]
+};
+
+//=============================================================================
 /// \brief Do thresholding of metrics: individual elements, 2-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT,
+         typename Float_t, class ThresholdsHelper,
+         class HistogramsHelper = HistogramsHelperNone,
+         class GemmShape = GemmShapeNone>
 __host__ __device__ void tc_threshold_2way_kernel_elt_(
+  int thread_r, int thread_c,
   int nvll, int nvl, void* vo,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
+  Float_t* sums_I, Float_t* sums_J, Float_t* counts_I, Float_t* counts_J,
   double param, double multiplier,
-  double threshold_eff, int thread_r, int thread_c) {
+//  Thresholds::Elt_t threshold,
+  bool is_using_xor,
+  const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
+  GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvll);
   COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
+
+  //----------
+  // Initializations.
+  //----------
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
@@ -256,38 +564,23 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   typedef typename MFT::Type MFType;
   typedef typename MFT::TypeIn MFTypeIn;
 
+  // Metrics array, represented as 64-bit elements, each with 2 entries.
+
   MFType* const dvo = (MFType*)vo;
 
-  // Indexing.
+  //----------
+  // Compute indexing.
+  //----------
 
   // The incoming matrix is of dimension nvll X nvl.
   // Each matrix element is 4 table entries, stored as 16 bytes.
   // The matrix is stored column major.
+
+  // NOMENCLATURE:
   // I, J - coordinate of element in the 2D plane.
   // indT_I, indT_J - indices into the 2x2 table at each coord
 
-  // TODO: use MirroredBuf class for indexing.
-
-  // Calculate cijk.
-
-  const int mftype_per_tallytable = Tally2x2<METRIC_FORMAT>::NUM;
-
-  GMTally1 cij = 0;
-  for (int indT_I = 0; indT_I < 2; ++indT_I) {
-
-    const size_t index_this = indT_I + mftype_per_tallytable * (
-                              thread_r + nvll * (
-                              thread_c));
-
-    const MFType dvo_this = dvo[index_this];
-
-    MFTypeIn values_this[2];
-    MFT::decode(values_this[0], values_this[1], dvo_this);
-
-    cij += (GMTally1)values_this[0] + (GMTally1)values_this[1];
-  }
-
-  const double recip_sumcij = 1e0 / cij;
+  // TODO: (maybe) use MirroredBuf class for indexing.
 
   const int I = thread_r;
   COMET_ASSERT(I >= 0 && I < nvll);
@@ -295,7 +588,9 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   const int J = thread_c;
   COMET_ASSERT(J >= 0 && J < nvl);
 
-  // (more) values to be plugged into CCC/DUO formula.
+  //----------
+  // Get some values needed for the CCC/DUO formula.
+  //----------
 
   const GMTally1 cI = (GMTally1)counts_I[I];
   const GMTally1 cJ = (GMTally1)counts_J[J];
@@ -305,63 +600,133 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
   const GMTally1 sI1 = (GMTally1)sums_I[I];
   const GMTally1 sJ1 = (GMTally1)sums_J[J];
+  const GMTally1 sI0 = CBPE * cI - sI1;
+  const GMTally1 sJ0 = CBPE * cJ - sJ1;
 
-  // Loops to update all 8 table values.
+  //----------
+  // Calculate cij, sum of all 4 metric entries at this I,J.
+  //----------
+
+  const int mftype_per_table = Tally2x2<METRIC_FORMAT>::NUM; // = 2
+  enum {indT_J_0 = 0, indT_J_1 = 1};
+
+  // Loop over entries in table.
+
+  GMTally1 cij = 0;
+  for (int indT_I = 0; indT_I < 2; ++indT_I) {
+    // NOTE: indT_J runs across the two packed values (unrolled below).
+
+    const size_t index = indT_I + mftype_per_table * (
+                         thread_r + nvll * (
+                         thread_c));
+
+    // Access entry of metrics array.
+    const MFType dvo_this = dvo[index];
+
+    const GMTally1 sI = indT_I == 0 ? sI0 : sI1;
+
+    // Access the two packed table entries from metrics array.
+    MFTypeIn values[2];
+    MFT::decode(values[indT_J_0], values[indT_J_1], dvo_this);
+
+    // Accumulate result.  Use special formula if xor-gemm.
+    cij += is_using_xor ?
+      ((sI + sJ0 - (GMTally1)values[indT_J_0])/2) +
+      ((sI + sJ1 - (GMTally1)values[indT_J_1])/2) :
+                   (GMTally1)values[indT_J_0] +
+                   (GMTally1)values[indT_J_1];
+  }
+
+  const double recip_sumcij = 1e0 / cij;
+
+  HistogramsHelper hhelper;
+  ThresholdsHelper thelper;
+
+  //----------
+  // Loop to compute and threshold for all table entries.
+  //----------
 
   for (int indT_I = 0; indT_I < 2; ++indT_I) {
 
-    const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
+    const GMTally1 sI = indT_I == 0 ? sI0 : sI1;
 
-    const size_t index_this = indT_I + mftype_per_tallytable * (
-                              thread_r + nvll * (
-                              thread_c));
+    const size_t index = indT_I + mftype_per_table * (
+                         thread_r + nvll * (
+                         thread_c));
 
-    MFType& dvo_this = dvo[index_this];
+    // Access entry of metrics array.
+    MFType& dvo_this = dvo[index];
 
-    MFTypeIn values_this[2];
-    MFT::decode(values_this[0], values_this[1], dvo_this);
+    // Access the two packed table entries from metrics array.
+    MFTypeIn values[2];
+    MFT::decode(values[indT_J_0], values[indT_J_1], dvo_this);
 
     for (int indT_J = 0; indT_J < 2; ++indT_J) {
 
-      const GMTally1 sJ = indT_J == 0 ? CBPE * cJ - sJ1 : sJ1;
+      const GMTally1 sJ = indT_J == 0 ? sJ0 : sJ1;
 
-      const MFTypeIn rij = values_this[indT_J];
+      // Get numerator value.  Use special formula if xor-gemm.
+      const auto rij = is_using_xor ?
+        ((sI + sJ - (GMTally1)values[indT_J])/2) :
+                    (GMTally1)values[indT_J];
 
-      const double metric_value =
-        0 == cI || 0 == cJ || 0 == cij ? 0e0 :
-        ccc_duo_value<CBPE, double>(
-          (GMTally1)rij, sI, sJ, recip_cI, recip_cJ,
+      // Apply CCC/DUO formula.
+      const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cij;
+      const double metric_entry = is_zero_denom ? 0e0 :
+        formulas::ccc_duo_value<CBPE, double>(
+          rij, sI, sJ, recip_cI, recip_cJ,
           recip_sumcij, multiplier, param);
 
-      const bool pass_threshold = CEnv::pass_threshold(metric_value,
-                                                       threshold_eff);
-
-      values_this[indT_J] = pass_threshold ? (MFTypeIn)metric_value :
-                                             (MFTypeIn)0;
+      // Save entry to store into histogram.
+      hhelper.add(metric_entry, indT_I, indT_J);
+      values[indT_J] = (MFTypeIn)metric_entry;
     } // indT_J
 
-    MFT::encode(dvo_this, values_this[0], values_this[1]);
+    // Apply threshold part 1.
+    thelper.add(thresholds_data, &dvo_this, indT_I, values[indT_J_0],
+      values[indT_J_1]);
+
+    // Store result back into metrics array.
+    MFT::encode(dvo_this, values[indT_J_0], values[indT_J_1]);
   } // indT_I
+
+  // Apply threshold part 2.
+  thelper.finalize(thresholds_data);
+
+  if (gemm_shape.is_inside(I, J))
+    hhelper.finalize(histograms_ptr, num_buckets);
 }
 
 //=============================================================================
 /// \brief Do thresholding of metrics: individual elements, 3-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT,
+         typename Float_t, class ThresholdsHelper,
+         class HistogramsHelper = HistogramsHelperNone,
+         class GemmShape = GemmShapeNone>
 __host__ __device__ void tc_threshold_3way_kernel_elt_(
+  int thread_r, int thread_c,
   int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
-  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int step_2way, double param, double multiplier,
-  double threshold_eff, int thread_r, int thread_c) {
+  Float_t* sums_I, Float_t* sums_J, Float_t* sums_K,
+  Float_t* counts_I, Float_t* counts_J, Float_t* counts_K,
+  uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
+//  Thresholds::Elt_t threshold,
+  bool is_using_xor,
+  const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
+  GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
-  COMET_ASSERT(nvll*2 == nvllX2);
-  COMET_ASSERT(nvll/2 == nvllD2);
+  COMET_ASSERT(nvll*2 == nvllX2 && nvll/2 == nvllD2);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvllD2);
   COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
+
+  //----------
+  // Initializations.
+  //----------
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
@@ -369,49 +734,39 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   typedef typename MFT::Type MFType;
   typedef typename MFT::TypeIn MFTypeIn;
 
+  // Metrics array, represented as 64-bit elements, each with 2 entries.
+
   MFType* const dvo = (MFType*)vo;
 
-  // Indexing.
+  //----------
+  // Compute indexing.
+  //----------
 
   // The incoming matrix is of dimension nvll X nvl.
   // Each matrix element is 4 table entries, stored as 16 bytes.
   // The matrix is stored column major.
   // Recall the matrix is "halved": the lower and upper half pertain
   // to different table entries (indT_I axis) for the same (I,J,K) coordinate
+
+  // NOMENCLATURE:
   // I, J, K - (permuted) coordinate of element in the 3D block
   // indT_I, indT_J, indT_K - indices into the 2x2x2 table at each coord
 
-  // Calculate cijk.
-
-  const int mftype_per_tallytable = Tally2x2<METRIC_FORMAT>::NUM;
-  const size_t halves_per_whole = 2;
-
-  GMTally1 cijk = 0;
-  for (int indT_I = 0; indT_I < 2; ++indT_I) {
-    for (int indT_J = 0; indT_J < 2; ++indT_J) {
-
-      const MFType dvo_this = dvo[indT_J + mftype_per_tallytable * (
-                                  thread_r + nvllD2 * (
-                                  indT_I + halves_per_whole * (
-                                  thread_c)))];
-
-      MFTypeIn values_this[2];
-      MFT::decode(values_this[0], values_this[1], dvo_this);
-
-      cijk += (GMTally1)values_this[0] + (GMTally1)values_this[1];
-    }
-  }
-
-  const double recip_sumcijk = 1e0 / cijk;
+  // TODO: (maybe) use MirroredBuf class for indexing.
 
   const int I = thread_r + nvllD2 * step_2way;
   COMET_ASSERT(I >= 0 && I < nvll);
   COMET_ASSERT(I/nvllD2 == step_2way);
 
+  // NOTE: "J" is already defined as an argument to this function - denotes
+  // the plane being processed.
+
   const int K = thread_c;
   COMET_ASSERT(K >= 0 && K < nvl);
 
-  // (more) values to be plugged into CCC/DUO formula.
+  //----------
+  // Get some values needed for the CCC/DUO formula.
+  //----------
 
   const GMTally1 cI = (GMTally1)counts_I[I];
   const GMTally1 cJ = (GMTally1)counts_J[J];
@@ -424,57 +779,146 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   const GMTally1 sI1 = (GMTally1)sums_I[I];
   const GMTally1 sJ1 = (GMTally1)sums_J[J];
   const GMTally1 sK1 = (GMTally1)sums_K[K];
+  const GMTally1 sI0 = CBPE * cI - sI1;
+  const GMTally1 sJ0 = CBPE * cJ - sJ1;
+  const GMTally1 sK0 = CBPE * cK - sK1;
 
-  // Loops to update all 8 table values.
+  const uint32_t ignore_me = 0;
+
+  //----------
+  // Calculate cijk, sum of all 8 metric entries at this I,J,K.
+  //----------
+
+  // NOTE for 3-way we process two 2X2 tables.
+  const int mftype_per_table = Tally2x2<METRIC_FORMAT>::NUM; // = 2
+  const size_t halves_per_whole = 2;
+  enum {indT_K_0 = 0, indT_K_1 = 1};
+
+  // Loop over entries in table.
+
+  GMTally1 cijk = 0;
+  for (int indT_I = 0; indT_I < 2; ++indT_I) {
+    for (int indT_J = 0; indT_J < 2; ++indT_J) {
+      // NOTE: indT_K runs across the two packed values (unrolled below).
+
+      const size_t index = indT_J + mftype_per_table * (
+                           thread_r + nvllD2 * (
+                           indT_I + halves_per_whole * (
+                           thread_c)));
+
+      // Access entry of metrics array.
+      const MFType dvo_this = dvo[index];
+
+      // Need special vector element count to make xor-gemm work right.
+      // NOTE: indexing here matches the row part of metrics index just above.
+      const GMTally1 sIJ = is_using_xor ?
+        matX_counts[indT_J + mftype_per_table * (
+                    thread_r + nvllD2 *
+                    indT_I)] : ignore_me;
+
+      // Access the two packed table entries from metrics array.
+      MFTypeIn values[2];
+      MFT::decode(values[indT_K_0], values[indT_K_1], dvo_this);
+
+      // Accumulate result.  Use special formula if xor-gemm.
+      cijk += is_using_xor ?
+        (sIJ + sK0 - (GMTally1)values[indT_K_0])/2 +
+        (sIJ + sK1 - (GMTally1)values[indT_K_1])/2 :
+                     (GMTally1)values[indT_K_0] +
+                     (GMTally1)values[indT_K_1];
+    }
+  }
+
+  const double recip_sumcijk = 1e0 / cijk;
+
+  HistogramsHelper hhelper;
+  ThresholdsHelper thelper;
+
+  //----------
+  // Loop to compute and threshold for all table entries.
+  //----------
 
   for (int indT_I = 0; indT_I < 2; ++indT_I) {
 
-    const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
+    const GMTally1 sI = indT_I == 0 ? sI0 : sI1;
 
     for (int indT_J = 0; indT_J < 2; ++indT_J) {
 
-      const GMTally1 sJ = indT_J == 0 ? CBPE * cJ - sJ1 : sJ1;
+      const GMTally1 sJ = indT_J == 0 ? sJ0 : sJ1;
 
-      MFType& dvo_this = dvo[indT_J + mftype_per_tallytable * (
-                             thread_r + nvllD2 * (
-                             indT_I + halves_per_whole * (
-                             thread_c)))];
+      const size_t index = indT_J + mftype_per_table * (
+                           thread_r + nvllD2 * (
+                           indT_I + halves_per_whole * (
+                           thread_c)));
 
-      MFTypeIn values_this[2];
-      MFT::decode(values_this[0], values_this[1], dvo_this);
+      // Access entry of metrics array.
+      MFType& dvo_this = dvo[index];
+
+      // Need special vector element count to make xor-gemm work right.
+      const GMTally1 sIJ = is_using_xor ?
+        matX_counts[indT_J + mftype_per_table * (
+                    thread_r + nvllD2 *
+                    indT_I)] : ignore_me;
+
+      // Access the two packed table entries from metrics array.
+      MFTypeIn values[2];
+      MFT::decode(values[indT_K_0], values[indT_K_1], dvo_this);
 
       for (int indT_K = 0; indT_K < 2; ++indT_K) {
 
-        const GMTally1 sK = indT_K == 0 ? CBPE * cK - sK1 : sK1;
+        const GMTally1 sK = indT_K == 0 ? sK0 : sK1;
 
-        const MFTypeIn rijk = values_this[indT_K];
+        // Get numerator value.  Use special formula if xor-gemm.
+        const auto rijk = is_using_xor ?
+          ((sIJ + sK - (GMTally1)values[indT_K])/2) :
+                       (GMTally1)values[indT_K];
 
-        const double metric_value =
-          0 == cI || 0 == cJ || 0 == cK || 0 == cijk ? 0e0 :
-          ccc_duo_value<CBPE, double>(
-            (GMTally1)rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
+        // Apply CCC/DUO formula.
+        const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cK || 0 == cijk;
+        const double metric_entry = is_zero_denom ? 0e0 :
+          formulas::ccc_duo_value<CBPE, double>(
+            rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
             recip_sumcijk, multiplier, param);
 
-        const bool pass_threshold = CEnv::pass_threshold(metric_value,
-                                                         threshold_eff);
+        // Save entry to store into histogram.
+        hhelper.add(metric_entry, indT_I, indT_J, indT_K);
 
-        values_this[indT_K] = pass_threshold ? (MFTypeIn)metric_value :
-                                               (MFTypeIn)0;
+        values[indT_K] = (MFTypeIn)metric_entry;
       } // indT_K
 
-      MFT::encode(dvo_this, values_this[0], values_this[1]);
+      // Apply threshold part 1.
+      thelper.add(thresholds_data, &dvo_this, indT_I, indT_J,
+        values[indT_K_0], values[indT_K_1]);
+
+      // Store result back into metrics array.
+      MFT::encode(dvo_this, values[indT_K_0], values[indT_K_1]);
     } // indT_J
   } // indT_I
+
+  // Apply threshold part 2.
+  thelper.finalize(thresholds_data);
+
+  if (gemm_shape.is_inside(I, J, K))
+    hhelper.finalize(histograms_ptr, num_buckets);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Do thresholding of metrics: GPU kernel, 2-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT,
+         typename Float_t, class ThresholdsHelper,
+         class HistogramsHelper = HistogramsHelperNone,
+         class GemmShape = GemmShapeNone>
 __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
-  double param, double multiplier, double threshold_eff) {
+  Float_t* sums_I, Float_t* sums_J, Float_t* counts_I, Float_t* counts_J,
+  double param, double multiplier,
+//  Thresholds::Elt_t threshold,
+  bool is_using_xor,
+  const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
+  GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
@@ -485,20 +929,36 @@ __global__ void tc_threshold_2way_kernel_(
   if (thread_r >= nvll || thread_c >= nvl)
     return;
 
-  tc_threshold_2way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT>(
+  tc_threshold_2way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT, Float_t,
+                                ThresholdsHelper, HistogramsHelper>(
+    thread_r, thread_c,
     nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-    param, multiplier, threshold_eff, thread_r, thread_c);
+    param, multiplier,
+//    threshold,
+    is_using_xor,
+    thresholds_data,
+    tc_debug,
+    histograms_ptr, num_buckets, gemm_shape);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Do thresholding of metrics: GPU kernel, 3-way case.
 
-template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
+template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT,
+         typename Float_t, class ThresholdsHelper,
+         class HistogramsHelper = HistogramsHelperNone,
+         class GemmShape = GemmShapeNone>
 __global__ void tc_threshold_3way_kernel_(
   int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
-  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int step_2way, double param, double multiplier, double threshold_eff) {
+  Float_t* sums_I, Float_t* sums_J, Float_t* sums_K,
+  Float_t* counts_I, Float_t* counts_J, Float_t* counts_K,
+  uint32_t* matX_counts, int J, int step_2way, double param, double multiplier,
+//  Thresholds::Elt_t threshold,
+  bool is_using_xor,
+  const Thresholds::Data<ThresholdsHelper::NT> thresholds_data,
+  TCDebug tc_debug = {},
+  Histograms::Elt_t* histograms_ptr = 0, int num_buckets = 0,
+  GemmShape gemm_shape = {}) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
@@ -510,27 +970,220 @@ __global__ void tc_threshold_3way_kernel_(
   if (thread_r >= nvllD2 || thread_c >= nvl)
     return;
 
-  tc_threshold_3way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT>(
+  tc_threshold_3way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT, Float_t,
+                                ThresholdsHelper, HistogramsHelper>(
+    thread_r, thread_c,
     nvll, nvllX2, nvllD2, nvl, vo,
-    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-    step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
+    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+    J, step_2way, param, multiplier,
+//    threshold,
+    is_using_xor,
+    thresholds_data,
+    tc_debug,
+    histograms_ptr, num_buckets, gemm_shape);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Do thresholding of metrics if requested: templated on CBPE.
+
+template<int CBPE, int MF, typename Float_t, class ThresholdsHelper>
+void tc_threshold_per_CBPE_(int nvll, int nvl, void* vo,
+  Float_t* sums_I, Float_t* sums_J, Float_t* sums_K,
+  Float_t* counts_I, Float_t* counts_J, Float_t* counts_K,
+  uint32_t* matX_counts, int J, int step_2way,
+  Histograms& histograms, GemmShapes& gemm_shapes,
+  CEnv& env, TCDebug tc_debug) {
+
+  const int nvllX2 = nvll * 2;
+  const int nvllD2 = nvll / 2;
+
+  // ? template specialization on num_way
+  // 2way: i -> I, j -> K (???)
+
+  const double param = env.ccc_param();
+  const double multiplier = env.ccc_duo_multiplier();
+
+//  // NOTE: if is_threshold_tc, necessarily threshold == threshold_eff.
+//  const Thresholds::Elt_t threshold = env.thresholds().threshold1();
+
+  const bool is_using_xor = env.is_using_xor();
+  COMET_INSIST_INTERFACE(&env, param <= 1 &&
+                         "CCC/DUO param value not allowed.");
+  COMET_INSIST_INTERFACE(&env, multiplier >= 0 &&
+                         "CCC/DUO multiplier value not allowed.");
+
+  const int num_threads_r = env.num_way() == NumWay::_2 ? nvll : nvllD2;
+  const int num_threads_c = nvl;
+
+  const bool is_computing_histograms = histograms.is_computing_histograms();
+
+  // Get raw threshold values for use in kernels.
+  enum {NT = ThresholdsHelper::NT};
+  Thresholds::Data<NT> thresholds_data = {};
+  env.thresholds().copy(thresholds_data);
+
+  if (env.is_compute_method_gpu()) {
+
+    // Kernel call.
+
+    const int threadblocksize = 256;
+    COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                 "Current HIP limitation.");
+    const int vll_threadblocks = utils::ceil(num_threads_r, threadblocksize);
+
+    if (NumWay::_2 == env.num_way()) {
+
+      if (is_computing_histograms) {
+
+        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF, Float_t,
+                               ThresholdsHelper, HistogramsHelper2Way>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+          param, multiplier,
+          is_using_xor,
+          thresholds_data,
+          tc_debug,
+          histograms.get_ptr(), histograms.num_buckets(),
+          *gemm_shapes.gemm_shape_2way);
+
+      } else {
+
+        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF, Float_t,
+                                                       ThresholdsHelper>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+          param, multiplier,
+          is_using_xor,
+          thresholds_data, tc_debug);
+
+      } // if (is_computing_histograms)
+
+    } else { // if (NumWay::_3 == env.num_way())
+
+      if (is_computing_histograms) {
+
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF, Float_t,
+                               ThresholdsHelper, HistogramsHelper3Way>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvllX2, nvllD2, nvl, vo,
+          sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+          J, step_2way, param, multiplier,
+          is_using_xor,
+          thresholds_data,
+          tc_debug,
+          histograms.get_ptr(), histograms.num_buckets(),
+          *gemm_shapes.gemm_shape_3way);
+
+      } else {
+
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF, Float_t,
+                                                       ThresholdsHelper>),
+          dim3(vll_threadblocks, num_threads_c, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvllX2, nvllD2, nvl, vo,
+          sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+          J, step_2way, param, multiplier,
+          is_using_xor,
+          thresholds_data, tc_debug);
+
+      } // if (is_computing_histograms)
+
+    } // if env.num_way()
+
+    COMET_INSIST(System::accel_last_call_succeeded());
+
+  } else { // (!env.is_compute_method_gpu())
+
+    if (NumWay::_2 == env.num_way()) {
+
+      if (is_computing_histograms)
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_2way_kernel_elt_<CBPE, MF, Float_t, ThresholdsHelper,
+                                          HistogramsHelper2Way>(
+              thread_r, thread_c,
+              nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+              param, multiplier,
+              is_using_xor,
+              thresholds_data,
+              tc_debug,
+              histograms.get_ptr(), histograms.num_buckets(),
+              *gemm_shapes.gemm_shape_2way);
+          } // for
+        } // for
+
+      else
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_2way_kernel_elt_<CBPE, MF, Float_t, ThresholdsHelper>(
+              thread_r, thread_c,
+              nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
+              param, multiplier,
+              is_using_xor,
+              thresholds_data, tc_debug);
+          } // for
+        } // for
+
+    } else { // if (NumWay::_3 == env.num_way())
+
+      if (is_computing_histograms)
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_3way_kernel_elt_<CBPE, MF, Float_t, ThresholdsHelper,
+                                          HistogramsHelper3Way>(
+              thread_r, thread_c,
+              nvll, nvllX2, nvllD2, nvl, vo,
+              sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+              J, step_2way, param, multiplier,
+              is_using_xor,
+              thresholds_data,
+              tc_debug,
+              histograms.get_ptr(), histograms.num_buckets(),
+              *gemm_shapes.gemm_shape_3way);
+          } // for
+        } // for
+
+      else
+
+        for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
+          for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
+            tc_threshold_3way_kernel_elt_<CBPE, MF, Float_t, ThresholdsHelper>(
+              thread_r, thread_c,
+              nvll, nvllX2, nvllD2, nvl, vo,
+              sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+              J, step_2way, param, multiplier,
+              is_using_xor,
+              thresholds_data, tc_debug);
+          } // for
+        } // for
+
+    } // if env.num_way()
+
+  } // if compute_method
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Do thresholding of metrics if requested.
 
-template<int TC_METHOD, int METRIC_FORMAT>
+template<int METRIC_FORMAT, typename Float_t>
 void tc_threshold_(int nvll, int nvl, void* vo,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
-  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int step_2way, CEnv& env) {
+  Float_t* sums_I, Float_t* sums_J, Float_t* sums_K,
+  Float_t* counts_I, Float_t* counts_J, Float_t* counts_K,
+  uint32_t* matX_counts, int J, int step_2way,
+  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
   COMET_INSIST(vo);
   COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
   COMET_INSIST(env.sparse() && "Case not supported.");
   COMET_INSIST((env.is_vectors_halved() ==
-                (NUM_WAY::_3 == env.num_way())) &&
+                (NumWay::_3 == env.num_way())) &&
     "Case not supported.");
   COMET_INSIST(env.is_bitwise_3way_2step() && "Case not supported.");
   COMET_INSIST_INTERFACE(&env, env.num_proc_field() == 1 &&
@@ -539,142 +1192,96 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
   enum {MF = METRIC_FORMAT};
 
-  const int nvllX2 = nvll * 2;
-  const int nvllD2 = nvll / 2;
-
   const int cbpe = env.counted_bits_per_elt();
 
-  // ? template specialization on num_way
-  // 2way: i -> I, j -> K (???)
+  if (CBPE::DUO == cbpe) {
 
-  const double param = env.ccc_param();
-  const double multiplier = env.ccc_duo_multiplier();
-  const double threshold_eff = env.threshold_eff();
+    enum {CBPE = CBPE::DUO};
 
-  const int num_threads_r = env.num_way() == NUM_WAY::_2 ? nvll : nvllD2;
-  const int num_threads_c = nvl;
+    if (!env.thresholds().is_active()) {
 
-  if (env.is_compute_method_gpu()) {
+      typedef ThresholdsHelperNone<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-    // Kernel call.
+    } else if (!env.thresholds().is_multi()) {
 
-      const int threadblocksize = 256;
-      COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
-                   "Current HIP limitation.");
-      const int vll_threadblocks = utils::ceil(num_threads_r, threadblocksize);
+      typedef ThresholdsHelperSingle<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-      if (CBPE::DUO == cbpe && NUM_WAY::_2 == env.num_way()) {
+    } else if (env.num_way() == NumWay::_2) {
 
-        enum {CBPE = CBPE::DUO};
+      typedef ThresholdsHelperMulti2Way<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF>),
-          dim3(vll_threadblocks, num_threads_c, 1),
-          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-          nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-          param, multiplier, threshold_eff);
+    } else {
 
-      } else if (NUM_WAY::_2 == env.num_way()) { // && CBPE::CCC == cbpe
+      typedef ThresholdsHelperMulti3Way<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-        enum {CBPE = CBPE::CCC};
+    }
 
-        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF>),
-          dim3(vll_threadblocks, num_threads_c, 1),
-          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-          nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-          param, multiplier, threshold_eff);
+  } else { // if (CBPE::CCC == cbpe)
 
-      } else if (CBPE::DUO == cbpe) { // && (3 == env.num_way())
+    enum {CBPE = CBPE::CCC};
 
-        enum {CBPE = CBPE::DUO};
+    if (!env.thresholds().is_active()) {
 
-        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF>),
-          dim3(vll_threadblocks, num_threads_c, 1),
-          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-          nvll, nvllX2, nvllD2, nvl, vo,
-          sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-          step_2way, param, multiplier, threshold_eff);
+      typedef ThresholdsHelperNone<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-      } else { // if (CBPE::CCC == cbpe && NUM_WAY::_3 == env.num_way())
+    } else if (!env.thresholds().is_multi()) {
 
-        enum {CBPE = CBPE::CCC};
+      typedef ThresholdsHelperSingle<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF>),
-          dim3(vll_threadblocks, num_threads_c, 1),
-          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-          nvll, nvllX2, nvllD2, nvl, vo,
-          sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-          step_2way, param, multiplier, threshold_eff);
+    } else if (env.num_way() == NumWay::_2) {
 
-      } // if cbpe, env.num_way()
+      typedef ThresholdsHelperMulti2Way<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-      System::accel_last_call_succeeded();
+    } else {
 
-  } else { // (!env.is_compute_method_gpu())
+      typedef ThresholdsHelperMulti3Way<MF> ThresholdsHelper;
+      tc_threshold_per_CBPE_<CBPE, MF, Float_t, ThresholdsHelper>(
+        nvll, nvl, vo, sums_I, sums_J, sums_K,
+        counts_I, counts_J, counts_K, matX_counts, J, step_2way,
+        histograms, gemm_shapes, env, tc_debug);
 
-    if (CBPE::DUO == cbpe && NUM_WAY::_2 == env.num_way()) {
+    }
 
-      enum {CBPE = CBPE::DUO};
-
-      for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
-        for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_2way_kernel_elt_<CBPE, MF>(
-            nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-            param, multiplier, threshold_eff, thread_r, thread_c);
-        } // for
-      } // for
-
-    } else if (NUM_WAY::_2 == env.num_way()) { // && CBPE::CCC == cbpe
-
-      enum {CBPE = CBPE::CCC};
-
-      for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
-        for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_2way_kernel_elt_<CBPE, MF>(
-            nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-            param, multiplier, threshold_eff, thread_r, thread_c);
-        } // for
-      } // for
-
-    } else if (CBPE::DUO == cbpe) { // && (NUM_WAY::_3 == env.num_way())
-
-      enum {CBPE = CBPE::DUO};
-
-      for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
-        for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_3way_kernel_elt_<CBPE, MF>(
-            nvll, nvllX2, nvllD2, nvl, vo,
-            sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-            step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
-        } // for
-      } // for
-
-    } else { // if (CBPE::CCC == cbpe && NUM_WAY::_3 == env.num_way())
-
-      enum {CBPE = CBPE::CCC};
-
-      for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
-        for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_3way_kernel_elt_<CBPE, MF>(
-            nvll, nvllX2, nvllD2, nvl, vo,
-            sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-            step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
-        } // for
-      } // for
-
-    } // if cbpe, env.num_way()
-
-  } // if compute_method
+  } // if CBPE
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Postprocess metrics values previously computed by GEMMs.
 
-template<int TC_METHOD, int METRIC_FORMAT>
+template<int TC_METHOD, typename Float_t, int METRIC_FORMAT>
 void tc_out_( int nvll, int nvl, void* vo,
-  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
-  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int step_2way,
-  CEnv& env) {
+  Float_t* sums_I, Float_t* sums_J, Float_t* sums_K,
+  Float_t* counts_I, Float_t* counts_J, Float_t* counts_K,
+  uint32_t* matX_counts, int J, int step_2way,
+  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
@@ -684,9 +1291,10 @@ void tc_out_( int nvll, int nvl, void* vo,
 
   // Apply thresholding of smaller values to zero, if requested.
 
-  if (env.threshold_tc())
-    tc_threshold_<TC_METHOD, METRIC_FORMAT>(nvll, nvl, vo,
-      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+  if (env.is_threshold_tc())
+    tc_threshold_<METRIC_FORMAT, Float_t>(nvll, nvl, vo,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
+      J, step_2way, histograms, gemm_shapes, env, tc_debug);
 }
 
 //=============================================================================
@@ -695,6 +1303,6 @@ void tc_out_( int nvll, int nvl, void* vo,
 
 //-----------------------------------------------------------------------------
 
-#endif // _comet_tc_copyout_i_hh_
+#endif // _COMET_TC_OUT_I_HH_
 
 //-----------------------------------------------------------------------------

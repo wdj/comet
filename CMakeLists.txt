@@ -4,7 +4,7 @@
 #
 #==============================================================================
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 #cmake_policy(SET CMP0004 OLD)
 #cmake_policy(SET CMP0074 NEW)
 string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
@@ -13,6 +13,8 @@ project("genomics_gpu")
 
 MESSAGE("--------------------")
 MESSAGE("Compiler ID: ${CMAKE_C_COMPILER_ID}")
+
+set(HIPLOCAL_DIR "${CMAKE_SOURCE_DIR}/scripts")
 
 #--------------------
 # Dirs, Files.
@@ -23,19 +25,23 @@ SET(INCLUDE_DIRS
 )
 
 SET(LIB_SOURCES
-  src/env.cc
   src/assertions.cc
-  src/decomp_mgr.cc
+  src/utils.cc
+  src/env.cc
+  src/magma_wrapper.cc
   src/mirrored_buf.cc
-  src/linalg.cc
+  src/compressed_buf.cc
+  src/histograms.cc
   src/tc.cc
-  src/metrics.cc
-  src/checksum.cc
+  src/decomp_mgr.cc
+  src/linalg.cc
   src/vectors.cc
+  src/metrics.cc
   src/vector_sums.cc
+  src/checksum.cc
   src/comm_xfer_utils.cc
   src/compute_metrics_2way_block_nums.cc
-  src/compute_metrics_2way_block_combine.cc
+  src/compute_metrics_2way_block_finalize.cc
   src/compute_metrics_3way_block_nonlinalg.cc
   src/compute_metrics_3way_block_linalg.cc
   src/compute_metrics_3way_block.cc
@@ -46,34 +52,39 @@ SET(LIB_SOURCES
 
 SET(ACCEL_SOURCES
   src/tc.cc
+  src/compressed_buf.cc
+  src/vector_sums.cc
 )
 
 SET(LIB_INCLUDES
-  src/env.hh
   src/assertions.hh
   src/assertions.i.hh
-  src/types.hh
   src/utils.hh
+  src/types.hh
+  src/env.hh
   src/formulas.hh
-  src/decomp_mgr.hh
+  src/magma_wrapper.hh
   src/mirrored_buf.hh
-  src/linalg.hh
+  src/compressed_buf.hh
+  src/compressed_buf.i.hh
+  src/histograms.hh
   src/tc.hh
   src/tc_helpers.i.hh
   src/tc_in.i.hh
   src/tc_solve.i.hh
   src/tc_out.i.hh
-  src/metrics.hh
-  src/metrics_2way_indexing.hh
-  src/metrics_2way_accessors.hh
-  src/metrics_3way_indexing.hh
-  src/metrics_3way_accessors.hh
-  src/checksum.hh
+  src/decomp_mgr.hh
+  src/linalg.hh
   src/vectors.hh
+  src/metrics.hh
+  src/metrics_2way_indexing.i.hh
+  src/metrics_2way_accessors.i.hh
+  src/metrics_3way_indexing.i.hh
+  src/metrics_3way_accessors.i.hh
   src/vector_sums.hh
+  src/checksum.hh
   src/comm_xfer_utils.hh
-  src/compute_metrics_2way_block_nums.hh
-  src/compute_metrics_2way_block_combine.hh
+  src/compute_metrics_2way_block.hh
   src/compute_metrics_3way_block.hh
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
@@ -126,8 +137,8 @@ elseif(USE_HIP) #=========================================
     endif()
   endif()
   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
-  find_package(HIP QUIET)
-  if(HIP_FOUND)
+  find_package(HIPLOCAL QUIET)
+  if(HIPLOCAL_FOUND)
     message(STATUS "Found HIP: " ${HIP_VERSION})
   else()
     message(FATAL_ERROR "Could not find HIP.")
@@ -136,6 +147,7 @@ elseif(USE_HIP) #=========================================
   set_source_files_properties(${LIB_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
   hip_add_library(genomics_metrics ${LIB_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
   set_source_files_properties(driver/genomics_metric.cc ${DRIVER_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+  #set_property(TARGET tgt PROPERTY HIP_ARCHITECTURES gfx801 gfx900)
 else()
   ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 endif()
@@ -149,6 +161,7 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 
 if(USE_HIP)
   hip_add_executable(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
+  set_property(TARGET genomics_metric PROPERTY HIP_ARCHITECTURES ${COMET_HIP_ARCHITECTURES})
 else()
   ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES})
 endif()
@@ -173,15 +186,14 @@ if(TESTING)
     if("${TEST_TARGET}" STREQUAL "perf_test")
       if(NOT "${TEST_COMMAND_PERF}" STREQUAL "")
       if("${FP_PRECISION}" STREQUAL "DOUBLE")
-
         add_test(${TEST_TARGET} bash -c
-          "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND_PERF} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
-
+          "date && cd ${CMAKE_INSTALL_PREFIX} && ${TEST_COMMAND_PERF} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET} && date")
       endif()
       endif()
     else()
       add_test(${TEST_TARGET} bash -c
-        "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
+        "date && cd ${CMAKE_INSTALL_PREFIX} && ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET} && date")
+      set(UNUSED_NO_WARN_1, ${FP_PRECISION})
     endif()
 
   endforeach()

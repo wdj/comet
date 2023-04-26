@@ -4,13 +4,39 @@
  * \author Wayne Joubert
  * \date   Thu Jan 21 19:07:47 EST 2016
  * \brief  Calculate metrics, 3-way.
- * \note   Copyright (C) 2016 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "env.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
+#include "magma_wrapper.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
@@ -43,7 +69,7 @@ ComputeMetrics3Way::~ComputeMetrics3Way() {
 //-----------------------------------------------------------------------------
 /// \brief Perform the 3-way metrics computation.
 
-void ComputeMetrics3Way::compute(GMMetrics& metrics, GMVectors& vectors) {
+void ComputeMetrics3Way::compute(GMMetrics& metrics, Vectors& vectors) {
   COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) {
@@ -57,7 +83,7 @@ void ComputeMetrics3Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 /// \brief Perform the 3-way metrics computation, non-all2all case.
 
 void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
-                                             GMVectors& vectors) {
+                                             Vectors& vectors) {
   CEnv* const env = &env_;
 
   //---------------
@@ -70,25 +96,23 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   // Numerator
   //---------------
 
-  gm_linalg_initialize(env);
+  MagmaWrapper magma_wrapper(env_);
 
   {
 
-  const int nvl = vectors.num_vector_local;
-  const int npvfl = vectors.num_packedval_field_local;
+  const int nvl = vectors.num_vector_local();
+  const int npfl = vectors.num_packedfield_local();
 
   // Allocate magma CPU memory for vectors and for result
 
-  MirroredBuf vectors_buf(npvfl, nvl, env_);
+  MirroredBuf vectors_buf(npfl, nvl, env_);
 
   // Copy in vectors
 
-  gm_vectors_to_buf(&vectors_buf, &vectors, env);
+  vectors.to_buf(vectors_buf);
 
   // Send vectors to GPU
 
-  //gm_set_vectors_start(&vectors, &vectors_buf, env);
-  //gm_set_vectors_wait(env);
   vectors_buf.to_accel();
 
   // Compute numerators
@@ -99,13 +123,14 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   {
 
-  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npvfl, env_);
+  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npfl, env_);
 
   compute_metrics_3way_block.compute(
     VData(&vectors, &vectors_buf, &vector_sums),
     VData(&vectors, &vectors_buf, &vector_sums),
     VData(&vectors, &vectors_buf, &vector_sums),
-    metrics, env_.proc_num_vector(), env_.proc_num_vector(), section_step);
+    metrics, env_.proc_num_vector(), env_.proc_num_vector(), section_step,
+    magma_wrapper);
 
   //---------------
   // Terminations
@@ -114,91 +139,80 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   }
 
   }
-
-  gm_linalg_finalize(env);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Perform the 3-way metrics computation,  all2all case.
 
 void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
-                                          GMVectors& vectors) {
+                                          Vectors& vectors) {
   CEnv* const env = &env_;
 
-  /*---Initializations---*/
+  // Initializations.
 
-  gm_linalg_initialize(env);
+  MagmaWrapper magma_wrapper(env_);
 
   {
 
   const int nvl = metrics.num_vector_local;
-  const int npvfl = vectors.num_packedval_field_local;
-
-  const int data_type = env->data_type_vectors();
+  const int npfl = vectors.num_packedfield_local();
 
   const int num_block = env->num_block_vector();
 
   const int i_block = env->proc_num_vector();
 
-  const int proc_num_r = env->proc_num_repl();
-  const int num_proc_r = env->num_proc_repl();
+  const int proc_num_repl = env->proc_num_repl();
 
-  /*---Create flattened index within space of procs assigned to
-       vectors (non-field procs) - i.e., vector_i (=block) X repl ---*/
+  // ------------------
+  // Allocations: Part 1.
+  // ------------------
 
-  const int proc_num_rv = proc_num_r + num_proc_r * i_block;
-  const int num_proc_rv = num_block * num_proc_r;
-
-  /*------------------------*/
-  /*---Allocations: Part 1---*/
-  /*------------------------*/
-
-  VectorSums vector_sums_i_value(vectors.num_vector_local, env_);
+  VectorSums vector_sums_i_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_i = &vector_sums_i_value;
 
-  GMVectors* const vectors_i = &vectors;
+  Vectors* const vectors_i = &vectors;
 
-  MirroredBuf vectors_i_buf_value(npvfl, nvl, env_);
+  MirroredBuf vectors_i_buf_value(npfl, nvl, env_);
   MirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
 
-  /*------------------------*/
-  /*---Allocations: Part 2---*/
-  /*------------------------*/
+  // ------------------
+  // Allocations: Part 2.
+  // ------------------
 
-  VectorSums vector_sums_j_value(vectors.num_vector_local, env_);
+  VectorSums vector_sums_j_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
 
-  GMVectors vectors_j_value_0 = GMVectors_null();
-  GMVectors vectors_j_value_1 = GMVectors_null();
-  GMVectors* const vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
-  GMVectors_create(vectors_j[0], data_type, vectors.dm, env);
-  GMVectors_create(vectors_j[1], data_type, vectors.dm, env);
+  Vectors vectors_j_value_0(*vectors.dm(), env_);
+  Vectors vectors_j_value_1(*vectors.dm(), env_);
+  Vectors* const vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
+  vectors_j[0]->allocate();
+  vectors_j[1]->allocate();
 
-  MirroredBuf vectors_j_buf_value(npvfl, nvl,env_);
+  MirroredBuf vectors_j_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
 
-  /*------------------------*/
-  /*---Allocations: Part 3---*/
-  /*------------------------*/
+  // ------------------
+  // Allocations: Part 3.
+  // ------------------
 
-  VectorSums vector_sums_k_value(vectors.num_vector_local, env_);
+  VectorSums vector_sums_k_value(vectors.num_vector_local(), env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
 
-  GMVectors vectors_k_value_0 = GMVectors_null();
-  GMVectors vectors_k_value_1 = GMVectors_null();
-  GMVectors* const vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
-  GMVectors_create(vectors_k[0], data_type, vectors.dm, env);
-  GMVectors_create(vectors_k[1], data_type, vectors.dm, env);
+  Vectors vectors_k_value_0(*vectors.dm(), env_);
+  Vectors vectors_k_value_1(*vectors.dm(), env_);
+  Vectors* const vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
+  vectors_k[0]->allocate();
+  vectors_k[1]->allocate();
 
-  MirroredBuf vectors_k_buf_value(npvfl, nvl,env_);
+  MirroredBuf vectors_k_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
 
-  /*------------------------*/
-  /*---Prepare to compute---*/
-  /*------------------------*/
+  // ------------------
+  // Prepare to compute.
+  // ------------------
 
-  GMVectors* vectors_j_prev = NULL;
-  GMVectors* vectors_k_prev = NULL;
+  Vectors* vectors_j_prev = NULL;
+  Vectors* vectors_k_prev = NULL;
 
   MirroredBuf* vectors_j_buf_prev = NULL;
   MirroredBuf* vectors_k_buf_prev = NULL;
@@ -213,7 +227,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   bool have_unprocessed_section_block = false;
 
-  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npvfl, env_);
+  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npfl, env_);
 
   // Counter for quantum of work:
   //   for part 1 or part 2: 1/6 section of work needed for block
@@ -231,37 +245,38 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // active step, but computation is lagged one loop cycle so as to
   // compute on data that is already communicated.
 
-  /*------------------------*/
-  /*---Part 1 Computation: tetrahedron---*/
-  /*------------------------*/
+  // ------------------
+  // Part 1 Computation: tetrahedron.
+  // ------------------
 
-  /*---Denominator---*/
+  // Denominator.
   vector_sums_i->compute(*vectors_i);
+  if (env_.is_threshold_tc())
+    vector_sums_i->to_accel();
 
-  /*---Copy in vectors---*/
-  gm_vectors_to_buf(vectors_i_buf, vectors_i, env);
+  // Copy in vectors.
+  vectors_i->to_buf(*vectors_i_buf);
 
-  /*---Send vectors to GPU---*/
-  //gm_set_vectors_start(vectors_i, vectors_i_buf, env);
-  //gm_set_vectors_wait(env);
+  // Send vectors to GPU.
   vectors_i_buf->to_accel();
 
   const int num_section_steps_1 = gm_num_section_steps(env, 1);
   for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
-    if (gm_proc_r_active(section_block_num, env)) {
+    if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
       if (have_unprocessed_section_block) {
-        /*---Compute numerators---*/
+        // Compute numerators.
         compute_metrics_3way_block.compute(
           VData(vectors_i, vectors_i_buf, vector_sums_i),
           VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
           VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-          metrics, j_block_prev, k_block_prev, section_step_prev);
+          metrics, j_block_prev, k_block_prev, section_step_prev,
+          magma_wrapper);
         have_unprocessed_section_block = false;
       }
 
       if (gm_is_section_block_in_phase(env, section_block_num)) {
-        /*---Remember processing to do next time---*/
+        // Remember processing to do next time.
         vectors_j_prev = vectors_i;
         vectors_k_prev = vectors_i;
         vectors_j_buf_prev = vectors_i_buf;
@@ -274,17 +289,22 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         have_unprocessed_section_block = true;
       } // if
 
-    } /*---if (section_block_num ...)---*/
+    } // if (section_block_num ...)
     ++section_block_num;
-  } /*---section_step---*/
+  } // section_step
 
-  /*------------------------*/
-  /*---Part 2 Computation: triangular prisms---*/
-  /*------------------------*/
+  // ------------------
+  // Part 2 Computation: triangular prisms.
+  // ------------------
 
-  GMVectors* vectors_j_this = 0;
-  MPI_Request req_send_j;
-  MPI_Request req_recv_j;
+  Vectors* vectors_j_recv = NULL;
+  Vectors* vectors_k_recv = NULL;
+  if(0) printf("%zu\n",(size_t)vectors_j_recv);
+  if(0) printf("%zu\n",(size_t)vectors_k_recv);
+
+  Vectors* vectors_j_this = 0;
+  CommVectors comm_vectors_send_j;
+  CommVectors comm_vectors_recv_j;
 
   const int num_section_steps_2 = gm_num_section_steps(env, 2);
   for (int section_step=0; section_step<num_section_steps_2; ++section_step) {
@@ -292,55 +312,60 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
       const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
 
-      //TODO: can possibly simplify this - mod by num_proc_i instead
+      const int proc_send_j = env_.proc_num_repl_vector(proc_num_repl,
+        utils::mod_i(i_block - j_i_offset, num_block));
 
-      const int proc_send_j = utils::mod_i(proc_num_rv - j_i_offset*num_proc_r,
-                                       num_proc_rv);
-      const int proc_recv_j = utils::mod_i(proc_num_rv + j_i_offset*num_proc_r,
-                                       num_proc_rv);
+      const int proc_recv_j = env_.proc_num_repl_vector(proc_num_repl,
+        utils::mod_i(i_block + j_i_offset, num_block));
 
-      if (gm_proc_r_active(section_block_num, env)) {
+      if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
         if (gm_is_section_block_in_phase(env, section_block_num)) {
-          /*---Communicate vectors start---*/
+          // Communicate vectors start.
           vectors_j_this = vectors_j[index_j_comm];
           index_j_comm = 1 - index_j_comm; // toggle buffer num
-          req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
-                                             0+3*section_block_num, env);
-          req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
-                                             0+3*section_block_num, env);
-        }
+
+          comm_vectors_recv_j.recv_start(*vectors_j_this, proc_recv_j,
+            0+3*section_block_num, *env);
+          comm_vectors_send_j.send_start(*vectors_i, proc_send_j,
+            0+3*section_block_num, *env);
+          vectors_j_recv = vectors_j_this;
+        } // if (gm_is_section_block_in_phase ...)
   
         if (have_unprocessed_section_block) {
-          /*---Compute numerators---*/
+          // Compute numerators.
           compute_metrics_3way_block.compute(
             VData(vectors_i, vectors_i_buf, vector_sums_i),
             VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
             VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-            metrics, j_block_prev, k_block_prev, section_step_prev);
+            metrics, j_block_prev, k_block_prev, section_step_prev,
+            magma_wrapper);
           have_unprocessed_section_block = false;
         }
 
         if (gm_is_section_block_in_phase(env, section_block_num)) {
-          /*---Communicate vectors wait---*/
-          gm_send_vectors_wait(&req_send_j, env);
-          gm_recv_vectors_wait(&req_recv_j, env);
+          // Communicate vectors wait.
+          comm_vectors_send_j.wait();
+          comm_vectors_recv_j.wait();
+          COMET_ASSERT(comm_vectors_recv_j.cksum() == vectors_j_recv->cksum());
+          //gm_send_vectors_wait(&req_send_j, env);
+          //gm_recv_vectors_wait(&req_recv_j, env);
 
-          /*---Copy in vectors---*/
-          gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
+          // Copy in vectors.
+          vectors_j_this->to_buf(*vectors_j_buf);
 
-          /*---Send vectors to GPU start---*/
-          //gm_set_vectors_start(vectors_j_this, vectors_j_buf, env);
+          // Send vectors to GPU start.
           vectors_j_buf->to_accel_start();
 
-          /*---Denominator---*/
+          // Denominator.
           vector_sums_j->compute(*vectors_j_this);
+          if (env_.is_threshold_tc())
+            vector_sums_j->to_accel();
 
-          /*---Send vectors to GPU wait---*/
-          //gm_set_vectors_wait(env);
+          // Send vectors to GPU wait.
           vectors_j_buf->to_accel_wait();
 
-          /*---Remember processing to do next time---*/
+          // Remember processing to do next time.
           vectors_j_prev = vectors_j_this;
           vectors_k_prev = vectors_j_prev;
           vectors_j_buf_prev = vectors_j_buf;
@@ -351,41 +376,45 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           k_block_prev = j_block;
           section_step_prev = section_step;
           have_unprocessed_section_block = true;
-        } // if
+        } // if (gm_is_section_block_in_phase ...)
 
-      } /*---if (section_block_num ...)---*/
+      } // if (metrics_is_proc_repl_active ...)
       ++section_block_num;
-    } /*---j_i_offset---*/
-  } /*---section_step---*/
+    } // j_i_offset
+  } // section_step
 
-  /*------------------------*/
-  /*---Part 3 Computation: block sections---*/
-  /*------------------------*/
+  // ------------------
+  // Part 3 Computation: block sections.
+  // ------------------
 
-  GMVectors* vectors_k_this = 0;
-  MPI_Request req_send_k;
-  MPI_Request req_recv_k;
+  Vectors* vectors_k_this = 0;
+  CommVectors comm_vectors_send_k;
+  CommVectors comm_vectors_recv_k;
 
   int k_block_currently_resident = -1;
 
   const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
   for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
     for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
+
       const int k_block = utils::mod_i(i_block + k_i_offset, num_block);
 
-      const int proc_send_k = utils::mod_i(proc_num_rv - k_i_offset*num_proc_r,
-                                       num_proc_rv);
-      const int proc_recv_k = utils::mod_i(proc_num_rv + k_i_offset*num_proc_r,
-                                       num_proc_rv);
+      const int proc_send_k = env_.proc_num_repl_vector(proc_num_repl,
+        utils::mod_i(i_block - k_i_offset, num_block));
 
-      for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
+      const int proc_recv_k = env_.proc_num_repl_vector(proc_num_repl,
+        utils::mod_i(i_block + k_i_offset, num_block));
+
+      for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
         const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
 
-        const int proc_send_j = utils::mod_i(proc_num_rv-j_i_offset*num_proc_r,
-                                         num_proc_rv);
-        const int proc_recv_j = utils::mod_i(proc_num_rv+j_i_offset*num_proc_r,
-                                         num_proc_rv);
+        const int proc_send_j = env_.proc_num_repl_vector(proc_num_repl,
+          utils::mod_i(i_block - j_i_offset, num_block));
+
+        const int proc_recv_j = env_.proc_num_repl_vector(proc_num_repl,
+          utils::mod_i(i_block + j_i_offset, num_block));
+
         if (j_block == k_block) {
           /*---NOTE: this condition occurs on all procs at exactly the same
                j/k iteration in lockstep, so there is no chance the immediately
@@ -394,128 +423,132 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         }
         COMET_INSIST((j_block == k_block) == (j_i_offset == k_i_offset) &&
                   "Error in block indexing for communication.");
-        if (gm_proc_r_active(section_block_num, env)) {
+        if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
           const bool do_k_comm = k_block != k_block_currently_resident;
 
           if (gm_is_section_block_in_phase(env, section_block_num)) {
             if (do_k_comm) {
-              /*---Communicate vectors start---*/
+              // Communicate vectors start.
               vectors_k_this = vectors_k[index_k_comm];
               index_k_comm = 1 - index_k_comm; // toggle buffer num
               // NOTE: in some cases may not need double buf, one may be enough
-              req_recv_k = gm_recv_vectors_start(vectors_k_this,
-                                       proc_recv_k, 1+3*section_block_num, env);
-              req_send_k = gm_send_vectors_start(vectors_i,
-                                       proc_send_k, 1+3*section_block_num, env);
+              comm_vectors_recv_k.recv_start(*vectors_k_this, proc_recv_k,
+                1+3*section_block_num, *env);
+              comm_vectors_send_k.send_start(*vectors_i, proc_send_k,
+                1+3*section_block_num, *env);
+              vectors_k_recv = vectors_k_this;
             } // if do_k_comm
 
-            /*---Communicate vectors start---*/
+            // Communicate vectors start.
             vectors_j_this = vectors_j[index_j_comm];
             index_j_comm = 1 - index_j_comm; // toggle buffer num
-            req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
-                                               2+3*section_block_num, env);
-            req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
-                                                2+3*section_block_num, env);
-          } // if
+            comm_vectors_recv_j.recv_start(*vectors_j_this, proc_recv_j,
+              2+3*section_block_num, *env);
+            comm_vectors_send_j.send_start(*vectors_i, proc_send_j,
+              2+3*section_block_num, *env);
+            vectors_j_recv = vectors_j_this;
+          } // if (gm_is_section_block_in_phase ...)
 
           if (have_unprocessed_section_block) {
-            /*---Compute numerators---*/
+            // Compute numerators.
             compute_metrics_3way_block.compute(
               VData(vectors_i, vectors_i_buf, vector_sums_i),
               VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
               VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-              metrics, j_block_prev, k_block_prev, section_step_prev);
+              metrics, j_block_prev, k_block_prev, section_step_prev,
+              magma_wrapper);
             have_unprocessed_section_block = false;
           }
 
           if (gm_is_section_block_in_phase(env, section_block_num)) {
             if (do_k_comm) {
-              /*---Communicate vectors wait---*/
-              gm_send_vectors_wait(&req_send_k, env);
-              gm_recv_vectors_wait(&req_recv_k, env);
+              // Communicate vectors wait.
+              comm_vectors_send_k.wait();
+              comm_vectors_recv_k.wait();
+              
+              COMET_ASSERT(comm_vectors_recv_k.cksum() == vectors_k_recv->cksum());
               k_block_currently_resident = k_block;
 
-              /*---Copy in vectors---*/
-              gm_vectors_to_buf(vectors_k_buf, vectors_k_this, env);
+              // Copy in vectors.
+              vectors_k_this->to_buf(*vectors_k_buf);
 
-              /*---Send vectors to GPU start---*/
-              //gm_set_vectors_start(vectors_k_this, vectors_k_buf, env);
+              // Send vectors to GPU start.
               vectors_k_buf->to_accel_start();
 
-              /*---Denominator---*/
+              // Denominator.
               vector_sums_k->compute(*vectors_k_this);
+              if (env_.is_threshold_tc())
+                vector_sums_k->to_accel();
 
-              /*---Send vectors to GPU wait---*/
-              //gm_set_vectors_wait(env);
+              // Send vectors to GPU wait.
               vectors_k_buf->to_accel_wait();
 
-              /*---Remember processing to do next time---*/
+              // Remember processing to do next time.
               vectors_k_prev = vectors_k_this;
               vectors_k_buf_prev = vectors_k_buf;
               vector_sums_k_prev = vector_sums_k;
               k_block_prev = k_block;
             } // if do_k_comm
 
-            /*---Communicate vectors wait---*/
-            gm_send_vectors_wait(&req_send_j, env);
-            gm_recv_vectors_wait(&req_recv_j, env);
+            // Communicate vectors wait.
+            comm_vectors_send_j.wait();
+            comm_vectors_recv_j.wait();
+            COMET_ASSERT(comm_vectors_recv_j.cksum() == vectors_j_recv->cksum());
 
-            /*---Copy in vectors---*/
-            gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
+            // Copy in vectors.
+            vectors_j_this->to_buf(*vectors_j_buf);
 
-            /*---Send vectors to GPU start---*/
-            //gm_set_vectors_start(vectors_j_this, vectors_j_buf, env);
+            // Send vectors to GPU start.
             vectors_j_buf->to_accel_start();
 
-            /*---Denominator---*/
+            // Denominator.
             vector_sums_j->compute(*vectors_j_this);
+            if (env_.is_threshold_tc())
+              vector_sums_j->to_accel();
 
-            /*---Send vectors to GPU wait---*/
-            //gm_set_vectors_wait(env);
+            // Send vectors to GPU wait.
             vectors_j_buf->to_accel_wait();
 
-            /*---Remember processing to do next time---*/
+            // Remember processing to do next time.
             vectors_j_prev = vectors_j_this;
             vectors_j_buf_prev = vectors_j_buf;
             vector_sums_j_prev = vector_sums_j;
             j_block_prev = j_block;
             section_step_prev = section_step;
             have_unprocessed_section_block = true;
-          } // if
+          } // if (gm_is_section_block_in_phase ...)
 
-        } /*---if (section_block_num ...)---*/
+        } // if (metrics_is_proc_repl_active ...)
         ++section_block_num;
-      } /*---k_i_offset---*/
-    }   /*---j_i_offset---*/
-  } /*---section_step---*/
+      } // k_i_offset
+    }   // j_i_offset
+  } // section_step
 
-  /*------------------------*/
-  /*---Cleanup---*/
-  /*------------------------*/
+  // ------------------
+  // Cleanup.
+  // ------------------
 
   if (have_unprocessed_section_block) {
-    /*---Compute numerators---*/
+    // Compute numerators.
     compute_metrics_3way_block.compute(
       VData(vectors_i, vectors_i_buf, vector_sums_i),
       VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
       VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-      metrics, j_block_prev, k_block_prev, section_step_prev);
+      metrics, j_block_prev, k_block_prev, section_step_prev,
+      magma_wrapper);
     have_unprocessed_section_block = false;
   }
 
-  /*------------------------*/
-  /*---Free memory and finalize---*/
-  /*------------------------*/
+  // ------------------
+  // Free memory and finalize.
+  // ------------------
 
-  GMVectors_destroy(vectors_k[0], env);
-  GMVectors_destroy(vectors_k[1], env);
-  GMVectors_destroy(vectors_j[0], env);
-  GMVectors_destroy(vectors_j[1], env);
-
+  vectors_k[0]->deallocate();
+  vectors_k[1]->deallocate();
+  vectors_j[0]->deallocate();
+  vectors_j[1]->deallocate();
   }
-
-  gm_linalg_finalize(env);
 }
 
 //=============================================================================

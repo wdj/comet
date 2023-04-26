@@ -14,6 +14,7 @@ set -eu -o pipefail
 function main
 {
   local tag="${1:-}"
+  local version="${2:-}"
   if [ "$tag" = "" -o "$tag" = "-h" -o "$tag" = "--help" ] ; then 
     echo "Usage: ${0##*/} <tag>"
     echo "  where <tag> is an alphanumeric string. magma_<tag> is the new library name."
@@ -22,7 +23,7 @@ function main
 
   local dir_cloned="magma_${tag}.cloned"
   local dir_cloned_patched="magma_${tag}"
-  local patch_file=magma_${tag}.patch
+  local patch_file=magma_${tag}-${version}.patch
 
   diff -aur $dir_cloned $dir_cloned_patched | grep -v "^Only in " > $patch_file
 }

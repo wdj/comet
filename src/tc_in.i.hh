@@ -1,28 +1,66 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   tc_copyin.i.hh
+ * \file   tc_in.i.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, tc package: copying data to the accelerator.
- * \note   Copyright (C) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 
-#ifndef _comet_tc_copyin_i_hh_
-#define _comet_tc_copyin_i_hh_
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
+
+#ifndef _COMET_TC_IN_I_HH_
+#define _COMET_TC_IN_I_HH_
 
 //#include "env.hh"
 //#include "tc.hh"
 //#include "tc_int.hh"
+
+//#include <inttypes.h>
 
 //=============================================================================
 
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Word type to be used for manipulating tc_in input (fields) values.
+
+//#ifdef COMET_USE_HIP
+//typedef uint32_t TCWord_t;
+//#else
+//typedef uint32_t TCWord_t;
+typedef uint64_t TCWord_t;
+//#endif
+
+//-----------------------------------------------------------------------------
 /// \brief Helper function: is a nonnegative integer a power of 2.
 
-__host__ __device__ static bool is_po2(int x) {
+template<typename T>
+__host__ __device__ static bool is_po2(T x) {
   return x && (!(x&(x-1))); 
 }
 
@@ -33,17 +71,17 @@ __host__ __device__ static bool is_po2(int x) {
 ///
 /// For this method two passes are made (instead of three), each of which
 /// calculates exactly 4 of the required 8 metrics values.
-/// The main idea is this: the left matrix entries are calculated as
+/// The main idea is this: the left matrix elements are calculated as
 /// the combined number of paths through corresponding elements of the I
-/// and J matrices.  For the first pass (step_2way (= i2) == 0), paths 0-0 and
+/// and J matrices.  For the first pass (step_2way (= kE) == 0), paths 0-0 and
 /// 0-1 (corresponding to I-J element values) are counted; for the second
 /// pass, paths 1-0 and 1-1.
 /// Below is a tabular representation of the values for the non-sparse CCC case.
 /// The "10" cases are omtted here because they are the same as the "01" cases.
 /// The 3-way CCC sparse case is easliy adapted from this.
 ///
-/// i2        ------>   0    0    1    1
-/// i1        ------>   0    1    0    1
+/// kE        ------>   0    0    1    1
+/// jE        ------>   0    1    0    1
 /// output    ------>  0-0  0-1  1-0  1-1
 /// --------------------------------------
 ///  m (=I)   c (=J)
@@ -64,8 +102,8 @@ __host__ __device__ static bool is_po2(int x) {
 /// The 3-way non-sparse DUO method is similar, but we only
 /// look at 1 bit of each seminibble, not 2:
 ///
-/// i2        ------>   0    0    1    1
-/// i1        ------>   0    1    0    1
+/// kE        ------>   0    0    1    1
+/// jE        ------>   0    1    0    1
 /// output    ------>  0-0  0-1  1-0  1-1
 /// --------------------------------------
 ///  m (=I)   c (=J)
@@ -77,16 +115,15 @@ __host__ __device__ static bool is_po2(int x) {
 ///  *1       *0        0    0    1    0
 ///  *1       *1        0    0    0    1
 
-template<typename GemmIn_t>
+template<typename GemmIn_t, bool IS_LEFT>
 __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
   const int snm,
   const int snc,
-  const int i1,
-  const int i2,
+  const int jE,
+  const int kE,
   const int step_2way,
   const int num_way,
   const bool is_sparse,
-  const bool is_right,
   const bool is_duo,
   const bool form_matX_tc,
   const bool is_bitwise_3way_2step) {
@@ -95,16 +132,15 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
   // Determine whether to skip (1,0) null indicator value.
   // NOTE: does not work for all cases.
 
-  const bool is_left = ! is_right;
   const bool num_way_3 = 3 == num_way;
-  const bool num_way_3_left = num_way_3 && is_left;
+  const bool num_way_3_left = num_way_3 && IS_LEFT;
 
   // Possible counts, represented in target type.
 
-  const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
-  const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
-  const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
-  const GemmIn_t four = TCBufTypes<GemmIn_t>::four();
+  const GemmIn_t zero = TCBufTraits<GemmIn_t>::zero();
+  const GemmIn_t one  = TCBufTraits<GemmIn_t>::one();
+  const GemmIn_t two  = TCBufTraits<GemmIn_t>::two();
+  const GemmIn_t four = TCBufTraits<GemmIn_t>::four();
 
   // Possible seminibble bit patterns.
 
@@ -127,15 +163,15 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
 
              // Form X: combine the column and matrix
              snm == _UNDEF || snc == _UNDEF ? zero :
-             (snm&1) == i2 && (snc&1) == i1 ? one :
+             (snm&1) == kE && (snc&1) == jE ? one :
                                               zero
 
     ) : is_duo /* && is_sparse */ ? (
 
              // DUO: pick up low order bit (unless undefined)
-             snm == _UNDEF         ? zero :
-             (snm & 1) == i1    ? one :
-          /* (snm & 1) == 1-i1 */ zero
+             snm == _UNDEF    ? zero :
+             (snm&1) == jE    ? one :
+          /* (snm&1) == 1-jE */ zero
 
     ) : num_way_3_left && is_bitwise_3way_2step
         /* && is_ccc && form_matX_tc */ ? (
@@ -143,11 +179,11 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              // Form X: combine the column and matrix
              snm == _UNDEF && is_sparse          ? zero :
              snc == _UNDEF && is_sparse          ? zero :
-             snm == _11*(1-i2)                   ? zero :
-             snc == _11*(1-i1)                   ? zero :
+             snm == _11*(1-kE)                   ? zero :
+             snc == _11*(1-jE)                   ? zero :
              is_po2(snm) && is_po2(snc)          ? one :
-             is_po2(snm) && snc == _11*i1        ? two :
-             is_po2(snc) && snm == _11*i2        ? two :
+             is_po2(snm) && snc == _11*jE        ? two :
+             is_po2(snc) && snm == _11*kE        ? two :
           /* snm*(3-snm) + (snc)*(3-snc) == 0 */   four
 
     ) : num_way_3_left && form_matX_tc
@@ -159,16 +195,16 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              snm == _01 && step_2way != 1 ? zero :
              snm == _10 && step_2way != 1 ? zero :
              snm == _11 && step_2way != 2 ? zero :
-             snc == _11*i1                ? two :
-             snc == _11*(1-i1)            ? zero :
+             snc == _11*jE                ? two :
+             snc == _11*(1-jE)            ? zero :
              snc == _01                   ? one :
              is_sparse                    ? zero :
           /* snc == _10 */                  one
 
     ) : /* is_ccc ... */ (
 
-             snm == _11*i1                   ? two :
-             snm == _11*(1-i1)               ? zero :
+             snm == _11*jE                   ? two :
+             snm == _11*(1-jE)               ? zero :
              snm == _01                      ? one :
              snm == _UNDEF && is_sparse      ? zero :
           /* snm == _UNDEF && num_way_3_left ? zero :*/
@@ -180,18 +216,16 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Write individual elements to buf.
+/// \brief Access tc_buf value to write that is associated with specific field.
 ///
 
-template<typename GemmIn_t>
-__host__ __device__ static void tc_buf_write_kernel_elt_(
-  GemmIn_t* vo,
-  const uint32_t* vim,
-  const uint32_t* vic,
+template<typename GemmIn_t, bool IS_LEFT>
+__host__ __device__ static GemmIn_t tc_buf_write_kernel_get_field_(
+  const TCWord_t* vim,
+  const TCWord_t* vic,
   int vi_dim0,
   int num_way,
   bool is_sparse,
-  bool is_right,
   bool is_duo,
   bool form_matX_tc,
   int step_2way,
@@ -204,105 +238,82 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   int nvlea,
 
   int nfl,
-  int nflD2,
-  int nflD2_thread,
-  int flD2_min,
   int nfal,
 
-  int vlX2_thread,
-  int flD2_thread) {
+  int jE,
+  int vl_thread,
+  int fl) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
-  const int i1 = vlX2_thread % 2; // count either 0 or 1 bits.
-  const int vl_thread = vlX2_thread / 2;
+  //const int jE = vlX2_thread % 2; // count either 0 or 1 bits.
+  //const int vl_thread = vlX2_thread / 2;
 
-  const int vl = is_vectors_halved && !is_right ?
+  const int vl = is_vectors_halved && IS_LEFT ?
                  vl_thread % nvleD2 + step_2way * nvleD2 :
                  vl_thread;
 
-  const int i2 = is_vectors_halved && !is_right ?
+  const bool is_vector_inactive = vl >= nvlea;
+
+  const int kE = is_vectors_halved && IS_LEFT ?
                  vl_thread / nvleD2 :
                  step_2way;
-
-  const int flD2 = flD2_min + flD2_thread;
-
-  // Output array interpreted as having GemmIn_t scalars has nfl rows.
-
-  const uint32_t* const vim_col = vim + vl * (size_t)vi_dim0;
-
-  // Pick up two consecutive field values:
-  // first field seminibble0, second field seminibble1
-  // Set to zero if outside of active range.
-
-  enum {SNPW = 16}; // seminibbles per 32-bit word
-  enum {BPSN = 2}; // bits per seminibble
-  enum {SNPT = 2}; // seminibbles processed per thread
-  enum {C1 = SNPW/SNPT};
-  enum {C2 = SNPT*BPSN};
-
-  const int flD2_index = flD2_thread;
-
-  const int fl_index_0 = 0 + SNPT * flD2_index;
-  const int fl_index_1 = 1 + SNPT * flD2_index;
-
-  const bool is_vector_inactive = vl >= nvlea;
-  const bool is_field_inactive_0 = SNPT * flD2_min + fl_index_0 >= nfal;
-  const bool is_field_inactive_1 = SNPT * flD2_min + fl_index_1 >= nfal;
-
-  const int nibblem = is_vector_inactive ? 0 :
-    (vim_col[flD2/C1] >> (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1);
-  const int snm0 = nibblem & 3;
-  const int snm1 = (nibblem>>2) & 3;
-
-  const int nibblec = is_vector_inactive ? 0 : /* is_right ? 0 : */
-    (vic    [flD2/C1] >> (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1);
-  const int snc0 = nibblec & 3;
-  const int snc1 = (nibblec>>2) & 3;
-
-  // Count number of 0 (or 1) bits in respective seminibble.
-  // Determine whether to skip (1,0) null indicator value.
-  // NOTE: does not work for all cases.
-
-  const GemmIn_t out0 = is_field_inactive_0 ? 0 :
-    tc_buf_write_kernel_value_<GemmIn_t>(snm0, snc0, i1, i2, step_2way,
-      num_way, is_sparse, is_right, is_duo, form_matX_tc,
-      is_bitwise_3way_2step);
-
-  const GemmIn_t out1 = is_field_inactive_1 ? 0 :
-    tc_buf_write_kernel_value_<GemmIn_t>(snm1, snc1, i1, i2, step_2way,
-      num_way, is_sparse, is_right, is_duo, form_matX_tc,
-      is_bitwise_3way_2step);
 
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make later swizzling of metrics array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
 
-  const int vl_index = is_right           ?   vl_thread :
-                       vl_thread < nvleD2 ? 2*vl_thread :
-                                            2*vl_thread - nvle + 1;
-  const int vlX2_index = i1 + 2*vl_index;
+  // Output array interpreted as having GemmIn_t scalars has nfl rows.
 
-  const int vlX2_dim = nvleX2_thread;
+  const TCWord_t* const vim_col = vim + vl * (size_t)vi_dim0;
 
-//if (!is_right && fl_index_0==0) printf("%i %i   %i      %i %i\n", vl, i1, (int)out0, snm0, snc0);
+  // Sizes.
 
-  vo[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
-  vo[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
+  enum {BPSN = 2}; // bits per seminibble
+  enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles / word
+
+  // Is this fl in active range.
+
+  const bool is_field_inactive = fl >= nfal;
+
+  // Pick up field value.
+  // Set to zero if outside of active range.
+
+  const TCWord_t sn_m_word = is_vector_inactive ? 0 :
+    vim_col[fl/SNPW];
+  const TCWord_t sn_m = ( sn_m_word >> (BPSN*(fl%SNPW)) ) & 3;
+
+  const bool num_way_3 = 3 == num_way;
+  const bool num_way_3_left = num_way_3 && IS_LEFT;
+
+  const TCWord_t sn_c_word = is_vector_inactive ? 0 : !num_way_3_left ? 0 :
+    vic[fl/SNPW];
+  const TCWord_t sn_c = ( sn_c_word >> (BPSN*(fl%SNPW)) ) & 3;
+
+  // Count number of 0 (or 1) bits in respective seminibble.
+  // Determine whether to skip (1,0) null indicator value.
+  // NOTE: does not work for all cases.
+
+  const GemmIn_t out = is_field_inactive ? 0 :
+    tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(sn_m, sn_c, jE, kE, step_2way,
+      num_way, is_sparse, is_duo, form_matX_tc,
+      is_bitwise_3way_2step);
+
+  return out;
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support tc_buf_write_.
+/// \brief Write individual elements to buf.
+///
 
-template<typename GemmIn_t>
-__global__ static void tc_buf_write_kernel_(
-  GemmIn_t* vo,
-  const uint32_t* vim,
-  const uint32_t* vic,
+template<int TC_METHOD, bool IS_LEFT, int IS_B_FIELD_MAJOR>
+__host__ __device__ static void tc_buf_write_kernel_elt_(
+  typename TCTraits<TC_METHOD>::GemmIn_t* vo,
+  const TCWord_t* vim,
+  const TCWord_t* vic,
   int vi_dim0,
   int num_way,
   bool is_sparse,
-  bool is_right,
   bool is_duo,
   bool form_matX_tc,
   int step_2way,
@@ -315,78 +326,431 @@ __global__ static void tc_buf_write_kernel_(
   int nvlea,
 
   int nfl,
-  int nflD2,
-  int nflD2_thread,
-  int flD2_min,
+  int nflT,
+  int nflT_thread,
+  int flT_min,
+  int nfal,
+
+  int vlX2_thread,
+  int flT_thread) {
+
+  typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
+  enum {NGIPT = TCTraits<TC_METHOD>::NGIPT};
+  enum {NFPGI = TCTraits<TC_METHOD>::NFPGI};
+
+  // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
+
+  const int jE = vlX2_thread % 2; // count either 0 or 1 bits.
+  const int vl_thread = vlX2_thread / 2;
+
+  // Right case: straight copy of cols to cols in sequence.
+  // Left case: interleave to make later swizzling of metrics array work:
+  // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
+
+  const int vl_index = (!IS_LEFT)         ?   vl_thread :
+                       vl_thread < nvleD2 ? 2*vl_thread :
+                                            2*vl_thread - nvle + 1;
+  const int vlX2_index = jE + 2*vl_index;
+
+  const int vlX2_dim = nvleX2_thread;
+
+  // Output array interpreted as having GemmIn_t scalars has nfl rows.
+
+  // "full" field-T local based on fl thread for this tc_step.
+  // index into col, measured in GemmIn_t[NGIPT] sized elts.
+
+  const int flT = flT_min + flT_thread;
+
+  // Sizes.
+
+  // assert(NGIPT >= 1 && NFPGI >= 1);
+  // assert(NFPGI * NGIPT <= SNPW);
+  // assert NGIPT is power of 2
+  // assert NFPGI is power of 2
+
+  // Loop over GemmIn_t values per this thread.
+  // ISSUE: would this be faster with unroll pragma or template recursion
+
+  const size_t nflG_dim = NGIPT * nflT_thread;
+
+  //----------
+  // Special-case code for a B1 case.
+
+  if (TC_METHOD == TC::B1 && is_duo && NGIPT == 1 && sizeof(GemmIn_t) == 4 &&
+      sizeof(TCWord_t) == 8 && IS_B_FIELD_MAJOR) {
+
+    const int vl = is_vectors_halved && IS_LEFT ?
+                   vl_thread % nvleD2 + step_2way * nvleD2 :
+                   vl_thread;
+
+    const bool is_vector_inactive = vl >= nvlea;
+
+    const int kE = is_vectors_halved && IS_LEFT ?
+                   vl_thread / nvleD2 :
+                   step_2way;
+
+    const TCWord_t* const vim_col = vim + vl * (size_t)vi_dim0;
+
+    // Pick up fields value.
+    // Set to zero if outside of active range.
+
+    const TCWord_t m_word = is_vector_inactive ? 0 : vim_col[flT];
+
+    const bool num_way_3 = 3 == num_way;
+    const bool num_way_3_left = num_way_3 && IS_LEFT;
+
+    const TCWord_t c_word = is_vector_inactive ? 0 : !num_way_3_left ? 0 :
+      vic[flT];
+
+    // Calculate target result on odd bits.
+
+    const TCWord_t oddbits_mask = (TCWord_t)0x5555555555555555;
+
+    enum {BPSN = 2}; // bits per seminibble (field)
+    enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles (fields) / word
+
+    // Upper bound on fields computed by this thread.
+    const int fl_max = (flT+1) * SNPW;
+
+    // How many inactive fields in this word.
+    const int fl_inactive = utils::min(32, utils::max(0, fl_max - nfal));
+
+    const TCWord_t allbits = ~(TCWord_t)0;
+
+    // NOTE: 64-bit word fills up the rightmost bits first - see vectors.hh.
+    const TCWord_t field_active_mask = fl_inactive >= 32 ?
+      ((TCWord_t)0) : allbits >> (2 * fl_inactive);
+
+    // Use odd bits to denote whether each field is undef or not.
+    const TCWord_t m_notundef_mask = (m_word | ~(m_word >> 1));
+    const TCWord_t c_notundef_mask = (c_word | ~(c_word >> 1));
+
+    const TCWord_t vo_value_64 = num_way_3_left ?
+      (kE ? m_word : ~m_word) & (jE ? c_word : ~c_word) &
+      oddbits_mask & field_active_mask & m_notundef_mask & c_notundef_mask :
+      (jE ? m_word : ~m_word) &
+      oddbits_mask & field_active_mask & m_notundef_mask;
+
+    // Store.
+
+    const size_t flG_index = 0 + NGIPT * flT_thread;
+
+    GemmIn_t& vo_value = vo[flG_index + nflG_dim * vlX2_index];
+
+    // Put odd bits of 64-bit word into 32-bit word.
+    const GemmIn_t* const vo_value_32 = (GemmIn_t*)&vo_value_64;
+    vo_value = vo_value_32[0] | (vo_value_32[1] << 1);
+
+    return;
+  }
+
+  //----------
+  // Special-case code for a HIP case.
+
+  if (BuildHas::HIP && TC_METHOD == TC::INT8) {
+
+    const int vl = is_vectors_halved && IS_LEFT ?
+                   vl_thread % nvleD2 + step_2way * nvleD2 :
+                   vl_thread;
+
+    const bool is_vector_inactive = vl >= nvlea;
+
+    const int kE = is_vectors_halved && IS_LEFT ?
+                   vl_thread / nvleD2 :
+                   step_2way;
+
+    const TCWord_t* const vim_col = vim + vl * (size_t)vi_dim0;
+
+    enum {BPSN = 2}; // bits per seminibble
+    enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles / word
+
+    const int nb = 4;
+
+    for (int igipt = 0; igipt < NGIPT; igipt+=nb) {
+
+      const size_t flG_index = igipt + NGIPT * flT_thread;
+
+      GemmIn_t* vo_value =
+        &(vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))]);
+
+      const int fl = igipt + NGIPT * flT;
+
+      const bool num_way_3 = 3 == num_way;
+      const bool num_way_3_left = num_way_3 && IS_LEFT;
+
+      const TCWord_t sn_m_word = is_vector_inactive ? 0 : vim_col[fl/SNPW];
+      const TCWord_t sn_c_word = is_vector_inactive ? 0 : !num_way_3_left ? 0 :
+        vic[fl/SNPW];
+
+// TODO: check that this is properly unrolled.
+
+#     ifdef __clang__
+#       pragma unroll
+#     endif
+      for (int i = 0; i < nb; ++i) {
+      //for (int i = 0; i < (int)(sizeof(TCWord_t)/sizeof(GemmIn_t)); ++i) {
+
+        vo_value[i] = fl+i >= nfal ? 0 :
+          tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+            ( sn_m_word >> (BPSN*((fl+i)%SNPW)) ) & 3,
+            ( sn_c_word >> (BPSN*((fl+i)%SNPW)) ) & 3,
+            jE, kE, step_2way,
+            num_way, is_sparse, is_duo, form_matX_tc,
+            is_bitwise_3way_2step);
+
+      } // i
+    } // igipt
+
+    return;
+
+  } // if (BuildHas::HIP && TC_METHOD == TC::INT8)
+
+#if 0
+  //----------
+
+  if (BuildHas::HIP && TC_METHOD == TC::INT8) {
+
+    const int vl = is_vectors_halved && IS_LEFT ?
+                   vl_thread % nvleD2 + step_2way * nvleD2 :
+                   vl_thread;
+
+    const bool is_vector_inactive = vl >= nvlea;
+
+    const int kE = is_vectors_halved && IS_LEFT ?
+                   vl_thread / nvleD2 :
+                   step_2way;
+
+    const TCWord_t* const vim_col = vim + vl * (size_t)vi_dim0;
+
+    //enum {SNPW = 16}; // seminibbles per 32-bit word
+    enum {BPSN = 2}; // bits per seminibble
+    enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles / word
+
+    for (int igipt = 0; igipt < NGIPT; igipt+=4) {
+
+      const size_t flG_index = igipt + NGIPT * flT_thread;
+
+      const int nb = 4;
+
+      GemmIn_t* vo_value =
+        &(vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))]);
+
+      const int fl = igipt + NGIPT * flT;
+
+      const uint32_t sn_m32 = is_vector_inactive ? 0 : vim_col[fl/SNPW];
+      const uint32_t sn_c32 = is_vector_inactive ? 0 : !IS_LEFT ? 0 : vic[fl/SNPW];
+
+      vo_value[0] = fl+0 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+0)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+0)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+
+      vo_value[1] = fl+1 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+1)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+1)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+
+      vo_value[2] = fl+2 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+2)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+2)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+
+      vo_value[3] = fl+3 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+3)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+3)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+    } // igipt
+
+    return;
+
+  } // if (BuildHas::HIP && TC_METHOD == TC::INT8)
+
+  //----------
+#endif
+
+  //----------
+
+  for (int igipt = 0; igipt < NGIPT; ++igipt) {
+
+    const size_t flG_index = igipt + NGIPT * flT_thread;
+
+    const int nb = 4;
+
+    // see https://rocblas.readthedocs.io/en/latest/functions.html?highlight=rocblas_gemm_ex#blas-extensions
+
+    GemmIn_t& vo_value =
+      IS_B_FIELD_MAJOR ?
+        vo[flG_index + nflG_dim * vlX2_index] :
+      (BuildHas::HIP && TC_METHOD == TC::INT8) ?
+        vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))] :
+        vo[vlX2_index + vlX2_dim * flG_index];
+
+    GemmIn_t vo_value_tmp = vo_value;
+
+    for (int ifpgi = 0; ifpgi < NFPGI; ++ifpgi) {
+
+      // Get active field_local number.
+
+      const int fl = ifpgi + NFPGI * (igipt + NGIPT * flT);
+
+      // Count number of 0 (or 1) bits in respective seminibble.
+      // Determine whether to skip (1,0) null indicator value.
+      // NOTE: does not work for all cases.
+
+      const GemmIn_t out =
+        tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
+          num_way, is_sparse, is_duo, form_matX_tc, step_2way,
+          is_bitwise_3way_2step, is_vectors_halved,
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nfal, 
+          jE, vl_thread, fl);
+
+      // Store.
+
+      if (ifpgi) {
+        const int shift = ifpgi * (BITS_PER_BYTE * sizeof(GemmIn_t) / NFPGI);
+        vo_value_tmp = vo_value_tmp | ( out << shift);
+      } else {
+        vo_value_tmp = out;
+      }
+
+    } // ifpgi
+
+    vo_value = vo_value_tmp;
+
+  } // igipt
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GPU kernel to support tc_buf_write_.
+
+template<int TC_METHOD, bool IS_LEFT, int IS_B_FIELD_MAJOR>
+__global__ static void tc_buf_write_kernel_(
+  typename TCTraits<TC_METHOD>::GemmIn_t* vo,
+  const TCWord_t* vim,
+  const TCWord_t* vic,
+  int vi_dim0,
+  int num_way,
+  bool is_sparse,
+  bool is_duo,
+  bool form_matX_tc,
+  int step_2way,
+  bool is_bitwise_3way_2step,
+  bool is_vectors_halved,
+
+  int nvle,
+  int nvleD2,
+  int nvleX2_thread,
+  int nvlea,
+
+  int nfl,
+  int nflT,
+  int nflT_thread,
+  int flT_min,
   int nfal) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
-  const int vlX2_thread = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int flD2_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+  const int thread_dim0 = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int thread_dim1 = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
 
-  if (vlX2_thread >= nvleX2_thread || flD2_thread >= nflD2_thread) {
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR =
+        TCTraits<TC_METHOD>::IS_THREAD_MAPPING_FIELD_MAJOR};
+
+  const int flT_thread = IS_THREAD_MAPPING_FIELD_MAJOR ?
+    thread_dim0 : thread_dim1;
+  const int vlX2_thread = IS_THREAD_MAPPING_FIELD_MAJOR ?
+    thread_dim1 : thread_dim0;
+
+  if (vlX2_thread >= nvleX2_thread || flT_thread >= nflT_thread)
     return;
-  }
 
-  tc_buf_write_kernel_elt_<GemmIn_t>(vo, vim, vic, vi_dim0,
-    num_way, is_sparse, is_right, is_duo, form_matX_tc, step_2way,
+  tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>(vo, vim, vic,
+    vi_dim0, num_way, is_sparse, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
-    nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflD2, nflD2_thread, flD2_min, nfal,
-    vlX2_thread, flD2_thread);
+    nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflT, nflT_thread, flT_min, nfal,
+    vlX2_thread, flT_thread);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Convert bitwise matrix to required format for GEMM.
 
-template<int TC_METHOD>
+template<int TC_METHOD, bool IS_LEFT>
 void tc_buf_write_(
-  bool is_right, int I_max, int I_max_dim, int nvl,
-  int npvfl, int npvfl_thisstep, int pvfl_min, int nfal,
-  const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs,
+  int I_max, int I_max_dim, int nvl,
+  int npfl, int npfl_thisstep, int pfl_min, int nfal,
+  const TCWord_t* vi1, const TCWord_t* vi2, TCBufs& tc_bufs,
   int step_2way, CEnv& env) {
 
   COMET_INSIST(vi1 && vi2);
   COMET_INSIST(I_max_dim >= 0 && I_max_dim <= nvl);
   COMET_INSIST(I_max >= 0 && I_max <= I_max_dim);
-  COMET_INSIST(nvl >= 0 && npvfl >= 0);
+  COMET_INSIST(nvl >= 0 && npfl >= 0);
   COMET_INSIST(tc_bufs.tc_buf_left && tc_bufs.tc_buf_right);
-  COMET_INSIST(npvfl_thisstep >= 0 && npvfl_thisstep <= npvfl);
-  COMET_INSIST(pvfl_min >= 0 && pvfl_min + npvfl_thisstep <= npvfl);
+  COMET_INSIST(npfl_thisstep >= 0 && npfl_thisstep <= npfl);
+  COMET_INSIST(pfl_min >= 0 && pfl_min + npfl_thisstep <= npfl);
 
   // num_vector-related dimensions.
 
-  const int nvle = is_right ? nvl : I_max_dim; // effective nvl dimension
+  const int nvle = IS_LEFT ? I_max_dim : nvl; // effective nvl dimension
   const int nvleD2 = nvle / 2;
   const int nvleX2 = nvle * 2;
-  const int nvlea = is_right ? nvl : I_max; // num active nvle; others zeroed
+  const int nvlea = IS_LEFT ? I_max : nvl; // num active nvle; others zeroed
   // NOTE: ignoring here the issue from decomp_mgr that
   // num_vector_active_local may be strictly less than num_vector_local;
   // doesn't matter: just compute on fake values that will later be ignored.
 
+  // Curent implementation requirement.
   COMET_INSIST(nvle % 2 == 0 && nvl % 2 == 0 &&
                "tc method here requires num_vector_local multiple of 2.");
 
   // num_field-related dimensions.
 
-  enum {SNPT = 2}; // seminibbles processed per thread
+  enum {NUM_FIELD_PER_PACKEDVAL_FIELD = 64};
+  enum {NUM_FL_PER_PFL = NUM_FIELD_PER_PACKEDVAL_FIELD};
 
-  const int nfl = npvfl * 64;
-  const int nflD2 = nfl / SNPT;
-  const int nfl_thisstep = npvfl_thisstep * 64;
-  const int nflD2_thisstep = nfl_thisstep / SNPT;
-  const int fl_min = pvfl_min * 64;
-  const int flD2_min = fl_min / SNPT;
+  const int nfl = npfl * NUM_FL_PER_PFL;
+  const int nfl_thisstep = npfl_thisstep * NUM_FL_PER_PFL;
+  const int fl_min = pfl_min * NUM_FL_PER_PFL;
+
+  enum {NGIPT = TCTraits<TC_METHOD>::NGIPT};
+  enum {NFPGI = TCTraits<TC_METHOD>::NFPGI};
+
+  enum {NUM_FIELD_PER_THREAD = NFPGI * NGIPT};
+  enum {NFPT = NUM_FIELD_PER_THREAD};
+
+  //const int nGI = nfl / NFPGI;
+  const int nGI_thisstep = nfl_thisstep / NFPGI;
+  //const int GI_min = fl_min / NFPGI;
+
+  const int nflT = nfl / NFPT;
+  const int nflT_thisstep = nfl_thisstep / NFPT;
+  const int flT_min = fl_min / NFPT;
+
   // Remember: end padding is set to zero; will correct zero counts later.
 
   // Arrays.
 
-  typedef typename TCSelector<TC_METHOD>::GemmIn_t GemmIn_t;
-  const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
-  GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
-                                      (GemmIn_t*)tc_bufs.tc_buf_left;
-  COMET_INSIST(nvleX2 * (size_t)(SNPT*nflD2_thisstep) *
-           sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
+  typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
+
+  const int vi_dim0 = npfl * (2*sizeof(double)) / sizeof(TCWord_t);
+  //const int vi_dim0 = npfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
+
+  GemmIn_t* const tc_buf = IS_LEFT ? (GemmIn_t*)tc_bufs.tc_buf_left :
+                                     (GemmIn_t*)tc_bufs.tc_buf_right;
+  COMET_INSIST(nvleX2 * (size_t)(nGI_thisstep) * sizeof(GemmIn_t)
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
 
@@ -394,12 +758,20 @@ void tc_buf_write_(
   const bool form_matX_tc = env.form_matX_tc();
   const bool is_bitwise_3way_2step = env.is_bitwise_3way_2step();
 
-  const uint32_t* unused_col = form_matX_tc ? NULL : vi1; // dummy
-  const uint32_t* vim = form_matX_tc ? vi2 : vi1; // matrix
-  const uint32_t* vic = form_matX_tc ? vi1 : unused_col; // column
+  const TCWord_t* unused_col = form_matX_tc ? NULL : vi1; // dummy
+  const TCWord_t* vim = form_matX_tc ? vi2 : vi1; // matrix
+  const TCWord_t* vic = form_matX_tc ? vi1 : unused_col; // column
 
   const int nvleX2_thread = nvleX2;
-  const int nflD2_thread = nflD2_thisstep;
+  const int nflT_thread = nflT_thisstep;
+
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR =
+        TCTraits<TC_METHOD>::IS_THREAD_MAPPING_FIELD_MAJOR};
+
+  const int thread_dim0 = IS_THREAD_MAPPING_FIELD_MAJOR ?
+    nflT_thread : nvleX2_thread;
+  const int thread_dim1 = IS_THREAD_MAPPING_FIELD_MAJOR ?
+    nvleX2_thread : nflT_thread;
 
   if (env.is_compute_method_gpu()) {
 
@@ -409,33 +781,66 @@ void tc_buf_write_(
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
                    "Current HIP limitation.");
       const int blockdim_y = 32768;
-      const int num_threadblocks_0 = utils::ceil(nvleX2_thread, threadblocksize);
-      const int num_threadblocks_1 = utils::min(nflD2_thread, blockdim_y);
-      const int num_threadblocks_2 = utils::ceil(nflD2_thread, blockdim_y);
+      const int num_threadblocks_0 = utils::ceil(thread_dim0, threadblocksize);
+      const int num_threadblocks_1 = utils::min(thread_dim1, blockdim_y);
+      const int num_threadblocks_2 = utils::ceil(thread_dim1, blockdim_y);
 
-      COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<GemmIn_t>),
-        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-        tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
-        is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
-        env.is_vectors_halved(),
-        nvle, nvleD2, nvleX2_thread, nvlea,
-        nfl, nflD2, nflD2_thread, flD2_min, nfal);
+      //enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
 
-      System::accel_last_call_succeeded();
+      if (env.is_using_cutlass() || env.is_using_cutlass_mockup()) {
 
-  } else { // (!env.is_compute_method_gpu())
+        enum {IS_B_FIELD_MAJOR = true};
+        COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
 
-    for (int flD2_thread=0; flD2_thread<nflD2_thread; ++flD2_thread) {
-      for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
-
-        tc_buf_write_kernel_elt_<GemmIn_t>(
-          tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
+        COMET_LAUNCH_KERNEL(
+          (tc_buf_write_kernel_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>),
+          dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(),
           is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
           env.is_vectors_halved(),
           nvle, nvleD2, nvleX2_thread, nvlea,
-          nfl, nflD2, nflD2_thread, flD2_min, nfal,
-          vlX2_thread, flD2_thread);
+          nfl, nflT, nflT_thread, flT_min, nfal);
+
+        System::accel_last_call_succeeded();
+
+    } else {
+
+        enum {IS_B_FIELD_MAJOR = false};
+        COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
+
+        COMET_LAUNCH_KERNEL(
+          (tc_buf_write_kernel_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>),
+          dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(),
+          is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
+          env.is_vectors_halved(),
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nflT, nflT_thread, flT_min, nfal);
+
+        System::accel_last_call_succeeded();
+
+    }
+
+  } else { // (!env.is_compute_method_gpu())
+
+    enum {IS_B_FIELD_MAJOR = false};
+    COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
+
+    for (int i1 = 0; i1 < thread_dim1; ++i1) {
+      for (int i0 = 0; i0 < thread_dim0; ++i0) {
+
+        const int flT_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? i0 : i1;
+        const int vlX2_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? i1 : i0;
+
+        tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>(
+          tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(),
+          is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
+          env.is_vectors_halved(),
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nflT, nflT_thread, flT_min, nfal,
+          vlX2_thread, flT_thread);
 
       }
     }
@@ -444,11 +849,203 @@ void tc_buf_write_(
 }
 
 //=============================================================================
+/// \brief GPU kernel to support tc_compute_matX_counts.
+
+template<typename GemmIn_t>
+__global__ static void tc_compute_matX_counts_kernel_(
+  uint32_t* matX_counts,
+  const TCWord_t* vim,
+  const TCWord_t* vic,
+  int vi_dim0,
+  int step_2way,
+  int nvle,
+  int nvleD2,
+  int nvleX2_thread,
+  int nvlea,
+  int nfl,
+  int nfl_thread,
+  int nfal) {
+
+#ifdef COMET_USE_ACCEL
+  const int vlX2_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+
+  if (vlX2_thread >= nvleX2_thread)
+    return;
+
+  const int jE = vlX2_thread % 2; // count either 0 or 1 bits.
+  const int vl_thread = vlX2_thread / 2;
+
+  const int fl_ind0 = threadIdx_x_();
+  const int fl_dim0 = blockDim_x_();
+  const int fl_ind1 = blockIdx_x_();
+  const int fl_dim1 = gridDim_x_();
+
+  const int fl_thread = fl_ind0 + fl_dim0 * fl_ind1;
+
+  // NOTE: here nfl and nfal can be larger than the number of fl threads.
+
+  const int num_way = NumWay::_3;
+  const bool is_sparse = true;
+  const bool is_duo = true;
+  const bool form_matX_tc = true;
+  const bool is_bitwise_3way_2step = true;
+  const bool is_vectors_halved = true;
+  enum {IS_LEFT = true};
+
+  // Adapted from https://www.olcf.ornl.gov/wp-content/uploads/2019/12/05_Atomics_Reductions_Warp_Shuffle.pdf
+
+  extern __shared__ uint32_t sdata_tc_compute_matX_counts_kernel_[];
+
+  uint32_t* sdata = &(sdata_tc_compute_matX_counts_kernel_[0]);
+
+
+  sdata[fl_ind0] = 0;
+  int fl = fl_thread;
+
+  const bool is_serialized = false; // for testing.
+
+  // Serially reduce across (threadblock+grid)-sized blocks along fl direction.
+
+  if (!is_serialized) {
+
+    while (fl < nfal) {
+      const GemmIn_t elt = 
+        tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
+          num_way, is_sparse, is_duo, form_matX_tc, step_2way,
+          is_bitwise_3way_2step, is_vectors_halved,
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nfal, 
+          jE, vl_thread, fl);
+
+      sdata[fl_ind0] += elt;
+      fl += fl_dim0 * fl_dim1;
+    }
+
+    // Reduce within threadblock.
+
+    for (unsigned int s = fl_dim0/2; s > 0; s >>= 1) {
+      __syncthreads();
+      if (fl_ind0 < s) // parallel sweep reduction
+        sdata[fl_ind0] += sdata[fl_ind0 + s];
+    }
+
+    // First thread of each threadblock adds in its contribution.
+
+    if (fl_ind0 == 0) {
+      atomicAdd(&(matX_counts[vlX2_thread]), sdata[0]);
+    }
+
+  } else { // is_serialized
+
+    if(fl_thread == 0) {
+      for (int fl=0; fl<nfal; ++fl) {
+        const GemmIn_t elt = 
+          tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
+            num_way, is_sparse, is_duo, form_matX_tc, step_2way,
+            is_bitwise_3way_2step, is_vectors_halved,
+            nvle, nvleD2, nvleX2_thread, nvlea,
+            nfl, nfal, 
+            jE, vl_thread, fl);
+        matX_counts[vlX2_thread] += elt;
+      }
+    }
+
+  } // if (!is_serialized)
+#endif
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute vector (column) sums for matX to support 3-way xor gemm.
+
+void tc_compute_matX_counts(
+  int I_max,
+  int I_max_dim,
+  int nvl,
+  int npfl,
+  int nfal,
+  const TCWord_t* vi1,
+  const TCWord_t* vi2,
+  TCBufs& tc_bufs,
+  int step_2way,
+  CEnv& env) {
+
+  COMET_INSIST(vi1 && vi2);
+  COMET_INSIST(I_max >= 0 && I_max <= I_max_dim);
+
+  if (!(env.is_using_xor() && env.num_way() == NumWay::_3))
+    return;
+
+  COMET_INSIST(env.is_compute_method_gpu());
+  COMET_INSIST(env.num_way() == NumWay::_3);
+  COMET_INSIST(env.sparse());
+  COMET_INSIST(env.metric_type() == MetricType::DUO);
+  COMET_INSIST(env.form_matX_tc());
+  COMET_INSIST(env.is_bitwise_3way_2step());
+  COMET_INSIST(env.is_vectors_halved());
+
+#ifdef COMET_USE_ACCEL
+
+  // num_vector-related dimensions.
+
+  const int nvle = I_max_dim; // effective nvl dimension
+  const int nvleD2 = nvle / 2;
+  const int nvleX2 = nvle * 2;
+  const int nvlea = I_max; // num active nvle; others zeroed
+
+  enum {NUM_FL_PER_PFL = 64};
+  const int nfl = npfl * NUM_FL_PER_PFL;
+  COMET_INSIST(nfal <= nfl);
+
+  const TCWord_t* vim = vi2; // matrix
+  const TCWord_t* vic = vi1; // column
+
+  enum {NUM_FL_PER_UINT32 = 16};
+
+  const int nvleX2_thread = nvleX2;
+  const int nfl_thread = nfl / NUM_FL_PER_UINT32;
+  const int vi_dim0 = npfl * (2*sizeof(double)) / sizeof(TCWord_t);
+  //const int vi_dim0 = npfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
+
+  typedef TCTraits<TC::B1>::GemmIn_t GemmIn_t;
+
+  uint32_t* const matX_counts = tc_bufs.matX_counts;
+
+# if defined COMET_USE_CUDA
+    cudaMemsetAsync(matX_counts, 0, tc_bufs.matX_counts_size,
+      env.stream_compute());
+# elif defined COMET_USE_HIP
+    hipMemsetAsync(matX_counts, 0, tc_bufs.matX_counts_size,
+      env.stream_compute());
+# endif
+
+  const int threadblocksize = 256;
+  COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+               "Current HIP limitation.");
+  const int blockdim_y = 32768;
+  const int num_threadblocks_0 = utils::ceil(nfl_thread, threadblocksize);
+  const int num_threadblocks_1 = utils::min(nvleX2_thread, blockdim_y);
+  const int num_threadblocks_2 = utils::ceil(nvleX2_thread, blockdim_y);
+
+  COMET_LAUNCH_KERNEL((tc_compute_matX_counts_kernel_<GemmIn_t>),
+    dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+    dim3(threadblocksize, 1, 1),
+    threadblocksize * sizeof(uint32_t),
+    env.stream_compute(),
+    matX_counts, vim, vic, vi_dim0, step_2way,
+    nvle, nvleD2, nvleX2_thread, nvlea,
+    nfl, nfl_thread, nfal);
+
+  System::accel_last_call_succeeded();
+
+#endif //COMET_USE_ACCEL
+}
+
+//=============================================================================
 
 } // namespace comet
 
 //-----------------------------------------------------------------------------
 
-#endif // _comet_tc_copyin_i_hh_
+#endif // _COMET_TC_IN_I_HH_
 
 //-----------------------------------------------------------------------------

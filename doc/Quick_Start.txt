@@ -1,12 +1,11 @@
 
-CoMet Quick Start Guide
------------------------
+                            CoMet Quick Start Guide
+                            -----------------------
 
-The following is run on the ORNL Summit system.
+1. How to build
+----------------
 
---------------------
-
-# To build all versions of the code:
+The following is an example of how to build CoMet on the OLCF Summit system:
 
 export OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
 cd $MEMBERWORK/$OLCF_PROJECT
@@ -14,10 +13,87 @@ mkdir comet_work
 cd comet_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-genomics_gpu/scripts/configure_all.sh
-genomics_gpu/scripts/make_all.sh
+# OPTIONAL:
+#   export COMET_REPO_DIR=$PWD/genomics_gpu
+#   export COMET_BUILDS_DIR=$PWD
+#   export COMET_INSTALLS_DIR=$PWD/installs
+./genomics_gpu/scripts/configure_all.sh
+./genomics_gpu/scripts/make_all.sh
 
---------------------------------------------------------------------------------
+One can also optionally run the tester for this case as follows:
+
+OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
+bsub -P $OLCF_PROJECT -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
+cd $MEMBERWORK/$OLCF_PROJECT/comet_work
+./genomics_gpu/scripts/test_all.sh
+
+NOTES:
+
+- by default, the build process will build several code versions
+(single vs. double precision, release vs. test/debug version, non-MPI vs. MPI
+version).
+
+- The choice of single vs. double precision impacts what form of arithmetic
+is used for the Czekanowski method.
+
+- Using single precision for CCC and DUO has little impact on the numerics
+of the calculation but enables certain performance optimizations
+such as metrics compression.
+
+- The code uses an out-of-tree build system. By default the build directory
+is placed in the working diretory where the configure and build scripts are run.
+
+
+2. Methods
+-----------
+
+CoMet computes comparisons of all pairs (or triples) of vectors in a given
+set of vectors in order to identify correlations between similar vectors.
+The structure of the computation is similar to a large distributed symmetric
+matrix-matrix product (2-way) or tensor product (3-way). It supports several
+comparison metrics:
+
+- the Proportional Similarity (Czekanowski) metric, which takes real-valued
+vectors and single real-valued number for each vector comparison;
+
+- the CCC and DUO metrics, whose imputs are vectors of 2-bit entries and
+whose outputs are a 2X2 or 2X2X2 table of real-valued entries for each
+vector comparison.
+
+CoMet is parallelized using MPI and accelerated on modern GPUs. It supports
+features such as staging to compute partial results over a series of runs,
+thresholding to write results only for highly correlated vectors, and support
+for problems with incomplete data.
+
+For further information please refer to the following:
+
+W. Joubert, J. Nance, D. Weighill, D. Jacobson,
+"Parallel Accelerated Vector Similarity Calculations for Genomics Applications,"
+Parallel Computing, vol. 75, July 2018, pp. 130-145,
+https://www.sciencedirect.com/science/article/pii/S016781911830084X,
+https://arxiv.org/abs/1705.08210.
+
+W. Joubert, J. Nance, S. Climer, D. Weighill, D. Jacobson,
+"Parallel Accelerated Custom Correlation Coefficient Calculations
+for Genomics Applications," Parallel Computing 84 (2019), 15-23,
+https://www.sciencedirect.com/science/article/pii/S0167819118301431,
+https://arxiv.org/abs/1705.08213
+
+Wayne Joubert, Deborah Weighill, David Kainer, Sharlee Climer, Amy Justice,
+Kjiersten Fagnan, Daniel Jacobson, "Attacking the Opioid Epidemic:
+Determining the Epistatic and Pleiotropic Genetic Architectures
+for Chronic Pain and Opioid Addiction," SC18 Gordon Bell Award paper,
+https://dl.acm.org/citation.cfm?id=3291732
+
+"GPU-enabled comparative genomics calculations on leadership-class HPC
+systems," http://on-demand.gputechconf.com/gtc/2017/presentation/s7156-wayne-joubert-comparative.pdf
+
+"CoMet: An HPC application for comparative genomics calculations,"
+https://www.olcf.ornl.gov/wp-content/uploads/2017/11/2018UM-Day1-Joubert.pdf
+
+
+3. Options
+-----------
 
 genomics_metric: calculation of comparison metrics from genomics data
 
@@ -28,35 +104,40 @@ Usage:
 Options:
 
     --num_field <value>
-        (Required) the number of elements in each vector
+        the total number of elements in each vector. Either num_field or
+        num_field_local must be specified.
 
     --num_field_local <value>
-        (Required) the number of elements in each vector on each processor
+        the number of elements in each vector on each process (MPI rank).
+        Either num_field or num_field_local must be specified.
 
     --num_vector <value>
-        (Required) the number of vectors to be processed
+        the total number of vectors. Either num_vector or num_vector_local
+        must be specified.
+
     --num_vector_local <value>
-        (Required) the number of vectors to be processed on each processor
+        the number of vectors on each process (MPI rank). Either num_vector
+        or num_vector_local must be specified.
 
     --metric_type <value>
         metric type to compute (czekanowski=Czekanowski (default),
         ccc=CCC, duo=DUO)
 
     --ccc_multiplier <value>
-        fixed front multiplier value used to calculate the CCC metric
-        (default floating point value is 9/2 for CCC).
+        front multiplier value used to calculate the CCC metric
+        (default floating point value is 4.5 for CCC).
 
     --duo_multiplier <value>
-        fixed front multiplier value used to calculate the DUO metric
-        (default floating point value is 4 for DUO).
+        front multiplier value used to calculate the DUO metric
+        (default floating point value is 4.0 for DUO).
 
     --ccc_param <value>
         fixed coefficient value used to calculate the CCC or DUO metric
         (default floating point value is 2/3).
 
     --sparse <value>
-        for CCC and DUO metric, interpret vector entries of binary "10"
-        as empty or incomplete data (yes=yes, no=no (default))
+        for CCC and DUO metric, interpret each vector entry set to binary
+        "10" as a missing data element (yes=yes, no=no (default))
 
     --num_way <value>
         dimension of metric to compute (2=2-way (default), 3=3-way)
@@ -67,12 +148,13 @@ Options:
 
     --compute_method <value>
         manner of computing the result (CPU=cpu, GPU=gpu (default),
-        REF=reference method)
+        REF=reference implementation (slower, computed on CPU))
 
     --tc <value>
-        for CCC and DUO, use a standard GEMM computation that employs
-        special hardware such as GPU tensor cores when available
-        (0=no (default), 1=fp16/fp32, 2=int8/int32, 3=fp32, 4=auto)
+        for CCC and DUO, perform computation using a standard GEMM computation
+        that employs special hardware such as GPU tensor cores when available
+        (0=no (default), 1=fp16/fp32, 2=int8/int32, 3=fp32, 4=auto,
+        5=int1/int32, 6=int4/int32)
 
     --num_tc_steps <value>
         for tc methods, tuning parameter to reduce memory usage
@@ -80,20 +162,21 @@ Options:
 
     --num_proc_vector <value>
         blocking factor to denote number of blocks used to decompose
-        the total number of vectors across processors 
+        the total number of vectors across processes (MPI ranks)
         (default is the total number of procs requested)
 
     --num_proc_field <value>
         blocking factor to denote number of blocks used to decompose
-        each vector across processors (default is 1)
+        each vector across process (MPI rank) (default is 1)
 
     --num_proc_repl <value>
-        processor replication factor.  For each block along the vector
-        and field axes, this number of processors is applied to
+        process replication factor.  For each block along the vector
+        and field axes, this number of processes (MPI ranks) is applied to
         computations for the block (default is 1)
 
     --num_stage <value>
-        the number of stages the computation is divided into
+        the number of stages the computation is divided into, for breaking
+        the run campaign into smaller parts and reducing the memory footprint
         (default is 1) (available for 3-way case only)
 
     --stage_min <value>
@@ -105,7 +188,8 @@ Options:
         for this run (0-based, default is num_stage-1)
 
     --num_phase <value>
-        the number of phases the computation is divided into
+        the number of phases the computation is divided into, for breaking
+        the run campaign into smaller parts and reducing the memory footprint
         (default is 1)
 
     --phase_min <value>
@@ -117,39 +201,80 @@ Options:
         for this run (0-based, default is num_phase-1)
 
     --input_file <value>
-        string denoting the filename or pathname file
-        used to store input vectors.  If this option not present,
+        string denoting the filename or file pathname of binary file
+        containing all input vectors.  If this option not present,
         a synthetic test case is run.
 
     --problem_type <value>
         the kind of synthetic test case to run. Allowed choices are
-        analytic (default) or random
+        analytic (default) or random.
 
     --output_file_stub <value>
-        string denoting the filename or pathname stub of filenames
-        used to store result metrics.  Metric values are stored in files
+        string denoting the filename or pathname stub of files
+        used to store result metrics.  Metric values are written to files
         whose names are formed by appending a unique identifier
-        (e.g., processor number) to the end of this string.  If this
+        (e.g., process number) to the end of this string.  If this
         option is absent, no output files are written.
 
+    --histograms_file <value>
+        string denoting the filename or pathname of text file
+        used to store histograms of metrics entries, used for scoping runs
+        to determine metric value thresholds.  Note all computed metrics
+        entries are histogrammed irrespective of thresholding.  Only available
+        for CCC and DUO metrics.
+
     --threshold <value>
-        output each result value only if its magnitude is greater than
+        output each metric result value only if its magnitude is greater than
         this threshold.  If set negative, no thresholding is done
         (default -1)
 
+    --threshold <valueLL>,<valueLH>,<valueHH>,<valueLLHH>
+    --threshold <valueLLL>,<valueLLH>,<valueLHH>,<valueHHH>,<valueLLLHHH>
+        alternate threshold option for CCC and DUO methods (2-way, 3-way forms,
+        respectively), used to specify individual thresholds for different
+        table entries.  For example, for 3-way, <valueLLH> is the threshold
+        for table entries (0,0,1) and also table entries with equivalent index
+        permutations (0,1,0), (1,0,0).  Setting <valueLLHH> causes the
+        additional output of table entries (0,0) and (1,1) (output as individual
+        values) if both entries are positive and if both summed together
+        exceed this threshold; <valueLLLHHH> is analogous for 3-way.
+        All thresholds can be disabled by being set negative; otherwise
+        all thresholds must be nonnegative.
+
+    --metrics_shrink <value>
+        anticipated reduction factor in the number of metric entries
+        stored due to thresholding, used to reduce CPU memory footprint
+        to allow larger problems to be solved.  For example, a value of
+        10 specifies that memory will be allocated assuming no more than
+        1/10 of metric entries pass threshold for any stage, phase or
+        process. (default 1.0)
+
     --checksum <value>
-        compute checksum of the metrics results (yes=yes (default), no=no)
+        compute checksum of the metrics results that pass threshold
+        (yes=yes (default), no=no)
 
     --verbosity <value>
        verbosity level of output (0=none, 1=some (default) 2,3=more)
 
-Input File Formats
 
-Input is stored as a single binary file; each process reads the part
+4. File Formats
+----------------
+
+All CoMet I/O makes use of binary files for speed and ease of indexing.
+See the tools/ directory of the CoMet repository for tools to convert
+between binary and human-readable text formats.
+
+For both input and output, the endianness of integer and floating point
+values in the files matches that of the system on which the code is run.
+
+4.1 Input File Formats
+-----------------------
+
+CoMet input is stored as a single binary file; each process reads the part
 of the file it needs.  Elements of the matrix of vectors are stored in
 lexicographical order in the file, with the field dimension varyng
 fastest.  Raw values are stored in a packed fashion with no indexing
-data: dimensions are supplied via command line arguments.
+data; dimensions are supplied via command line arguments.
 
 For the Czekanowski metric, values are stored packed in sequence as
 4-byte floats or 8-byte doubles, depending on the code version being
@@ -159,48 +284,35 @@ CCC/DUO 2-bit values are packed 4 per byte, starting at the least significant
 bit of the byte.  For the 2 bits, the higher order bit is considered the
 "first" bit, the lower order bit is considered to be "second," thus
 for "01" or "(0,1)" the first but is "0" and the second bit is "1".
-Note for the sparse case "(1,0)" is the marker for a missing allele.
-The last byte of each vector is padded with zero bits before the next
-vector in the file is started.
+Note for the sparse case "(1,0)" is the marker for a missing vector entry.
+The last byte of each vector is padded with zeros for the high-order bits
+before the next vector in the file is started.
 
-Output File Formats
+4.2 Output File Formats
+------------------------
 
 Output files are written one file per process.  The files are written
 in binary format as a packed series of results, written in no particular
 order.  Each value is stored as two (for 2-way) or three (for 3-way)
-8-byte unsigned integers, followed by the 4-byte (for single precision
-code version) or 8-byte (for double precision code version) floating
-point value.
+4-byte unsigned integer indices, followed by a 4-byte floating point
+metric value.
 
-For the Czekanowski metric, each integer denotes the (0-based) vector
+For the Czekanowski metric, each integer index denotes the (0-based) vector
 number relevant to the metric value.
 
-For CCC and DUO, the lowest order bit of the integer denotes whether the
-0 bits or the 1 bits of the vector are being compared, and
-all other bits of the integer denote the vector number.
+For CCC and DUO, the lowest order bit of the integer denotes
+the 0/1 index into the relevant 2X2 (or 2X2X2) table entry being written,
+and all other bits of the integer denote the (0-based) vector number.
 
-For input and oputput, the endianness of integer and floating point
-values matches that of the system on which the code is run.
 
---------------------------------------------------------------------------------
-
-#--------------------
-# Run the tester.
-#--------------------
-
-OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
-bsub -P $OLCF_PROJECT -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
-cd $MEMBERWORK/$OLCF_PROJECT/comet_work
-genomics_gpu/scripts/test_all.sh
-
---------------------------------------------------------------------------------
+5. Execution Examples
+----------------------
 
 # The following test runs assume:
 
 OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
 bsub -P $OLCF_PROJECT -Is -nnodes 2 -W 120 $SHELL
 cd $MEMBERWORK/$OLCF_PROJECT/comet_work
-module -q load gcc/6.4.0 cuda
 
 # The following code also assumes bash shell.
 

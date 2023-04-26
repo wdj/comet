@@ -4,9 +4,34 @@
  * \author Wayne Joubert
  * \date   Fri Nov  6 18:18:21 EST 2015
  * \brief  Tester for driver.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "stdio.h"
 #include "stdlib.h"
@@ -14,7 +39,17 @@
 #include "math.h"
 #include "string"
 
-#include "gtest/gtest.h"
+#ifdef COMET_USE_GTEST
+# include "gtest/gtest.h"
+# define BEGIN_TESTS
+# define END_TESTS
+#else
+# define GTEST_API_
+# define EXPECT_EQ(a, b) COMET_INSIST((a) == (b));
+# define BEGIN_TESTS int RUN_ALL_TESTS() {
+# define END_TESTS return 0;}
+# define TEST(a,b)
+#endif
 
 #include "env.hh"
 #include "vectors.hh"
@@ -65,7 +100,7 @@ bool compare_2runs(const char* options1, const char* options2) {
   if (!(can_run(options1) && can_run(options2)))
     return true;
 
-  /*---Do runs---*/
+  // Do 2 runs.
 
   const bool is_proc_num_0 = comet::System::is_proc_num_0();
 
@@ -74,16 +109,16 @@ bool compare_2runs(const char* options1, const char* options2) {
   }
 
   comet::Checksum checksum1;
-  comet::perform_run(checksum1, options1);
+  comet::Driver::perform_run(checksum1, options1);
 
   if (is_proc_num_0) {
     printf("%s\n", options2);
   }
 
   comet::Checksum checksum2;
-  comet::perform_run(checksum2, options2);
+  comet::Driver::perform_run(checksum2, options2);
 
-  /*---Need test result only on proc 0---*/
+  // Need test result only on proc 0.
 
   const bool is_passed = is_proc_num_0 ? checksum1.is_equal(checksum2) : true;;
 
@@ -97,10 +132,21 @@ bool compare_3runs(const char* options1,
                    const char* options3) {
   COMET_INSIST(options1 && options2 && options3);
 
-  if (!(can_run(options1) && can_run(options2) && can_run(options3)))
-    return true;
+  // Test whatever is possible/supported.
 
-  /*---Do runs---*/
+  if (!can_run(options1))
+    return compare_2runs(options2, options3);
+
+  if (!can_run(options2))
+    return compare_2runs(options1, options3);
+
+  if (!can_run(options3))
+    return compare_2runs(options1, options2);
+
+  //if (!(can_run(options1) && can_run(options2) && can_run(options3)))
+  //  return true;
+
+  // Do 3 runs.
 
   const bool is_proc_num_0 = comet::System::is_proc_num_0();
 
@@ -108,21 +154,21 @@ bool compare_3runs(const char* options1,
     printf("%s\n", options1);
   }
   comet::Checksum checksum1;
-  comet::perform_run(checksum1, options1);
+  comet::Driver::perform_run(checksum1, options1);
 
   if (is_proc_num_0) {
     printf("%s\n", options2);
   }
   comet::Checksum checksum2;
-  comet::perform_run(checksum2, options2);
+  comet::Driver::perform_run(checksum2, options2);
 
   if (is_proc_num_0) {
     printf("%s\n", options3);
   }
   comet::Checksum checksum3;
-  comet::perform_run(checksum3, options3);
+  comet::Driver::perform_run(checksum3, options3);
 
-  /*---Need test result only on proc 0---*/
+  // Need test result only on proc 0.
 
   const bool is_passed = is_proc_num_0 ?  checksum1.is_equal(checksum2) &&
                                           checksum1.is_equal(checksum3) : true;
@@ -152,19 +198,17 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, false, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(false, false, num_field, num_vector, env->data_type_vectors());
 
-  GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
-  set_vectors_synthetic(vectors, problem_type, verbosity, env);
+  Vectors vectors(dm, env_value);
+  vectors.allocate();
+  TestProblem::set_vectors_synthetic(&vectors, problem_type, verbosity, env);
 
-  //write_vectors_to_file(vectors, file_path, env);
-  VectorsIO::write(*vectors, file_path, *env);
+  VectorsIO::write(vectors, file_path, *env);
 
-  GMVectors_destroy(vectors, env);
-  GMDecompMgr_destroy(dm, env);
+  vectors.deallocate();
+  dm.deallocate();
 }
 
 //=============================================================================
@@ -176,12 +220,22 @@ void DriverTest_czek2_() {
   //---2-way, all2all no
   //----------
 
+#if 0
+  EXPECT_EQ(
+      true,
+      compare_2runs("--metric_type czekanowski --num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                    "--compute_method GPU",
+                    "--metric_type czekanowski --num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                    "--compute_method CPU"));
+#endif
+
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU"));
+
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -216,11 +270,20 @@ void DriverTest_czek2_() {
 
   EXPECT_EQ(
       true,
+      compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 20 "
+                    "--compute_method CPU ",
+                    "--num_proc_vector 10 --num_field 1 --num_vector_local 2 "
+                    "--compute_method CPU --all2all yes"));
+
+  EXPECT_EQ(
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
                     "--compute_method CPU ",
                     "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU --all2all yes"));
+#endif
 
+#if 1
   EXPECT_EQ(
       true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
@@ -289,9 +352,10 @@ void DriverTest_czek2_() {
                                 "--num_proc_vector 2 --num_proc_field "
                                 "2 --num_field 2 --num_vector_local 2 "
                                 "--compute_method GPU --all2all yes"));
+#endif
 
   //----------
-  //---num_repl, 2-way
+  //---num_proc_repl, 2-way
   //----------
 
   char options1[1024];
@@ -304,10 +368,15 @@ void DriverTest_czek2_() {
       "--num_proc_field %i --num_way %i --num_stage %i";
 
   for (int gpu=0; gpu<=1; ++gpu) {
+  //for (int gpu=0; gpu<=0; ++gpu) {
     for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
+    //for (int num_vector_local=4; num_vector_local<=4; ++num_vector_local) {
       for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+      //for (int num_proc_vector=1; num_proc_vector<=1; ++num_proc_vector) {
+        for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
+        //for (int num_proc_repl=1; num_proc_repl<=1; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
+          //const int num_proc_field = 1;
           if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
             continue;
           }
@@ -355,7 +424,7 @@ void DriverTest_czek2_() {
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 10; ++num_field) {
       create_vectors_file("czek_2way_in.bin", num_field, num_vector,
-                          comet::MetricType::CZEK, 2, comet::problem_type_default(), 1);
+                          comet::MetricType::CZEK, 2, comet::ProblemType::DEFAULT, 1);
       for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
 
@@ -379,37 +448,10 @@ void DriverTest_czek2_() {
       }
     }
   }
-#endif
-
-//  //----------
-//  //---file output, 2-way
-//  //----------
-//
-//  EXPECT_EQ(
-//      true,
-//      compare_2runs("--num_proc_field 1 --num_proc_vector 1 "
-//                    "--num_field 7 --num_vector 10 "
-//                    "--num_way 2 --metric_type czekanowski "
-//                    "--compute_method REF --all2all yes",
-//                    "--num_proc_field 1 --num_proc_vector 3 "
-//                    "--num_field 7 --num_vector 10 "
-//                    "--num_way 2 --metric_type czekanowski "
-//                    "--compute_method GPU --all2all yes "
-//                    "--verbosity 1 "
-//                    "--output_file_stub test_czek_2way"));
 
   //----------
   //---Misc options
   //----------
-
-//  EXPECT_EQ(
-//      true,
-//      compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
-//                    "--verbosity 1 --all2all yes "
-//                    "--compute_method REF --threshold .65",
-//                    "--num_proc_vector 1 --num_field 30 --num_vector 3 "
-//                    "--verbosity 1 --all2all yes "
-//                    "--compute_method GPU --threshold .65"));
 
   // TODO: set up better test
   //EXPECT_EQ(
@@ -542,9 +584,10 @@ void DriverTest_czek3_() {
                           "--num_proc_vector 3 --num_proc_field 2 --num_field "
                           "2 --num_vector_local 6 "
                           " --compute_method GPU --num_way 3 --all2all yes"));
+#endif
 
   //----------
-  //---num_repl, num_stage, 3-way
+  //---num_proc_repl, num_stage, 3-way
   //----------
 
   char options1[1024];
@@ -559,7 +602,7 @@ void DriverTest_czek3_() {
   for (int gpu=0; gpu<=1; ++gpu) {
     for (int num_vector_local=6; num_vector_local<=18; num_vector_local+=12) {
       for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+        for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
           for (int num_stage=1; num_stage<=6; num_stage+=4) {
           const int num_proc_field = gpu ? 2 : 1;
             if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
@@ -581,7 +624,7 @@ void DriverTest_czek3_() {
   }
 
   //----------
-  //---num_repl, num_phase, 3-way
+  //---num_proc_repl, num_phase, 3-way
   //----------
 
   char options_template_2[] =
@@ -621,7 +664,6 @@ void DriverTest_czek3_() {
       }
     }
   }
-#endif
 
 //  //----------
 //  //---file output, 3-way
@@ -663,13 +705,12 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  Vectors vectors(dm, env_value);
+  vectors.allocate();
+  vectors.initialize();
 
   if (env->is_proc_active()) {
     {
@@ -677,50 +718,46 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
       const int T = 1;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
+      vectors.bits2_set(f++, i, 2 * G + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * T + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * T + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * T + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * T + 1 * T, *env);
     }
     {
       const int G = 0;
       const int A = 1;
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * A, env);
+      vectors.bits2_set(f++, i, 2 * G + 1 * G, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * G, *env);
+      vectors.bits2_set(f++, i, 2 * G + 1 * G, *env);
+      vectors.bits2_set(f++, i, 2 * G + 1 * G, *env);
+      vectors.bits2_set(f++, i, 2 * G + 1 * A, *env);
     }
   }
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  MetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  Driver::print_output_sync(cksum, *env);
 
   if (env->is_proc_active()) {
-    const double result00 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 0, env);
-    const double result01 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 1, env);
-    const double result10 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 0, env);
-    const double result11 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 1, env);
+    const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
+    const double result01 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env);
+    const double result10 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env);
+    const double result11 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env);
 
     printf("COMPUTED: G G  %.5f\n", result00);
     printf("COMPUTED: G A  %.5f\n", result01);
@@ -748,8 +785,8 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
-  GMDecompMgr_destroy(dm, env);
+  vectors.deallocate();
+  dm.deallocate();
 } // DriverTest_ccc2_simple_compute_method
 
 //=============================================================================
@@ -782,30 +819,29 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  Vectors vectors(dm, env_value);
+  vectors.allocate();
+  vectors.initialize();
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
     {
       const int G = 0;
       const int T = 1;
-    //const int GG =  2 * G + 1 * G;
+    //const int GG =  2 * G + 1 * G
       const int GT =  2 * G + 1 * T;
-    //const int TG =  2 * G + 1 * T;
+    //const int TG =  2 * G + 1 * T
       const int TT =  2 * T + 1 * T;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, GT, env);
-      GMVectors_bits2_set(vectors, f++, i, TT, env);
-      GMVectors_bits2_set(vectors, f++, i, TT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      vectors.bits2_set(f++, i, GT, *env);
+      vectors.bits2_set(f++, i, TT, *env);
+      vectors.bits2_set(f++, i, TT, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, UN, *env);
     }
     {
       const int G = 0;
@@ -813,42 +849,38 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
       const int GG =  2 * G + 1 * G;
       const int GA =  2 * G + 1 * A;
       const int AG =  2 * G + 1 * A;
-    //const int AA =  2 * Q + 1 * A;
+    //const int AA =  2 * Q + 1 * A
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, GG, env);
-      GMVectors_bits2_set(vectors, f++, i, AG, env);
-      GMVectors_bits2_set(vectors, f++, i, GG, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, GA, env);
+      vectors.bits2_set(f++, i, GG, *env);
+      vectors.bits2_set(f++, i, AG, *env);
+      vectors.bits2_set(f++, i, GG, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, GA, *env);
     }
   }
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  MetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  Driver::print_output_sync(cksum, *env);
 
   if (env->is_proc_active()) {
-    const double result00 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 0, env);
-    const double result01 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 1, env);
-    const double result10 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 0, env);
-    const double result11 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 1, env);
+    const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
+    const double result01 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env);
+    const double result10 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env);
+    const double result11 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env);
 
     printf("COMPUTED: G G  %.5f\n", result00);
     printf("COMPUTED: G A  %.5f\n", result01);
@@ -886,8 +918,8 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
     const double r2_10 = 4;
     const double r2_11 = 0;
 
-    //const double r3_*** = 0;
-    //const double r4_*** = 0;
+    //const double r3_*** = 0
+    //const double r4_*** = 0
 
     const double r_00 = r0_00 + r1_00 + r2_00;
     const double r_01 = r0_01 + r1_01 + r2_01;
@@ -924,8 +956,8 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
-  GMDecompMgr_destroy(dm, env);
+  vectors.deallocate();
+  dm.deallocate();
 } // DriverTest_ccc2_simple_sparse_compute_method
 
 //=============================================================================
@@ -938,7 +970,8 @@ void DriverTest_ccc2_simple_sparse_() {
 
 //=============================================================================
 
-void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
+void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
+                                    double tHH, double tLLHH) {
 
   using namespace comet;
 
@@ -953,21 +986,22 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   options += " --num_proc_vector " + std::to_string(1);
   options += " --tc 4";
   options += " --verbosity 1";
+  options += " --threshold " + std::to_string(tLL) + "," + std::to_string(tLH) + ","
+                             + std::to_string(tHH) + "," + std::to_string(tLLHH);
   if (!can_run(options.c_str()))
     return;
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  Vectors vectors(dm, env_value);
+  vectors.allocate();
+  vectors.initialize();
 
   if (env->is_proc_active()) {
-    // entry choices, binary representation
+    // vector entry choices, binary representation
     const int MIN = 2 * (0) + 1 * (0);
     const int MAX = 2 * (1) + 1 * (1);
     const int UNK = 2 * (1) + 1 * (0);
@@ -975,59 +1009,69 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
     {
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, MIN, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, MIN, env);
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+      vectors.bits2_set(f++, i, MIN, *env);
+      vectors.bits2_set(f++, i, MAX, *env);
+      vectors.bits2_set(f++, i, MIN, *env);
+      vectors.bits2_set(f++, i, UNK, *env);
+      vectors.bits2_set(f++, i, UNK, *env);
     }
     // define second vector
     {
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, MAX, env);
-      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+      vectors.bits2_set(f++, i, UNK, *env);
+      vectors.bits2_set(f++, i, MAX, *env);
+      vectors.bits2_set(f++, i, MAX, *env);
+      vectors.bits2_set(f++, i, MAX, *env);
+      vectors.bits2_set(f++, i, UNK, *env);
     }
   }
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  MetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  Driver::print_output_sync(cksum, *env);
 
   if (env->is_proc_active()) {
-    const double result00 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 0, 0, env);
-    const double result01 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 0, 1, env);
-    const double result10 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 1, 0, env);
-    const double result11 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 1, 1, env);
 
-    printf("COMPUTED: MIN MIN  %.5f\n", result00);
-    printf("COMPUTED: MIN MAX  %.5f\n", result01);
-    printf("COMPUTED: MAX MIN  %.5f\n", result10);
-    printf("COMPUTED: MAX MAX  %.5f\n", result11);
+    const double result00 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 0, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env) : 0;
+    const double result01 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 1, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env) : 0;
+    const double result10 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 0, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env) : 0;
+    const double result11 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 1, *env) ?
+      Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env) : 0;
+
+    //const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
+    //const double result01 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 1, *env);
+    //const double result10 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 0, *env);
+    //const double result11 = Metrics_ccc_duo_get_2(*metrics, 0, 1, 1, *env);
+
+    printf("COMPUTED: MIN MIN  %.17f\n", result00);
+    printf("COMPUTED: MIN MAX  %.17f\n", result01);
+    printf("COMPUTED: MAX MIN  %.17f\n", result10);
+    printf("COMPUTED: MAX MAX  %.17f\n", result11);
     printf("\n");
 
     // calculate by hand the expected DUO value.
 
-    // recall that num_field = 5;
+    // recall that num_field = 5
 
     const double s0_0 = 2; // vector 0, number of MINs
     const double s0_1 = 1; // vector 0, number of MAXs
@@ -1038,8 +1082,8 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
     const double c0 = s0_0 + s0_1; // vector 0, number of MINs and MAXs
     const double c1 = s1_0 + s1_1;
 
-    // const double unk_0 = num_field - c0; // = 2 // for vector 0, number of UNK
-    // const double unk_1 = num_field - c1; // = 2 // for vector 1, number of UNK
+    // const double unk_0 = num_field - c0; // = 2 // for vector 0, num UNK
+    // const double unk_1 = num_field - c1; // = 2 // for vector 1, num UNK
 
     const double f0_0 = s0_0 / c0; // vector 0, f_0(MIN)
     const double f0_1 = s0_1 / c0; // vector 0, f_0(MAX)
@@ -1072,31 +1116,68 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
     const double ref10 = fm * d_10 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_0 );
     const double ref11 = fm * d_11 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_1 );
 
-    printf("EXPECTED: MIN MIN  %.5f\n", ref00);
-    printf("EXPECTED: MIN MAX  %.5f\n", ref01);
-    printf("EXPECTED: MAX MIN  %.5f\n", ref10);
-    printf("EXPECTED: MAX MAX  %.5f\n", ref11);
+    const double ref00t = ref00 > tLL || (ref00 + ref11 > tLLHH &&
+      ref00 > 0 && ref11 > 0) ? ref00 : (double)0;
+    const double ref01t = ref01 > tLH                  ? ref01 : (double)0;
+    const double ref10t = ref01 > tLH                  ? ref10 : (double)0;
+    const double ref11t = ref11 > tHH || (ref00 + ref11 > tLLHH &&
+      ref00 > 0 && ref11 > 0) ? ref11 : (double)0;
+
+    printf("EXPECTED: MIN MIN  %.17f\n", ref00t);
+    printf("EXPECTED: MIN MAX  %.17f\n", ref01t);
+    printf("EXPECTED: MAX MIN  %.17f\n", ref10t);
+    printf("EXPECTED: MAX MAX  %.17f\n", ref11t);
     printf("\n");
 
     const double eps = 1.e-5;
 
-    EXPECT_EQ(true, fabs(result00 - ref00) < eps);
-    EXPECT_EQ(true, fabs(result01 - ref01) < eps);
-    EXPECT_EQ(true, fabs(result10 - ref10) < eps);
-    EXPECT_EQ(true, fabs(result11 - ref11) < eps);
+    EXPECT_EQ(true, fabs(result00 - ref00t) < eps);
+    EXPECT_EQ(true, fabs(result01 - ref01t) < eps);
+    EXPECT_EQ(true, fabs(result10 - ref10t) < eps);
+    EXPECT_EQ(true, fabs(result11 - ref11t) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
-  GMDecompMgr_destroy(dm, env);
-} // DriverTest_duo2_simple_sparse_compute_method
+  vectors.deallocate();
+  dm.deallocate();
+} // DriverTest_duo2_simple_sparse_
+
+//=============================================================================
+
+void DriverTest_duo2_simple_sparse_(int compute_method) {
+
+//  if (comet::ComputeMethod::REF == compute_method ||
+//      comet::BuildHas::DOUBLE_PREC) {
+//
+//    // REF method and DP build do not remove threshold-failed values,
+//    // so don't test that.
+//    const double tLL = .01;
+//    const double tLH = .01;
+//    const double tHH = .01;
+//    const double tLLHH = .01;
+//
+//    DriverTest_duo2_simple_sparse_(compute_method, tLL, tLH, tHH, tLLHH);
+//
+//  } else {
+
+    const double tLL = .01;
+    for (double tLH : {.37, .38}) {
+    for (double tHH : {.51, .52}) {
+    for (double tLLHH : {.51, .52}) {
+      DriverTest_duo2_simple_sparse_(compute_method, tLL, tLH, tHH, tLLHH);
+    }
+    }
+    }
+
+// }
+}
 
 //=============================================================================
 
 void DriverTest_duo2_simple_sparse_() {
-  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::REF);
-  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::CPU);
-  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::GPU);
+  DriverTest_duo2_simple_sparse_(comet::ComputeMethod::REF);
+  DriverTest_duo2_simple_sparse_(comet::ComputeMethod::CPU);
+  DriverTest_duo2_simple_sparse_(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -1120,13 +1201,12 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  Vectors vectors(dm, env_value);
+  vectors.allocate();
+  vectors.initialize();
 
   if (env->is_proc_active()) {
     {
@@ -1134,84 +1214,76 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
       const int T = 1;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * T + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
     }
     {
       const int A = 0;
       const int T = 1;
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
     }
     {
       const int A = 0;
       const int T = 1;
       int f = 0;
       const int i = 2;
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * T + 1 * T, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
+      vectors.bits2_set(f++, i, 2 * A + 1 * A, *env);
     }
   }
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  MetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  Driver::print_output_sync(cksum, *env);
 
   if (env->is_proc_active()) {
-    const double result000 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 0, env);
-    const double result001 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 1, env);
-    const double result010 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 0, env);
-    const double result011 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 1, env);
-    const double result100 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 0, env);
-    const double result101 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 1, env);
-    const double result110 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 0, env);
-    const double result111 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 1, env);
+    const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
+    const double result001 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env);
+    const double result010 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env);
+    const double result011 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env);
+    const double result100 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env);
+    const double result101 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env);
+    const double result110 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env);
+    const double result111 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env);
 
     printf("COMPUTED: A A A  %.8f\n", result000);
     printf("COMPUTED: A A T  %.5f\n", result001);
@@ -1256,8 +1328,8 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
-  GMDecompMgr_destroy(dm, env);
+  vectors.deallocate();
+  dm.deallocate();
 } // DriverTest_ccc3_simple_compute_method
 
 //=============================================================================
@@ -1285,18 +1357,18 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --num_proc_vector " + std::to_string(1);
   options += " --tc 4";
   options += " --verbosity 1";
+  options += " --threshold .0025";
   if (!can_run(options.c_str()))
     return;
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
   CEnv* env = &env_value;
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  Vectors vectors(dm, env_value);
+  vectors.allocate();
+  vectors.initialize();
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -1305,96 +1377,88 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
       const int T = 1;
       const int AA =  2 * A + 1 * A;
       const int AT =  2 * A + 1 * T;
-    //const int TA =  2 * A + 1 * T;
+    //const int TA =  2 * A + 1 * T
       const int TT =  2 * T + 1 * T;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, TT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, TT, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AA, *env);
     }
     {
       const int A = 0;
       const int T = 1;
       const int AA =  2 * A + 1 * A;
       const int AT =  2 * A + 1 * T;
-    //const int TA =  2 * A + 1 * T;
-    //const int TT =  2 * T + 1 * T;
+    //const int TA =  2 * A + 1 * T
+    //const int TT =  2 * T + 1 * T
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, AA, *env);
     }
     {
       const int A = 0;
       const int T = 1;
       const int AA =  2 * A + 1 * A;
       const int AT =  2 * A + 1 * T;
-    //const int TA =  2 * A + 1 * T;
-    //const int TT =  2 * T + 1 * T;
+    //const int TA =  2 * A + 1 * T
+    //const int TT =  2 * T + 1 * T
       int f = 0;
       const int i = 2;
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AT, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, AA, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, AT, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, AA, *env);
+      vectors.bits2_set(f++, i, UN, *env);
     }
   }
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  MetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  Driver::print_output_sync(cksum, *env);
 
   if (env->is_proc_active()) {
-    const double result000 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 0, env);
-    const double result001 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 1, env);
-    const double result010 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 0, env);
-    const double result011 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 1, env);
-    const double result100 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 0, env);
-    const double result101 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 1, env);
-    const double result110 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 0, env);
-    const double result111 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 1, env);
+    const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
+    const double result001 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env);
+    const double result010 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env);
+    const double result011 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env);
+    const double result100 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env);
+    const double result101 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env);
+    const double result110 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env);
+    const double result111 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env);
 
     printf("COMPUTED: A A A  %.8f\n", result000);
     printf("COMPUTED: A A T  %.5f\n", result001);
@@ -1471,11 +1535,11 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     const double r5_110 = 0;
     const double r5_111 = 0;
 
-    //const double r3_*** = 0;
-    //const double r6_*** = 0;
-    //const double r7_*** = 0;
-    //const double r8_*** = 0;
-    //const double r9_*** = 0;
+    //const double r3_*** = 0
+    //const double r6_*** = 0
+    //const double r7_*** = 0
+    //const double r8_*** = 0
+    //const double r9_*** = 0
 
     const double r_000 = r0_000 + r1_000 + r2_000 + r4_000 + r5_000;
     const double r_001 = r0_001 + r1_001 + r2_001 + r4_001 + r5_001;
@@ -1488,7 +1552,6 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
     const double c = r_000 + r_001 + r_010 + r_011 +
                      r_100 + r_101 + r_110 + r_111;
-//printf("HEY2 %f  %f %f %f \n", c, c0/2, c1/2, c2/2       );
 
     const double f_000 = r_000 / c;
     const double f_001 = r_001 / c;
@@ -1521,14 +1584,14 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     printf("EXPECTED: T T T  %.8f\n", ref111);
     printf("\n");
 
-    //const double ref000 = .055;
-    //const double ref001 = .016;
-    //const double ref010 = .016;
-    //const double ref011 = .030;
-    //const double ref100 = .039;
-    //const double ref101 = .008;
-    //const double ref110 = .008;
-    //const double ref111 = .015;
+    //const double ref000 = .055
+    //const double ref001 = .016
+    //const double ref010 = .016
+    //const double ref011 = .030
+    //const double ref100 = .039
+    //const double ref101 = .008
+    //const double ref110 = .008
+    //const double ref111 = .015
 
     const double eps = 1.e-3;
 
@@ -1543,8 +1606,8 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
-  GMDecompMgr_destroy(dm, env);
+  vectors.deallocate();
+  dm.deallocate();
 } // DriverTest_ccc3_simple_sparse_compute_method
 
 //=============================================================================
@@ -1557,7 +1620,8 @@ void DriverTest_ccc3_simple_sparse_() {
 
 //=============================================================================
 
-void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
+void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
+  double tLLH, double tLHH, double tHHH, double tLLLHHH) {
 
   using namespace comet;
 
@@ -1572,6 +1636,8 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   options += " --num_proc_vector " + std::to_string(1);
   options += " --tc 4";
   options += " --verbosity 1";
+  options += " --threshold " + std::to_string(tLLL) + "," + std::to_string(tLLH) + ","
+    + std::to_string(tLHH) + "," + std::to_string(tHHH) + "," + std::to_string(tLLLHHH);
   if (!can_run(options.c_str()))
     return;
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
@@ -1582,13 +1648,12 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     return;
   }
 
-  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector,
-                     env->data_type_vectors(), env);
+  GMDecompMgr dm(env_value);
+  dm.allocate(true, false, num_field, num_vector, env->data_type_vectors());
 
-  GMVectors vectors_value = GMVectors_null();
-  GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  Vectors vectors(dm, env_value);
+  vectors.allocate();
+  vectors.initialize();
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -1597,93 +1662,111 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
       const int _T = 1;
       int f = 0;
       const int i = 0;
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _A, *env);
     }
     {
       const int _A = 0;
       const int _T = 1;
       int f = 0;
       const int i = 1;
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, _A, *env);
     }
     {
       const int _A = 0;
       const int _T = 1;
       int f = 0;
       const int i = 2;
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _T, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, _A, env);
-      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, _T, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, UN, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, _A, *env);
+      vectors.bits2_set(f++, i, UN, *env);
     }
   }
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+  MetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
   if (env->is_proc_active())
     printf("%s\n", options.c_str());
 
-  ComputeMetrics::compute(*metrics, *vectors, *env);
+  ComputeMetrics::compute(*metrics, vectors, *env);
 
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  Driver::print_output_sync(cksum, *env);
 
   if (env->is_proc_active()) {
     const double result000 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 0, 0, env);
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 0, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env) : 0;
     const double result001 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 0, 1, env);
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 0, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env) : 0;
     const double result010 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 1, 0, env);
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 1, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env) : 0;
     const double result011 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 1, 1, env);
-    const double result100 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 0, 0, env);
-    const double result101 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 0, 1, env);
-    const double result110 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 1, 0, env);
-    const double result111 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 1, 1, env);
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 0, 1, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env) : 0;
 
-    printf("COMPUTED: A A A  %.8f\n", result000);
-    printf("COMPUTED: A A T  %.5f\n", result001);
-    printf("COMPUTED: A T A  %.8f\n", result010);
-    printf("COMPUTED: A T T  %.8f\n", result011);
-    printf("COMPUTED: T A A  %.8f\n", result100);
-    printf("COMPUTED: T A T  %.8f\n", result101);
-    printf("COMPUTED: T T A  %.8f\n", result110);
-    printf("COMPUTED: T T T  %.8f\n", result111);
+    const double result100 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 0, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env) : 0;
+    const double result101 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 0, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env) : 0;
+    const double result110 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 1, 0, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env) : 0;
+    const double result111 =
+      Metrics_is_pass_threshold_noshrink(*metrics, 0, 1, 1, 1, *env) ?
+      Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env) : 0;
+
+    //const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
+    //const double result001 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 1, *env);
+    //const double result010 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 0, *env);
+    //const double result011 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 1, 1, *env);
+    //const double result100 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 0, *env);
+    //const double result101 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 0, 1, *env);
+    //const double result110 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 0, *env);
+    //const double result111 = Metrics_ccc_duo_get_3(*metrics, 0, 1, 1, 1, *env);
+
+    printf("COMPUTED: A A A  %.17f\n", result000);
+    printf("COMPUTED: A A T  %.17f\n", result001);
+    printf("COMPUTED: A T A  %.17f\n", result010);
+    printf("COMPUTED: A T T  %.17f\n", result011);
+    printf("COMPUTED: T A A  %.17f\n", result100);
+    printf("COMPUTED: T A T  %.17f\n", result101);
+    printf("COMPUTED: T T A  %.17f\n", result110);
+    printf("COMPUTED: T T T  %.17f\n", result111);
     printf("\n");
 
     const double s0_0 = 3;
@@ -1750,11 +1833,11 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     const double r5_110 = 0;
     const double r5_111 = 0;
 
-    //const double r3_*** = 0;
-    //const double r6_*** = 0;
-    //const double r7_*** = 0;
-    //const double r8_*** = 0;
-    //const double r9_*** = 0;
+    //const double r3_*** = 0
+    //const double r6_*** = 0
+    //const double r7_*** = 0
+    //const double r8_*** = 0
+    //const double r9_*** = 0
 
     const double r_000 = r0_000 + r1_000 + r2_000 + r4_000 + r5_000;
     const double r_001 = r0_001 + r1_001 + r2_001 + r4_001 + r5_001;
@@ -1789,39 +1872,84 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     const double ref110 = fm * f_110 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_0);
     const double ref111 = fm * f_111 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_1);
 
-    printf("EXPECTED: A A A  %.8f\n", ref000);
-    printf("EXPECTED: A A T  %.5f\n", ref001);
-    printf("EXPECTED: A T A  %.8f\n", ref010);
-    printf("EXPECTED: A T T  %.8f\n", ref011);
-    printf("EXPECTED: T A A  %.8f\n", ref100);
-    printf("EXPECTED: T A T  %.8f\n", ref101);
-    printf("EXPECTED: T T A  %.8f\n", ref110);
-    printf("EXPECTED: T T T  %.8f\n", ref111);
+    const double ref000t = ref000 > tLLL || (ref000 + ref111 > tLLLHHH &&
+      ref000 > 0 && ref111 > 0) ? ref000 : (double)0;
+    const double ref001t = ref001 > tLLH ? ref001 : (double)0;
+    const double ref010t = ref010 > tLLH ? ref010 : (double)0;
+    const double ref011t = ref011 > tLHH ? ref011 : (double)0;
+    const double ref100t = ref100 > tLLH ? ref100 : (double)0;
+    const double ref101t = ref101 > tLHH ? ref101 : (double)0;
+    const double ref110t = ref110 > tLHH ? ref110 : (double)0;
+    const double ref111t = ref111 > tHHH || (ref000 + ref111 > tLLLHHH &&
+      ref000 > 0 && ref111 > 0) ? ref111 : (double)0;
+
+    printf("EXPECTED: A A A  %.17f\n", ref000t);
+    printf("EXPECTED: A A T  %.17f\n", ref001t);
+    printf("EXPECTED: A T A  %.17f\n", ref010t);
+    printf("EXPECTED: A T T  %.17f\n", ref011t);
+    printf("EXPECTED: T A A  %.17f\n", ref100t);
+    printf("EXPECTED: T A T  %.17f\n", ref101t);
+    printf("EXPECTED: T T A  %.17f\n", ref110t);
+    printf("EXPECTED: T T T  %.17f\n", ref111t);
     printf("\n");
 
     const double eps = 1.e-3;
 
-    EXPECT_EQ(true, fabs(result000 - ref000) < eps);
-    EXPECT_EQ(true, fabs(result001 - ref001) < eps);
-    EXPECT_EQ(true, fabs(result010 - ref010) < eps);
-    EXPECT_EQ(true, fabs(result011 - ref011) < eps);
-    EXPECT_EQ(true, fabs(result100 - ref100) < eps);
-    EXPECT_EQ(true, fabs(result101 - ref101) < eps);
-    EXPECT_EQ(true, fabs(result110 - ref110) < eps);
-    EXPECT_EQ(true, fabs(result111 - ref111) < eps);
+    EXPECT_EQ(true, fabs(result000 - ref000t) < eps);
+    EXPECT_EQ(true, fabs(result001 - ref001t) < eps);
+    EXPECT_EQ(true, fabs(result010 - ref010t) < eps);
+    EXPECT_EQ(true, fabs(result011 - ref011t) < eps);
+    EXPECT_EQ(true, fabs(result100 - ref100t) < eps);
+    EXPECT_EQ(true, fabs(result101 - ref101t) < eps);
+    EXPECT_EQ(true, fabs(result110 - ref110t) < eps);
+    EXPECT_EQ(true, fabs(result111 - ref111t) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
-  GMVectors_destroy(vectors, env);
-  GMDecompMgr_destroy(dm, env);
+  vectors.deallocate();
+  dm.deallocate();
 } // DriverTest_ccc3_simple_sparse_compute_method
 
 //=============================================================================
 
+void DriverTest_duo3_simple_sparse_(int compute_method) {
+
+//  if (comet::ComputeMethod::REF == compute_method ||
+//      comet::BuildHas::DOUBLE_PREC) {
+//
+//    // REF method and DP build do not remove threshold-failed values,
+//    // so don't test that.
+//    const double tLLL = .01;
+//    const double tLLH = .01;
+//    const double tLHH = .01;
+//    const double tHHH = .01;
+//    const double tLLLHHH = .01;
+//
+//    DriverTest_duo3_simple_sparse_(compute_method, tLLL, tLLH, tLHH, tHHH,
+//      tLLLHHH);
+//
+//  } else {
+
+    const double tLLL = .01;
+    const double tLHH = .01;
+    for (double tLLH : {.19, .20, .49, .50}) {
+    for (double tHHH : {.27, .28}) {
+    for (double tLLLHHH : {.27, .28}) {
+      DriverTest_duo3_simple_sparse_(compute_method, tLLL, tLLH, tLHH, tHHH,
+        tLLLHHH);
+    }
+    }
+    }
+
+// }
+}
+
+//=============================================================================
+
 void DriverTest_duo3_simple_sparse_() {
-  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::REF);
-  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::CPU);
-  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::GPU);
+  DriverTest_duo3_simple_sparse_(comet::ComputeMethod::REF);
+  DriverTest_duo3_simple_sparse_(comet::ComputeMethod::CPU);
+  DriverTest_duo3_simple_sparse_(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -1839,8 +1967,10 @@ void DriverTest_tc_() {
         "--problem_type random --verbosity %i --tc %i --num_way %i "
         "--num_tc_steps %i --all2all yes" ;
 
-    const int num_proc_vector = 2;
+    const int num_proc_vector = comet::System::num_proc() >= 2 ? 2 : 1;
     //const int num_proc_vector = 1;
+
+    typedef comet::TC TC;
 
     for (int is_duo=0; is_duo<=1; ++is_duo) {
     //for (int is_duo=1; is_duo<=1; ++is_duo) {
@@ -1855,9 +1985,10 @@ void DriverTest_tc_() {
     for (int sparse=0; sparse<=1; ++sparse) {
     //for (int sparse=1; sparse<=1; ++sparse) {
       if (is_duo && 0 == sparse) continue;
-    for (int tc=1; tc<comet::TC::NUM; ++tc) {
+    for (int tc=1; tc<TC::NUM; ++tc) {
     //for (int tc=4; tc<=4; ++tc) {
       if (nv/num_proc_vector < num_way) continue;
+      if (!is_duo && TC::B1 == tc) continue;
 
       sprintf(options1, options_template, is_duo ? "duo" : "ccc",
               num_proc_vector, nv, "REF",
@@ -1878,41 +2009,160 @@ void DriverTest_tc_() {
 
 //=============================================================================
 
+void DriverTest_subbyte_gemm_() {
+
+  char options1[1024];
+  char options2[1024];
+
+  char options_template[] =
+      "--metric_type duo --num_way %i --num_proc_vector 1 "
+      "--num_vector %i --num_field %i "
+      "--compute_method %s --sparse yes --all2all yes "
+      "--problem_type random --verbosity %i --tc %i "
+      "--num_tc_steps %i --threshold .05 --metrics_shrink 1.0 ";
+
+  typedef comet::TC TC;
+
+  for (int tc_method : {TC::INT4, TC::B1})
+  for (int num_way : {2, 3})
+  //for (int num_way : {2})
+  for (int num_tc_steps : {1, 2})
+  //for (int num_tc_steps : {1})
+  for (int num_vector = num_way; num_vector < 5; ++num_vector) {
+  //for (int num_vector = 2; num_vector < 3; ++num_vector) {
+    //if (num_vector < num_way)
+    //  continue;
+  // Examine num_field values nearby possible block boundaries.
+  int num_field_prev = 0;
+  for (int nfbdry : {1, 2, 4, 8, 16, 32, 64, 128}) {
+    const int range = 1;
+  for (int nf = nfbdry - range; nf <= nfbdry + range; ++nf) {
+  //for (int nf = nfbdry + 1; nf < nfbdry + 2; ++nf) {
+    const int num_field = nf;
+    // Skip if this num_field already visited.
+    if (num_field <= num_field_prev)
+      continue;
+
+    //const int num_vector_ = 256; // 256;
+    //const int num_field_ = 256;
+
+    sprintf(options1, options_template, num_way,
+            num_vector, num_field, "REF", 1, 0, 1);
+    sprintf(options2, options_template, num_way,
+            num_vector, num_field, "GPU", 1, tc_method, num_tc_steps);
+    EXPECT_EQ(true, compare_2runs(options1, options2));
+    num_field_prev = num_field;
+  }
+  }
+  }
+
+} // DriverTest_subbyte_gemm_
+
+//=============================================================================
+
 void DriverTest_threshold_() {
 
     char options1[1024];
     char options2[1024];
 
-    const int num_proc_vector = 2;
+    const int num_proc_vector = comet::System::num_proc() >= 3 ? 3 : 1;
     //const int num_proc_vector = 1;
+
+    // NOTE: --problem_type analytic can give high (nonphysical)
+    // values of the metrics compared to --problem_type random.
 
     char options_template[] =
         "--metric_type %s "
         "--num_proc_vector %i "
-        "--num_field 71 --num_vector 17 "
+        //"--num_field 71 --num_vector 17 " // takes too long for some cases.
+        //"--num_field 23 --num_vector 13 "
+        "--num_field 13 --num_vector 11 "
+        //"--num_field 1 --num_vector 2 "
+        //"--num_field 71 --num_vector 20 "
         "--num_way %i "
         "--all2all yes --sparse yes "
-        "--problem_type random "
-        "--threshold %f "
+        //"--problem_type random "
+        "--problem_type analytic "
+        "--threshold %s "
         "--tc %i "
         "--compute_method %s "
+        "--metrics_shrink %f "
         "--verbosity 1 ";
 
     typedef comet::ComputeMethod CM;
     typedef comet::MetricType MT;
     typedef comet::TC TC;
 
-    for (int num_way : {2, 3})
+    // To help avoid problems with comparing floating point values.
+    const double fuzz = .001;
+
+    for (int thresholds_case : {0, 1})
+    //for (int thresholds_case : {0})
+    for (double metrics_shrink : {1., (10./3.)+fuzz})
+    //XXXfor (int metrics_shrink_case : {0, 1}) {
+    //XXX  const double metrics_shrink = 0 == metrics_shrink_case ? 1. :
+    for (int num_way : {2, 3}) {
+    //for (int num_way : {3}) {
+      const double tmax = 2 == num_way ? .99 : .65;
     for (int metric_type : {MT::CCC, MT::DUO})
-    for (double threshold : {.65, 0.})
+    //for (int metric_type : {MT::CCC})
+    //for (double threshold : {tmax, tmax*.8, tmax*.5, .01, 0.})
+    for (double threshold : {tmax, tmax*.8, .01, 0.})
+    //for (double threshold : {tmax})
     for (int compute_method : {CM::CPU, CM::GPU})
-    for (int tc=1; tc<comet::TC::NUM; ++tc) {
+    //for (int compute_method : {CM::GPU})
+    for (int tc=1; tc<TC::NUM; ++tc) {
+    //for (int tc=2; tc<=2; ++tc) {
+      // Some cases have too many thresholded values to be able to shrink.
+      const bool is_trying_shrink = metrics_shrink > 1.+fuzz;
+      if (is_trying_shrink && 2 == num_way &&
+          threshold < tmax-fuzz && threshold > 0+fuzz)
+        continue;
+      if (is_trying_shrink && (CM::GPU != compute_method ||
+           threshold < .6 * tmax || comet::BuildHas::DOUBLE_PREC))
+        continue;
+      // Unimplemented.
+      if (MT::CCC == metric_type && TC::B1 == tc) continue;
+
+      // Some cases take very long to run.
+      if (comet::BuildHas::DOUBLE_PREC && (1 != thresholds_case ||
+         tmax*.8 != threshold || TC::AUTO == tc)) continue;
+      //   (2 == tc || 4 == tc || 6 == tc))
+
+      char thresholds1[1024];
+      char thresholds2[1024];
+
+      const double t = threshold;
+
+      if (0 == thresholds_case) {
+        sprintf(thresholds1, "%f", threshold);
+        if (2 == num_way) {
+          sprintf(thresholds2, "%f,%f,%f,1e6", t, t, t);
+        } else {
+          sprintf(thresholds2, "%f,%f,%f,%f,1e6", t, t, t, t);
+        }
+      } else {
+        if (2 == num_way) {
+          //sprintf(thresholds1, "%f,%f,%f,%f", t, t, t, t);
+          //sprintf(thresholds2, "%f,%f,%f,%f", t, t, t, t);
+          sprintf(thresholds1, "%f,%f,%f,%f", t, 1.05*t, 1.1*t, 2.1*t);
+          sprintf(thresholds2, "%f,%f,%f,%f", t, 1.05*t, 1.1*t, 2.1*t);
+        } else {
+          //sprintf(thresholds1, "%f,%f,%f,%f,%f", t, t, t, t, t);
+          //sprintf(thresholds2, "%f,%f,%f,%f,%f", t, t, t, t, t);
+          sprintf(thresholds1, "%f,%f,%f,%f,%f", t, 1.05*t, 1.1*t, 1.15*t, 2.1*t);
+          sprintf(thresholds2, "%f,%f,%f,%f,%f", t, 1.05*t, 1.1*t, 1.15*t, 2.1*t);
+        }
+      }
+
       sprintf(options1, options_template, MT::str(metric_type),
-        num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF));
+        num_proc_vector, num_way, thresholds1, TC::NO, CM::str(CM::REF), 1.);
       sprintf(options2, options_template, MT::str(metric_type),
-        num_proc_vector, num_way, threshold, tc, CM::str(compute_method));
+        num_proc_vector, num_way, thresholds2, tc, CM::str(compute_method),
+        metrics_shrink);
       test_2runs(options1, options2);
     } 
+    }
 } // DriverTest_tc_
 
 //=============================================================================
@@ -1922,7 +2172,9 @@ void DriverTest_file_output_() {
     char options1[1024];
     char options2[1024];
 
-    const int num_proc_vector = 5;
+    //const int num_proc_vector = 5;
+    //const int num_proc_vector = 2;
+    const int num_proc_vector = comet::System::num_proc() >= 2 ? 11 : 1;
 
     char options_template[] =
         "--metric_type %s "
@@ -1930,7 +2182,7 @@ void DriverTest_file_output_() {
         "--num_field 19 --num_vector 55 "
         "--num_way %i "
         "--all2all %s "
-        "--sparse yes "
+        "--sparse %s "
         "--problem_type random "
         "--threshold .60 "
         "--tc %i "
@@ -1943,26 +2195,72 @@ void DriverTest_file_output_() {
     typedef comet::ComputeMethod CM;
     typedef comet::MetricType MT;
     typedef comet::TC TC;
-    typedef comet::NUM_WAY NUM_WAY;
+    typedef comet::NumWay NumWay;
 
-    for (int num_way : {2, 3})
+    // Metrics output file.
+
+    for (int num_way : {NumWay::_2, NumWay::_3})
     for (int all2all : {1})
     for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
     for (int compute_method : {CM::CPU, CM::GPU}) {
-      const int num_stage = NUM_WAY::_3 == num_way && all2all ? 2 : 1;
-      const int num_phase = all2all ? 2 : 1;
+
+
+      // Some cases take very long to run.
+      if (comet::BuildHas::DOUBLE_PREC && NumWay::_3 == num_way &&
+          COMET_COMPUTE_CAPABILITY >= 800) continue;
+
+      const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
+      const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
+      const char* sparse = MT::CZEK == metric_type ? "no" : "yes";
 
       sprintf(options1, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
-        TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
+        sparse, TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
 
       sprintf(options2, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
-        TC::AUTO, CM::str(compute_method), num_phase, num_stage,
+        sparse, TC::AUTO, CM::str(compute_method), num_phase, num_stage,
         "--output_file_stub DriverTest_file_output");
 
       test_2runs(options1, options2);
-    } 
+    }
+
+    // Histograms.
+
+    for (int num_way : {NumWay::_2, NumWay::_3})
+    for (int all2all : {1})
+    for (int metric_type : {MT::CCC, MT::DUO})
+    //for (int metric_type : {MT::DUO})
+    for (int compute_method : {CM::GPU})
+    for (int tc : {TC::NO, TC::AUTO}) {
+      // Some cases take very long to run.
+      if (comet::BuildHas::DOUBLE_PREC && NumWay::_3 == num_way &&
+          COMET_COMPUTE_CAPABILITY >= 800) continue;
+
+      const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
+      const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
+      const char* sparse = MT::CZEK == metric_type ? "no" : "yes";
+
+      char hfile_template[] =
+          "--histograms_file DriverTest_file_output_histogram_%i.csv";
+
+      char hfile[1024];
+
+      sprintf(hfile, hfile_template, num_way);
+
+      sprintf(options1, options_template,
+        MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
+        sparse, TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
+
+      sprintf(options2, options_template,
+        MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
+        sparse, tc, CM::str(compute_method), num_phase, num_stage,
+        hfile);
+        //"--histograms_file DriverTest_file_output_histogram.csv");
+
+      test_2runs(options1, options2);
+    }
+
 } // DriverTest_file_output_
 
 //=============================================================================
@@ -1972,7 +2270,6 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   char options2[1024];
 #if 1
   char options3[1024];
-  //const bool is_duo = 'd' == metric_type[0];
 
   //----------
   //---2-way, all2all no
@@ -2123,7 +2420,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   }
 
   //----------
-  //---num_repl, 2-way
+  //---num_proc_repl, 2-way
   //----------
 
   char options_template_10[] =
@@ -2143,7 +2440,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+        for (num_proc_repl=1; num_proc_repl<=5; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           const int num_way = 2;
           sprintf(options1, options_template_10, metric_type,
@@ -2250,7 +2547,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 3*300; ++num_field) {
       create_vectors_file("ccc_duo_2way_in.bin", num_field, num_vector,
-                          comet::MetricType::CCC, 2, comet::problem_type_default(), 1);
+                          comet::MetricType::CCC, 2, comet::ProblemType::DEFAULT, 1);
       for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
 
@@ -2288,26 +2585,6 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   }
 #endif
 
-//  //----------
-//  //---file output, 2-way
-//  //----------
-//
-//  {
-//    char options_template[] =
-//        "--num_proc_field 1 --num_proc_vector 1 "
-//        "--num_field 7 --num_vector 100 "
-//        "--num_way 2 --metric_type %s "
-//        "--all2all yes --sparse yes "
-//        "--problem_type random "
-//        "--verbosity 1 "
-//        "%s";
-//      sprintf(options1, options_template, metric_type,
-//              "--compute_method REF");
-//      sprintf(options2, options_template, metric_type,
-//              "--compute_method GPU --tc 4 "
-//              "--output_file_stub test_ccc_duo_2way");
-//      test_2runs(options1, options2);
-//  }
 } // DriverTest_ccc2_duo2_
 
 //=============================================================================
@@ -2317,7 +2594,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
   char options2[1024];
 #if 1
   char options3[1024];
-  const bool is_duo = 'd' == metric_type[0];
+//  const bool is_duo = 'd' == metric_type[0];
 
   //----------
   //---3-way, all2all no
@@ -2330,7 +2607,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       //"--problem_type analytic "
       "--compute_method %s --num_way 3";
 
-  if (!is_duo) {
+//  if (!is_duo) {
     sprintf(options1, options_template_3, metric_type, 2, 1, 3, "REF");
     sprintf(options2, options_template_3, metric_type, 2, 1, 3, "CPU");
     sprintf(options3, options_template_3, metric_type, 2, 1, 3, "GPU");
@@ -2350,7 +2627,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       sprintf(options3, options_template_3, metric_type, 0, i, 24, "GPU");
       EXPECT_EQ(true, compare_3runs(options1, options2, options3));
     }
-  }
+//  }
 
   //----------
   //---3-way, all2all yes, small
@@ -2363,7 +2640,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       //"--problem_type analytic "
       "--compute_method %s --all2all %s --num_way 3";
 
-  if (!is_duo) {
+//  if (!is_duo) {
     sprintf(options1, options_template_4, metric_type, 2, 1, 1, 3, "REF", "no");
     sprintf(options2, options_template_4, metric_type, 2, 1, 1, 3, "CPU", "yes");
     sprintf(options3, options_template_4, metric_type, 2, 1, 1, 3, "GPU", "yes");
@@ -2373,13 +2650,13 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     sprintf(options2, options_template_4, metric_type, 1, 2, 1, 3, "CPU", "yes");
     sprintf(options3, options_template_4, metric_type, 1, 2, 1, 3, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-  }
+//  }
 
   //----------
   //---3-way, all2all yes, large
   //----------
 
-  if (!is_duo) {
+//  if (!is_duo) {
     sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
     sprintf(options2, options_template_4, metric_type, 1, 1, 100, 48, "CPU", "yes");
     sprintf(options3, options_template_4, metric_type, 1, 1, 100, 48, "GPU", "yes");
@@ -2389,12 +2666,6 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     sprintf(options2, options_template_4, metric_type, 1, 4, 100, 12, "CPU", "yes");
     sprintf(options3, options_template_4, metric_type, 1, 4, 100, 12, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-
-  //  sprintf(options1, options_template_4, metric_type, 1, 3, 1, 6, "REF", "yes");
-  //  sprintf(options2, options_template_4, metric_type, 1, 1, 1, 18, "GPU", "yes");
-  //  sprintf(options3, options_template_4, metric_type, 1, 3, 1, 6, "GPU", "yes");
-  //  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-    //EXPECT_EQ(true, compare_2runs(options1, options2));
 
     char options_template_4a[] =
         "--sparse yes "
@@ -2441,10 +2712,10 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     sprintf(options1, options_template_4a2, metric_type);
     sprintf(options2, options_template_4b2, metric_type);
     EXPECT_EQ(true, compare_2runs(options1, options2));
-  }
+//  }
 
   //----------
-  //---num_repl, num_stage, 3-way
+  //---num_proc_repl, num_stage, 3-way
   //----------
 
   char options_template_10[] =
@@ -2455,11 +2726,11 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       "--num_proc_vector %i --num_proc_repl %i "
       "--num_proc_field %i --num_way %i --num_stage %i";
 
-  if (!is_duo) {
+//  if (!is_duo) {
     for (int gpu=0; gpu<=1; ++gpu) {
       for (int num_vector_local=6; num_vector_local<=18; num_vector_local+=12) {
         for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-          for (int num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+          for (int num_proc_repl=1; num_proc_repl<=5; ++num_proc_repl) {
             for (int num_stage=1; num_stage<=6; num_stage+=4) {
               const int num_proc_field = gpu ? 2 : 1;
               const int num_way = 3;
@@ -2477,52 +2748,32 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
         }
       }
     }
-  }
+//  }
 
   //----------
   //---3-way, all2all yes, large, sparse
   //----------
 
-  if (!is_duo) {
-    char options_template_4[] =
+//  if (!is_duo) {
+    char options_template_5[] =
         "--sparse yes "
         "--metric_type %s --verbosity %i "
         //"--problem_type analytic "
         "--num_proc_vector %i --num_field %i --num_vector_local %i "
         "--compute_method %s --all2all %s --num_way 3";
 
-    sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
-    sprintf(options2, options_template_4, metric_type, 1, 1, 100, 48, "CPU", "yes");
-    sprintf(options3, options_template_4, metric_type, 1, 1, 100, 48, "GPU", "yes");
+    sprintf(options1, options_template_5, metric_type, 1, 1, 100, 48, "REF", "no");
+    sprintf(options2, options_template_5, metric_type, 1, 1, 100, 48, "CPU", "yes");
+    sprintf(options3, options_template_5, metric_type, 1, 1, 100, 48, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-    sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
-    sprintf(options2, options_template_4, metric_type, 1, 4, 100, 12, "CPU", "yes");
-    sprintf(options3, options_template_4, metric_type, 1, 4, 100, 12, "GPU", "yes");
+    sprintf(options1, options_template_5, metric_type, 1, 1, 100, 48, "REF", "no");
+    sprintf(options2, options_template_5, metric_type, 1, 4, 100, 12, "CPU", "yes");
+    sprintf(options3, options_template_5, metric_type, 1, 4, 100, 12, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-  }
+//  }
 #endif
 
-//  //----------
-//  //---file output, 3-way
-//  //----------
-//
-//  {
-//    char options_template[] =
-//        "--num_proc_field 1 --num_proc_vector 1 "
-//        "--num_field 7 --num_vector 18 "
-//        "--num_way 3 --metric_type %s "
-//        "--all2all yes --sparse yes "
-//        "--problem_type random "
-//        "--verbosity 1 "
-//        "%s";
-//      sprintf(options1, options_template, metric_type,
-//              "--compute_method REF");
-//      sprintf(options2, options_template, metric_type,
-//              "--compute_method GPU --tc 4 "
-//              "--output_file_stub test_ccc_duo_3way");
-//      test_2runs(options1, options2);
-//  }
 } // DriverTest_ccc3_duo3_
 
 //=============================================================================
@@ -2551,13 +2802,29 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
+BEGIN_TESTS
+
+#if 1
+TEST(DriverTest, czek2) {
+  DriverTest_czek2_();
+}
+
+TEST(DriverTest, czek3) {
+  DriverTest_czek3_();
+}
+
+TEST(DriverTest, threshold) {
+  DriverTest_threshold_();
+}
+#endif
+
 #if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
 
-TEST(DriverTest, threshold) {
-  DriverTest_threshold_();
+TEST(DriverTest, subbyte_gemm) {
+  DriverTest_subbyte_gemm_();
 }
 
 TEST(DriverTest, tc) {
@@ -2587,15 +2854,9 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
+#endif
 
-TEST(DriverTest, czek2) {
-  DriverTest_czek2_();
-}
-
-TEST(DriverTest, czek3) {
-  DriverTest_czek3_();
-}
-
+#if 1
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
@@ -2603,9 +2864,7 @@ TEST(DriverTest, ccc2) {
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
-#endif
 
-#if 1
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }
@@ -2615,11 +2874,15 @@ TEST(DriverTest, duo3) {
 }
 #endif
 
+END_TESTS
+
 //=============================================================================
 
 GTEST_API_ int main(int argc, char** argv) {
 
-  ::testing::InitGoogleTest(&argc, argv);
+# ifdef COMET_USE_GTEST
+    ::testing::InitGoogleTest(&argc, argv);
+# endif
 
   COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
@@ -2627,9 +2890,11 @@ GTEST_API_ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   if (comm_rank != 0) {
-    ::testing::TestEventListeners& listeners =
-      ::testing::UnitTest::GetInstance()->listeners();
-    delete listeners.Release(listeners.default_result_printer());
+#   ifdef COMET_USE_GTEST
+      ::testing::TestEventListeners& listeners =
+        ::testing::UnitTest::GetInstance()->listeners();
+      delete listeners.Release(listeners.default_result_printer());
+#   endif
   }
 
   int result = RUN_ALL_TESTS();

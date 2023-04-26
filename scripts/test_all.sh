@@ -38,36 +38,80 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function main
 {
+  date
   # Location of this script.
-  local SCRIPT_DIR=$(script_dir)
+  #local SCRIPT_DIR=$(script_dir)
+  local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  if [ -d "build_test_$COMET_PLATFORM_STUB" ] ; then
-    local DIRS="build_test_$COMET_PLATFORM_STUB"
-    DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
-  else
-    local DIRS="build_test_nompi_$COMET_PLATFORM_STUB"
-    DIRS+=" build_single_test_nompi_$COMET_PLATFORM_STUB"
+  # Workaround - OLCF Peak system.
+
+  if [ $COMET_HOST = peak ] ; then
+    export HWLOC_KEEP_NVIDIA_GPU_NUMA_NODES=1
+  fi
+
+  # Pick up builds directory.
+  local BUILDS_DIR="${COMET_BUILDS_DIR:-$PWD}"
+
+  # Parse arguments.
+
+  local DO_SINGLE=1
+  local DO_DOUBLE=1
+
+  while [ "${1:-}" != "" ] ; do
+    case $1 in
+      --nosingle) DO_SINGLE=0 ;;
+      --nodouble) DO_DOUBLE=0 ;;
+      *)          echo "${0##*/}: Unrecognized argumnt. $1" 1>&2 ; exit 1 ;;
+    esac
+    shift
+  done
+
+  local DIRS=""
+
+  if [ $DO_SINGLE = 1 ] ; then
+    if [ -d "$BUILDS_DIR/build_single_test_$COMET_PLATFORM_STUB" ] ; then
+      DIRS+=" $BUILDS_DIR/build_single_test_$COMET_PLATFORM_STUB"
+    else
+      DIRS+=" $BUILDS_DIR/build_single_test_nompi_$COMET_PLATFORM_STUB"
+    fi
+    DIRS+=" $BUILDS_DIR/build_single_test_nompi_$COMET_PLATFORM_STUB/tools"
+  fi
+
+  if [ $DO_DOUBLE = 1 ] ; then
+    if [ -d "$BUILDS_DIR/build_test_$COMET_PLATFORM_STUB" ] ; then
+      DIRS+=" $BUILDS_DIR/build_test_$COMET_PLATFORM_STUB"
+    else
+      DIRS+=" $BUILDS_DIR/build_test_nompi_$COMET_PLATFORM_STUB"
+    fi
+    DIRS+=" $BUILDS_DIR/build_test_nompi_$COMET_PLATFORM_STUB/tools"
   fi
 
   # Do tests.
 
   local DIR
   for DIR in $DIRS ; do
-    echo "===================="
-    echo $DIR
-    echo "===================="
+    printf -- '-%.0s' {1..79}; echo ""
     pushd $DIR
     time make test ARGS=-V 2>&1 | tee out_test.txt
     if [ $? != 0 ] ; then
       exit $?
     fi
     popd
+    printf -- '-%.0s' {1..79}; echo ""
   done
 
   # Final reporting.
@@ -77,7 +121,7 @@ function main
   for DIR in $DIRS ; do
     grep -H fail $DIR/out_test.txt
   done
-  OUT_FILES="$(for DIR in $DIRS ; do echo $DIR/out_test.txt ; done)"
+  local OUT_FILES="$(for DIR in $DIRS ; do echo $DIR/out_test.txt ; done)"
   if [ $(awk '/ tests fail/' $OUT_FILES | wc -l) = \
        $(awk '/ 0 tests fail/' $OUT_FILES | wc -l) ] ; then
     echo "!!! All tests PASSED !!!"
@@ -85,6 +129,7 @@ function main
     echo "!!! Some tests FAILED !!!"
   fi
 
+  date
   printf -- '-%.0s' {1..79}; echo ""
 } # main
 

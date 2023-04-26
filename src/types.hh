@@ -4,17 +4,41 @@
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Fundamental scalar types for algorithms; associated functions.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 
-#ifndef _comet_types_hh_
-#define _comet_types_hh_
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
+
+#ifndef _COMET_TYPES_HH_
+#define _COMET_TYPES_HH_
 
 #include "cstdint"
 #include "cfloat"
 #include <limits>
-//#include <cstdio> // FIX
 
 #include "assertions.hh"
 
@@ -22,55 +46,50 @@
 
 namespace comet {
 
-//-----------------------------------------------------------------------------
-// Type ids
+//=============================================================================
+/// \brief Basic types.
 
-enum {
-  GM_DATA_TYPE_FLOAT = 1,
-  GM_DATA_TYPE_BITS1 = 2, // Not implemented
-  GM_DATA_TYPE_UINT64 = 3,  //---(design of this entry is not complete)
-  GM_DATA_TYPE_BITS2 = 4,
-  GM_DATA_TYPE_TALLY2X2 = 5,
-  GM_DATA_TYPE_TALLY4X2 = 6
-};
+// TODO: consistently use C++ types that have guaranteed sizes, e.g., int32_t.
+
+enum {BITS_PER_BYTE = 8};
+
+struct BasicTypes {
+
+  typedef float FP32;
+  typedef double FP64;
+
+# ifdef COMET_USE_INT128
+    typedef unsigned __int128 BigUInt;
+# else
+    typedef uint64_t BigUInt;
+# endif
+
+private:
+
+  static void check_type_sizes_() {
+    COMET_STATIC_ASSERT(sizeof(FP32) == 32/BITS_PER_BYTE);
+    COMET_STATIC_ASSERT(sizeof(FP64) == 64/BITS_PER_BYTE);
+    COMET_STATIC_ASSERT(sizeof(int) == 4);
+    COMET_STATIC_ASSERT(sizeof(size_t) == 8);
+#   ifdef COMET_USE_INT128
+      COMET_STATIC_ASSERT(sizeof(BigUInt) == 128/BITS_PER_BYTE);
+#   endif
+  }
+
+  // Disallowed methods.
+
+  BasicTypes(const BasicTypes&);
+  void operator=(const BasicTypes&);
+}; // BasicTypes
 
 //=============================================================================
-// Types: general
+// Types for different integer quantities.
 
-// TODO: use C++ types that have guaranteed sizes, e.g., int32_t.
+typedef size_t NV_t;
+typedef int64_t NML_t;
+typedef int32_t NF_t;
 
-// Integer types
-
-//typedef unsigned char GMUInt8;
-//typedef unsigned short int GMUInt16;
-//typedef unsigned int GMUInt32;
-
-//typedef signed long long int GMInt64;
-//typedef unsigned long long int GMUInt64;
-
-#ifdef COMET_USE_INT128
-typedef unsigned __int128 GMUInt128;
-#endif
-
-// Floating point of explicit (double) precision
-
-typedef float GMFp32;
-typedef double GMFp64;
-
-static void gm_check_type_sizes() {
-  COMET_STATIC_ASSERT(sizeof(GMFp32) == 32/8);
-  COMET_STATIC_ASSERT(sizeof(GMFp64) == 64/8);
-  COMET_STATIC_ASSERT(sizeof(int) == 4);
-  COMET_STATIC_ASSERT(sizeof(size_t) == 8);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt8) == 1);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt16) == 2);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt32) == 4);
-//  COMET_STATIC_ASSERT(sizeof(GMInt64) == 8);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt64) == 8);
-#ifdef COMET_USE_INT128
-  COMET_STATIC_ASSERT(sizeof(GMUInt128) == 16);
-#endif
-}
+typedef BasicTypes::BigUInt MetricItemCoords_t;
 
 //=============================================================================
 // Types (mainly) for Czekanowski metric
@@ -114,11 +133,11 @@ enum { GM_BITS2_MAX_VALUE_BITS = 2 };
 typedef unsigned int GMTally1;
 
 // For Metrics: double used to store two metric numerator values.
-typedef GMFp64 PackedDouble;
+typedef BasicTypes::FP64 PackedDouble;
 
 // For Metrics: two floats used to store two metric numerator values.
 
-typedef struct { GMFp32 data[2]; } Single2;
+typedef struct { BasicTypes::FP32 data[2]; } Single2;
 
 // For Metrics: 2 (4) doubles to store 4 (8) packed tally results:
 // use 25 bits of each 52-bit mantissa to store a result
@@ -129,9 +148,23 @@ typedef struct { PackedDouble data[4]; } GMTally4x2;
 typedef PackedDouble GMFloat2;
 typedef struct { PackedDouble data[2]; } GMFloat3;
 
-// Marker value for a missing or unknown 2-bit entry for sparse case
+// Marker value for a missing or unknown 2-bit vector entry for sparse case
 
 enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
+
+//-----------------------------------------------------------------------------
+// Type ids
+
+struct DataTypeId {
+  enum {
+    FLOAT = 1,
+    BITS1 = 2, // Not implemented
+    UINT64 = 3,  //---(design of this selection is not complete)
+    BITS2 = 4,
+    TALLY2X2 = 5,
+    TALLY4X2 = 6
+  };
+};
 
 //=============================================================================
 // Templatized types for CCC and DUO metrics
@@ -148,7 +181,7 @@ template<> struct MetricFormatTraits<MetricFormat::PACKED_DOUBLE> {
   __host__ __device__
   static void decode(TypeIn& __restrict__ val0,
                      TypeIn& __restrict__ val1,
-                     const Type v) {
+                     const Type& v) {
     const uint64_t tally2 = (uint64_t)v;
     COMET_ASSERT(v == (Type)tally2);
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
@@ -157,7 +190,6 @@ template<> struct MetricFormatTraits<MetricFormat::PACKED_DOUBLE> {
     val0 = v0;
     val1 = v1;
     COMET_ASSERT(v == (Type)(v0 + v1 * shifter));
-    //COMET_ASSERT(v0 >= 0 && v1 >= 0);
     COMET_ASSERT(v0 < shifter);
     COMET_ASSERT(v1 < shifter);
   }
@@ -217,7 +249,7 @@ template<> struct MetricFormatTraits<MetricFormat::SINGLE> {
   __host__ __device__
   static void decode(TypeIn& __restrict__ val0,
                      TypeIn& __restrict__ val1,
-                     const Type v) {
+                     const Type& v) {
     val0 = v.data[0];
     val1 = v.data[1];
   }
@@ -272,11 +304,25 @@ template<int METRIC_FORMAT> struct Tally2x2 {
   }
 
   __host__ __device__ 
-  static TypeIn get(const This_t& value, int i0, int i1) {
-    const Type data = value.data[i0];
+  static TypeIn get(const This_t& value, int iE, int jE) {
+    const Type data = value.data[iE];
     TypeIn results[2];
     MFT::decode(results[0], results[1], data);
-    return results[i1];
+    return results[jE];
+  }
+
+  __host__ __device__ 
+  TypeIn get(int iE, int jE) const {
+    return This_t::get(*this, iE, jE);
+  }
+
+  __host__ __device__ 
+  static void set(This_t& value, int iE, int jE, TypeIn v) {
+    Type& data = value.data[iE];
+    TypeIn results[2];
+    MFT::decode(results[0], results[1], data);
+    results[jE] = v;
+    MFT::encode(data, results[0], results[1]);
   }
 };
 
@@ -302,11 +348,25 @@ template<int METRIC_FORMAT> struct Tally4x2 {
   }
 
   __host__ __device__ 
-  static TypeIn get(const This_t& value, int i0, int i1, int i2) {
-    const Type data = value.data[i1 + 2*i0];
+  static TypeIn get(const This_t& value, int iE, int jE, int kE) {
+    const Type data = value.data[jE + 2*iE];
     TypeIn results[2];
     MFT::decode(results[0], results[1], data);
-    return results[i2];
+    return results[kE];
+  }
+
+  __host__ __device__ 
+  TypeIn get(int iE, int jE, int kE) const {
+    return This_t::get(*this, iE, jE, kE);
+  }
+
+  __host__ __device__ 
+  static void set(This_t& value, int iE, int jE, int kE, TypeIn v) {
+    Type& data = value.data[jE + 2*iE];
+    TypeIn results[2];
+    MFT::decode(results[0], results[1], data);
+    results[kE] = v;
+    MFT::encode(data, results[0], results[1]);
   }
 };
 
@@ -364,7 +424,6 @@ static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
   PackedDouble result = 0;
   MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result, val0, val1);
   return result;
-  //return GMTally1_encode(val0, val1);
 }
 
 //----------
@@ -372,8 +431,6 @@ static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
 static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
   GMFloat3 result; // here we should set = null to be super cautious
   const GMTally1 dummy = 0;
-  //result.data[0] = GMTally1_encode(val0, val1);
-  //result.data[1] = GMTally1_encode(val2, dummy);
   MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result.data[0], val0, val1);
   MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result.data[1], val2, dummy);
   return result;
@@ -400,16 +457,16 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
 }
 
 //-----------------------------------------------------------------------------
-// Get an entry: 2x2
+// Get a table entry: 2x2
 
-static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
+static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int iE, int jE) {
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
 
-  const uint64_t tally2 = tally2x2.data[i0];
+  const uint64_t tally2 = tally2x2.data[iE];
 
   const GMTally1 result =
-      i1 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
+      jE == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
   //COMET_ASSERT(result >= 0);
   COMET_ASSERT(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
@@ -417,17 +474,17 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
 }
 
 //-----------------------------------------------------------------------------
-// Get an entry: 4x2
+// Get a table entry: 4x2
 
-static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
-  COMET_ASSERT(i2 >= 0 && i2 < 2);
+static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int iE, int jE, int kE) {
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
+  COMET_ASSERT(kE >= 0 && kE < 2);
 
-  const uint64_t tally2 = tally4x2.data[i1 + 2 * i0];
+  const uint64_t tally2 = tally4x2.data[jE + 2 * iE];
 
   const GMTally1 result =
-      i2 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
+      kE == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
   //COMET_ASSERT(result >= 0);
   COMET_ASSERT(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
@@ -441,10 +498,54 @@ template<typename T> int mantissa_digits() {
   return std::numeric_limits<T>::digits;
 }
 
+//=============================================================================
+/// \brief Safely cast arithmetic value to strictly lower type size.
+
+template<typename TO, typename TI>
+static TO safe_cast_assert(const TI vi) {
+  const auto vo = static_cast<TO>(vi);
+  COMET_ASSERT(static_cast<TI>(vo) == vi);
+  return vo;
+}
+
+template<typename TO, typename TI>
+static TO safe_cast_insist(const TI vi) {
+  const auto vo = static_cast<TO>(vi);
+  COMET_INSIST(static_cast<TI>(vo) == vi);
+  return vo;
+}
+
+template<typename TO, typename TI>
+static bool safe_cast(TO& vo, const TI vi) {
+  vo = static_cast<TO>(vi);
+  return static_cast<TI>(vo) == vi;
+}
+
+template<typename TO, typename TI>
+static bool safe_cast_insist(TO& vo, const TI vi) {
+  vo = static_cast<TO>(vi);
+  COMET_INSIST(static_cast<TI>(vo) == vi);
+  return static_cast<TI>(vo) == vi;
+}
+
+
+//template<typename TO, typename TI>
+//static TO safe_cast(const TI v) {
+//#if ! defined(NDEBUG)
+//  static_assert(sizeof(TO) <= sizeof(TI), "");
+//#endif
+//  // ISSUE: this doesn't compile under CUDA:
+//  // COMET_STATIC_ASSERT(sizeof(TO) < sizeof(TI)):
+//  COMET_ASSERT(static_cast<TI>(static_cast<TO>(v)) == v);
+//  return static_cast<TO>(v);
+//}
+
+//=============================================================================
+
 } // namespace comet
 
 //-----------------------------------------------------------------------------
 
-#endif // _comet_types_hh_
+#endif // _COMET_TYPES_HH_
 
 //-----------------------------------------------------------------------------

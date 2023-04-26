@@ -4,9 +4,34 @@
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Class to manage the set of vectors taken as input to the methods.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "cstdlib"
 #include "cstdint"
@@ -24,255 +49,310 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Null object---*/
-
-GMVectors GMVectors_null() {
-  GMVectors result;
-  memset((void*)&result, 0, sizeof(GMVectors));
-  return result;
-}
-
-//=============================================================================
-/*---Set unused (pad) vector entries to zero---*/
-
-void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
-
-  /*---Ensure final pad words/bits of each vector are set to zero so that
-       word-wise summations of bits aren't corrupted with bad trailing data---*/
-
-  if (! env->is_proc_active()) {
-    return;
+/*!
+ * \brief Constructor.
+ *
+ */
+Vectors::Vectors(GMDecompMgr& dm, CEnv& env)
+  : env_(env)
+  , dm_(dm) 
+  , is_allocated_(false)
+  , has_buf_(false)
+  , num_field_local_(0)
+  , num_vector_local_(0)
+  , num_packedfield_local_(0)
+  , num_packedfield_local_size_t_(0)
+  , num_packedfield_vector_local_(0)
+  , data_(NULL)
+  , data_size_(0)
+  , buf_(NULL)
+  , data_type_id_(env.data_type_vectors()) {
   }
 
-  const size_t nfal = vectors->dm->num_field_active_local;
-
-  const size_t pfl_min = nfal / vectors->dm->num_field_per_packedfield;
-  const size_t pfl_max = vectors->dm->num_packedfield_local;
-
-  switch (vectors->data_type_id) {
-    case GM_DATA_TYPE_FLOAT: {
-      GMFloat zero = 0;
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
-        for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          GMVectors_float_set(vectors, pfl, vl, zero, env);
-        }
-      }
-    } break;
-    case GM_DATA_TYPE_BITS2: {
-      const GMBits2x64 zero = GMBits2x64_null();
-      const uint64_t allbits = 0xffffffffffffffff;
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
-        for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          const size_t fl = 64 * pfl;
-
-          if (fl >= nfal) {
-
-            GMVectors_bits2x64_set(vectors, pfl, vl, zero, env);
-
-          } else if (fl + 32 >= nfal) {
-
-            GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
-            const int shift_dist = 64 - 2*(nfal-fl);
-            COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
-            val.data[0] &= allbits >> shift_dist;
-            val.data[1] = 0;
-            GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
-
-          } else if (fl + 64 >= nfal) {
-
-            GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
-            const int shift_dist = 64 - 2*(nfal-fl-32);
-            COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
-            val.data[1] &= allbits >> shift_dist;
-            GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
-
-          } // if
-        } // for pfl
-      }
-    } break;
-    default:
-      COMET_INSIST(false && "Invalid vectors data_type_id.");
-  } /*---switch---*/
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Destructor.
+ *
+ */
+Vectors::~Vectors() {
+  deallocate();
 }
 
-//=============================================================================
-/*---Vectors pseudo-constructor---*/
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Allocate, case of using mirrored buf.
+ *
+ */
+void Vectors::allocate_with_buf() {
+  allocate_impl_(HAS_BUF_TRUE_);
+}
 
-void GMVectors_create_imp_(GMVectors* vectors,
-                           int data_type_id,
-                           GMDecompMgr* dm,
-                           CEnv* env) {
-  COMET_INSIST(vectors && dm && env);
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Allocate, case of not using mirrored buf.
+ *
+ */
+void Vectors::allocate() {
+  allocate_impl_(HAS_BUF_FALSE_);
+}
 
-  vectors->data_type_id = data_type_id;
-  vectors->dm = dm;
-  vectors->num_field = dm->num_field;
-  vectors->num_field_active = dm->num_field_active;
-  vectors->num_field_local = dm->num_field_local;
-  vectors->num_vector = dm->num_vector;
-  vectors->num_vector_local = dm->num_vector_local;
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Allocate, implementation.
+ *
+ */
+void Vectors::allocate_impl_(bool has_buf) {
 
-  // Set element sizes
+  if (!env_.is_proc_active())
+    return;
 
-  //vectors->num_bit_per_val = dm->num_bit_per_field;
-  //vectors->num_bit_per_packedval = dm->num_bit_per_packedfield;
-  //vectors->num_val_per_packedval = dm->num_field_per_packedfield;
+  COMET_INSIST(dm_.is_allocated());
+  COMET_INSIST(!is_allocated_);
 
-  const int bits_per_byte = 8;
+  has_buf_ = has_buf;
+  num_field_local_ = dm_.num_field_local;
+  num_vector_local_ = dm_.num_vector_local;
 
   // Allocation size for vector storage
 
-  vectors->num_packedval_field_local = dm->num_packedfield_local;
+  num_packedfield_local_ = dm_.num_packedfield_local;
+  num_packedfield_local_size_t_ = static_cast<size_t>(num_packedfield_local_);
 
-  vectors->num_packedfield_vector_local =
-      vectors->num_packedval_field_local * dm->num_vector_local;
+  num_packedfield_vector_local_ =
+      num_packedfield_local_ * dm_.num_vector_local;
 
-  vectors->data_size = vectors->num_packedfield_vector_local *
-                       (dm->num_bit_per_packedfield / bits_per_byte);
-                       //(vectors->num_bit_per_packedval / bits_per_byte);
+  data_size_ = num_packedfield_vector_local_ *
+              (dm_.num_bit_per_packedfield / BITS_PER_BYTE);
 
-  // Set up vector storage, mirrored buffer
+  // Set up vector storage, mirrored buffer.
 
-  vectors->buf = new MirroredBuf(*env);
+  buf_ = new MirroredBuf(env_);
 
-  if (vectors->has_buf) {
-    vectors->buf->allocate(vectors->num_packedval_field_local,
-                           vectors->num_vector_local);
-    vectors->data = vectors->buf->h; // alias vector storage to buf
+  if (has_buf_) {
+    buf_->allocate(num_packedfield_local_, num_vector_local_);
+    data_ = buf_->h; // alias vector storage to buf
   } else {
-    vectors->data = gm_malloc(vectors->data_size, env);
+    data_ = utils::malloc(data_size_, env_);
   }
+
+  is_allocated_ = true;
 
   // Set pad entries to zero
 
-  GMVectors_initialize_pad(vectors, env);
-
-//  tc_bufs_malloc(env, vectors->num_vector_local,
-//                 vectors->num_packedval_field_local);
+  initialize_pad();
 }
 
 //-----------------------------------------------------------------------------
+/*!
+ * \brief Initialize vector entries to zero.
+ *
+ */
+void Vectors::initialize() {
 
-void GMVectors_create(GMVectors* vectors,
-                      int data_type_id,
-                      GMDecompMgr* dm,
-                      CEnv* env) {
-  COMET_INSIST(vectors && dm && env);
-
-  *vectors = GMVectors_null();
-
-  if (! env->is_proc_active()) {
+  if (!env_.is_proc_active())
     return;
-  }
 
-  vectors->has_buf = false;
+  COMET_INSIST(is_allocated_);
 
-  GMVectors_create_imp_(vectors, data_type_id, dm, env);
+  const size_t pfl_min = 0;
+  const size_t pfl_max = dm_.num_packedfield_local;
+
+  if (DataTypeId::FLOAT == data_type_id_ && !env_.is_double_prec()) {
+
+    typedef float Float_t;
+    const auto zero = static_cast<Float_t>(0);;
+    for (int vl = 0; vl < num_vector_local_; ++vl) {
+      for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+        elt_float<Float_t>(pfl, vl) = zero;
+      }
+    }
+
+  } else if (DataTypeId::FLOAT == data_type_id_) { //  && env_.is_double_prec()
+
+    typedef double Float_t;
+    const auto zero = static_cast<Float_t>(0);;
+    for (int vl = 0; vl < num_vector_local_; ++vl) {
+      for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+        elt_float<Float_t>(pfl, vl) = zero;
+      }
+    }
+
+  } else { // DataTypeId::BITS2 == data_type_id_
+
+    const GMBits2x64 zero = GMBits2x64_null();
+    for (int vl = 0; vl < num_vector_local_; ++vl) {
+      for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+        elt_bits2x64(pfl, vl) = zero;
+      } // for pfl
+    }
+
+  } // if (DataTypeId::FLOAT == data_type_id_ && !env_.is_double_prec())
 }
 
 //-----------------------------------------------------------------------------
+/*!
+ * \brief Initialize unused (pad) vector entries to zero.
+ *
+ * The purpose of this function is to ensure final pad words/bits
+ * of each vector are set to zero so that word-wise summations of bits
+ * aren't corrupted with bad trailing data
+ *
+ * TODO: possibly initialize pad vectors as well as pad fields.
+ * TODO: possibly check to make sure user has set all vector entries (?).
+ *
+ */
+void Vectors::initialize_pad() {
 
-void GMVectors_create_with_buf(GMVectors* vectors,
-                               int data_type_id,
-                               GMDecompMgr* dm,
-                               CEnv* env) {
-  COMET_INSIST(vectors && dm && env);
-
-  *vectors = GMVectors_null();
-
-  if (! env->is_proc_active()) {
+  if (!env_.is_proc_active())
     return;
-  }
 
-  vectors->has_buf = env->is_using_linalg();
+  COMET_INSIST(is_allocated_);
 
-  GMVectors_create_imp_(vectors, data_type_id, dm, env);
+  const size_t nfal = dm_.num_field_active_local;
+
+  const size_t pfl_min = nfal / dm_.num_field_per_packedfield;
+  const size_t pfl_max = dm_.num_packedfield_local;
+
+  if (DataTypeId::FLOAT == data_type_id_ && !env_.is_double_prec()) {
+
+    typedef float Float_t;
+    const auto zero = static_cast<Float_t>(0);;
+    for (int vl = 0; vl < num_vector_local_; ++vl) {
+      for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+        elt_float<Float_t>(pfl, vl) = zero;
+      }
+    }
+
+  } else if (DataTypeId::FLOAT == data_type_id_) { //  && env_.is_double_prec()
+
+    typedef double Float_t;
+    const auto zero = static_cast<Float_t>(0);;
+    for (int vl = 0; vl < num_vector_local_; ++vl) {
+      for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+        elt_float<Float_t>(pfl, vl) = zero;
+      }
+    }
+
+  } else { // DataTypeId::BITS2 == data_type_id_
+
+    const auto zero = GMBits2x64_null();
+    const uint64_t allbits = 0xffffffffffffffff;
+    for (int vl = 0; vl < num_vector_local_; ++vl) {
+      for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+        const size_t fl = 64 * pfl;
+
+        if (fl >= nfal) {
+
+          elt_bits2x64(pfl, vl) = zero;
+
+        } else if (fl + 32 >= nfal) {
+
+          GMBits2x64 val = elt_bits2x64_const(pfl, vl);
+          const int shift_dist = 64 - 2*(nfal-fl);
+          COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
+          val.data[0] &= allbits >> shift_dist;
+          val.data[1] = 0;
+          elt_bits2x64(pfl, vl) = val;
+
+        } else if (fl + 64 >= nfal) {
+
+          GMBits2x64 val = elt_bits2x64_const(pfl, vl);
+          const int shift_dist = 64 - 2*(nfal-fl-32);
+          COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
+          val.data[1] &= allbits >> shift_dist;
+          elt_bits2x64(pfl, vl) = val;
+
+        } // if
+      } // for pfl
+    }
+
+  } // if (DataTypeId::FLOAT == data_type_id_ && !env_.is_double_prec())
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Deallocate.
+ *
+ */
+void Vectors::deallocate() {
+
+  if (!is_allocated_)
+    return;
+
+  if (!env_.is_proc_active())
+    return;
+
+  COMET_INSIST(data_);
+
+  if (!has_buf_)
+    utils::free(data_, data_size_, env_);
+
+  delete buf_;
+  data_ = NULL;
+
+  is_allocated_ = false;
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Copy vectors elements to a specified mirrored buffer.
+ *
+ */
+void Vectors::to_buf(MirroredBuf& vectors_buf) const {
+
+  if (!env_.is_proc_active())
+    return;
+
+  if (!env_.is_using_linalg())
+    return;
+
+  COMET_INSIST(is_allocated_);
+
+  if (env_.metric_type() == MetricType::CZEK && !env_.is_double_prec()) {
+
+      typedef float Float_t;
+      // Here and below don't use collapse because of overflow for large sizes
+      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      #pragma omp parallel for schedule(dynamic,1000)
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
+        for (int fl = 0; fl < num_field_local_; ++fl) {
+          vectors_buf.elt<Float_t>(fl, vl) = elt_float_const<Float_t>(fl, vl);
+        }
+      }
+
+  } else if (env_.metric_type() == MetricType::CZEK) {
+             // && env_.is_double_prec()
+
+      typedef double Float_t;
+      #pragma omp parallel for schedule(dynamic,1000)
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
+        for (int fl = 0; fl < num_field_local_; ++fl) {
+          vectors_buf.elt<Float_t>(fl, vl) = elt_float_const<Float_t>(fl, vl);
+        }
+      }
+
+  } else { // env_.metric_type() == MetricType::CCC ||
+           // env_.metric_type() == MetricType::DUO
+
+      #pragma omp parallel for schedule(dynamic,1000)
+      for (int vl = 0; vl < num_vector_local_; ++vl) {
+        for (int fl = 0; fl < num_packedfield_local_; ++fl) {
+          vectors_buf.elt<GMBits2x64>(fl, vl) = elt_bits2x64_const(fl, vl);
+        }
+      }
+
+  } // if (env_.metric_type() == MetricType::CZEK)
 }
 
 //=============================================================================
-/*---Vectors pseudo-destructor---*/
+/// \brief Compute checksum of vector entries.
 
-void GMVectors_destroy(GMVectors* vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
-  COMET_INSIST(vectors->data || ! env->is_proc_active());
-
-  if (! env->is_proc_active()) {
-    return;
-  }
-
-  if (!vectors->has_buf) {
-    gm_free(vectors->data, vectors->data_size, env);
-  }
-
-  delete vectors->buf;
-
-  *vectors = GMVectors_null();
-}
-
-
-//=============================================================================
-// Copy vectors to mirrored buffer
-
-void gm_vectors_to_buf(MirroredBuf* vectors_buf,
-                       GMVectors* vectors,
-                       CEnv* env) {
-  COMET_INSIST(vectors && vectors_buf && env);
-
-  if (!env->is_using_linalg())
-    return;
-
-  /*---Copy vectors into GPU buffers if needed---*/
-
-  switch (env->metric_type()) {
-    case MetricType::CZEK: {
-      // don't use collapse because of overflow for large sizes
-      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-      #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
-          vectors_buf->elt<GMFloat>(fl, i) =
-            GMVectors_float_get(vectors, fl, i, env);
-        }
-      }
-    } break;
-    case MetricType::CCC: {
-      // don't use collapse because of overflow for large sizes
-      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-      #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
-          vectors_buf->elt<GMBits2x64>(fl, i) =
-            GMVectors_bits2x64_get(vectors, fl, i, env);
-        }
-      }
-    } break;
-    case MetricType::DUO: {
-      // don't use collapse because of overflow for large sizes
-      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-      #pragma omp parallel for schedule(dynamic,1000)
-      for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
-          vectors_buf->elt<GMBits2x64>(fl, i) =
-            GMVectors_bits2x64_get(vectors, fl, i, env);
-        }
-      }
-    } break;
-    default:
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented metric_type.");
-  } /*---case---*/
-}
-//=============================================================================
-// checksum of entries.
-
-size_t GMVectors_cksum(GMVectors* vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
-
-  if (! env->is_proc_active()) {
+size_t Vectors::cksum() const {
+  if (!env_.is_proc_active())
     return 0;
-  }
 
-  return gm_array_cksum((unsigned char*)(vectors->data), vectors->data_size);
+  return utils::array_cksum(reinterpret_cast<unsigned char*>(data_),
+                            data_size_);
 }
 
 //=============================================================================

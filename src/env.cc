@@ -4,9 +4,34 @@
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Basic environment - settings, MPI communicators, etc.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "cstdio"
 #include "cstdlib"
@@ -31,6 +56,7 @@
 
 namespace comet {
 
+#if 0
 //=============================================================================
 // System-related operations.
 
@@ -68,21 +94,81 @@ int System::proc_num() {
 /// \brief Accelerator compute capability.
 
 int System::compute_capability() {
+  const accelDeviceProp_t device_prop = get_device_prop();
 #if defined COMET_USE_CUDA
-  cudaDeviceProp deviceProp;
-  // Assume only one GPU per rank.
-  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
-  const int compute_capability = error != cudaSuccess ? 0 :
-    deviceProp.major * 100 + deviceProp.minor;
+  //// Assume only one GPU per rank.
+  //cudaDeviceProp device_prop;
+  //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+  int num_devices;
+  cudaGetDeviceCount(&num_devices);
+  const int compute_capability = num_devices == 0 ? 0 :
+    device_prop.major * 100 + device_prop.minor;
 #elif defined COMET_USE_HIP
-  hipDeviceProp_t deviceProp;
-  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-//FIX this
-  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  //hipDeviceProp_t device_prop;
+  //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+  //const int compute_capability = device_prop.major * 100 + device_prop.minor;
+  // This seems more stable than major/minor.
+  int num_devices;
+  hipGetDeviceCount(&num_devices);
+  const int compute_capability = num_devices == 0 ? 0 : device_prop.gcnArch;
 #else
+  no_unused_variable_warning(device_prop);
   const int compute_capability = 0;
 #endif
+  COMET_INSIST(System::accel_last_call_succeeded());
   return compute_capability;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator pci bus id.
+
+int System::pci_bus_id() {
+  const accelDeviceProp_t device_prop = get_device_prop();
+#if defined COMET_USE_CUDA
+  //// Assume only one GPU per rank.
+  //cudaDeviceProp device_prop;
+  //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+  int num_devices;
+  cudaGetDeviceCount(&num_devices);
+  const int pci_bus_id = num_devices == 0 ? 0 : device_prop.pciBusID;
+#elif defined COMET_USE_HIP
+  //hipDeviceProp_t device_prop;
+  //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+  int num_devices;
+  hipGetDeviceCount(&num_devices);
+  const int pci_bus_id = num_devices == 0 ? 0 :device_prop.pciBusID;
+#else
+  no_unused_variable_warning(device_prop);
+  const int pci_bus_id = 0;
+#endif
+  COMET_INSIST(System::accel_last_call_succeeded());
+  return pci_bus_id;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator pci domain id.
+
+int System::pci_domain_id() {
+  const accelDeviceProp_t device_prop = get_device_prop();
+#if defined COMET_USE_CUDA
+  //// Assume only one GPU per rank.
+  //cudaDeviceProp device_prop;
+  //cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+  int num_devices;
+  cudaGetDeviceCount(&num_devices);
+  const int pci_domain_id = num_devices == 0 ? 0 : device_prop.pciDomainID;
+#elif defined COMET_USE_HIP
+  //hipDeviceProp_t device_prop;
+  //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+  int num_devices;
+  hipGetDeviceCount(&num_devices);
+  const int pci_domain_id = num_devices == 0 ? 0 : device_prop.pciDomainID;
+#else
+  no_unused_variable_warning(device_prop);
+  const int pci_domain_id = 0;
+#endif
+  COMET_INSIST(System::accel_last_call_succeeded());
+  return pci_domain_id;
 }
 
 //-----------------------------------------------------------------------------
@@ -114,6 +200,40 @@ bool System::accel_last_call_succeeded() {
 
   return true;
 }
+
+//-----------------------------------------------------------------------------
+/// \brief Are we in an openmp parallel region.
+
+bool System::is_in_parallel_region() {
+# if COMET_USE_OPENMP
+    return omp_in_parallel();
+# else
+    return false;
+# endif
+};
+
+//-----------------------------------------------------------------------------
+/// \brief System utility function.
+
+System::accelDeviceProp_t& System::get_device_prop() {
+  // NOTE: local static variable.
+  static accelDeviceProp_t device_prop = {};
+  static bool is_initialized = false;
+  if (!is_initialized) {
+#if defined COMET_USE_CUDA
+    const cudaError_t error = cudaGetDeviceProperties(&device_prop, 0);
+    no_unused_variable_warning(error);
+#elif defined COMET_USE_HIP
+    hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.
+#else
+    device_prop = 0;
+#endif
+    //COMET_INSIST(System::accel_last_call_succeeded());
+    is_initialized = true;
+  }
+  return device_prop;
+}
+#endif
 
 //=============================================================================
 // Constructor/destructor
@@ -213,11 +333,12 @@ CEnv::CEnv(const char* const options, int num_proc, int proc_num) {
 
 CEnv::~CEnv() {
   comms_terminate_();
+//  handles_terminate_();
   streams_terminate_();
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Set scalar entries of CEnv to default values.
+/// \brief Set scalar members of CEnv to default values.
 
 void CEnv::set_defaults_() {
 
@@ -226,7 +347,7 @@ void CEnv::set_defaults_() {
 
   // CoMet Settings
   metric_type_ = MetricType::CZEK;
-  num_way_ = NUM_WAY::_2;
+  num_way_ = NumWay::_2;
   all2all_ = false;
   compute_method_ = ComputeMethod::GPU;
   num_stage_ = 1;
@@ -240,8 +361,41 @@ void CEnv::set_defaults_() {
   tc_ = TC::NO;
   tc_eff_ = tc_eff_compute_();
   num_tc_steps_ = 1;
-  threshold_ = CEnv::threshold_eff(-1);
-  threshold_eff_cache_ = threshold_;
+//FIXTHRESHOLD
+  //threshold_ = -1;
+  //threshold_ = CEnv::threshold_eff(-1);
+  //threshold_eff_cache_ = threshold_;
+  thresholds_.set("-1");
+  metrics_shrink_ = 1;
+  coords_type_cache_ = 0;
+
+  ctime_ = 0;
+  gemmtime_ = 0;
+  ops_local_ = 0;
+  ops_gemm_local_ = 0;
+  cpu_mem_local_ = 0;
+  gpu_mem_local_ = 0;
+  cpu_mem_max_local_ = 0;
+  gpu_mem_max_local_ = 0;
+  vec_compares_ = 0;
+  metric_compares_ = 0;
+  entry_compares_ = 0;
+  vec_active_compares_ = 0;
+  metric_active_compares_ = 0;
+  entry_active_compares_ = 0;
+  metric_entries_ = 0;
+  metric_entries_computed_ = 0;
+  shrink_achieved_ = DBL_MAX;
+
+  compute_capability_cache_ = System::compute_capability();
+
+//FIX
+  queue_compute_.is_initialized = false;
+  queue_fromgpu_.is_initialized = false;
+  queue_togpu_.is_initialized = false;
+  queue_compute_.magma_queue = NULL;
+  queue_fromgpu_.magma_queue = NULL;
+  queue_togpu_.magma_queue = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -274,8 +428,8 @@ void CEnv::parse_args_(int argc, char** argv) {
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_way.");
       errno = 0;
       const long num_way = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && (num_way == NUM_WAY::_2 ||
-                                            num_way == NUM_WAY::_3)
+      COMET_INSIST_INTERFACE(env, 0 == errno && (num_way == NumWay::_2 ||
+                                                 num_way == NumWay::_3)
                                && "Invalid setting for num_way.");
       num_way_ = num_way;
       set_num_proc_(num_proc_vector_, num_proc_repl_, num_proc_field_);
@@ -411,13 +565,30 @@ void CEnv::parse_args_(int argc, char** argv) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for threshold.");
       errno = 0;
-      const double threshold = strtod(argv[i], NULL);
-      COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
-      threshold_ = threshold;
-      threshold_eff_cache_ = CEnv::threshold_eff(threshold_);
+      //const double threshold = strtod(argv[i], NULL);
+      //COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
+      //threshold_ = threshold;
+      thresholds_.set(argv[i]);
+      //--------------------
+    } else if (strcmp(argv[i], "--metrics_shrink") == 0) {
+      //--------------------
+      ++i;
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for metrics_shrink.");
+      errno = 0;
+      const double metrics_shrink = strtod(argv[i], NULL);
+      COMET_INSIST_INTERFACE(env, 0 == errno
+                    && metrics_shrink > 0
+                    && "Invalid setting for metrics_shrink.");
+      metrics_shrink_ = metrics_shrink;
       //--------------------
     } // if/else
   }   // for i
+
+  // Finalize settings.
+
+//FIXTHRESHOLD
+  //threshold_eff_cache_ = CEnv::threshold_eff(threshold_);
+  coords_type_cache_ = coords_type_compute_();
 }
 
 //-----------------------------------------------------------------------------
@@ -447,36 +618,36 @@ void CEnv::create_args(char* argstring, int* argc, char** argv) {
 // CoMet settings
 
 //-----------------------------------------------------------------------------
-/// \brief Indicate the scalar type to use for vectors entries.
+/// \brief Indicate the scalar type to use for vectors elements.
 
 int CEnv::data_type_vectors() const {
 
   switch (metric_type()) {
     case MetricType::CZEK:
-      return GM_DATA_TYPE_FLOAT;
+      return DataTypeId::FLOAT;
     case MetricType::CCC:
-      return GM_DATA_TYPE_BITS2;
+      return DataTypeId::BITS2;
     case MetricType::DUO:
-      return GM_DATA_TYPE_BITS2;
+      return DataTypeId::BITS2;
   }
   COMET_INSIST(false && "Invalid metric_type.");
   return 0;
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Indicate the scalar type to use for metrics entries.
+/// \brief Indicate the scalar type to use for metrics elements.
 
 int CEnv::data_type_metrics() const {
 
   switch (metric_type()) {
     case MetricType::CZEK:
-      return GM_DATA_TYPE_FLOAT;
+      return DataTypeId::FLOAT;
     case MetricType::CCC:
-      return num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
-                                      : GM_DATA_TYPE_TALLY4X2;
+      return num_way() == NumWay::_2 ? DataTypeId::TALLY2X2
+                                     : DataTypeId::TALLY4X2;
     case MetricType::DUO:
-      return num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
-                                      : GM_DATA_TYPE_TALLY4X2;
+      return num_way() == NumWay::_2 ? DataTypeId::TALLY2X2
+                                     : DataTypeId::TALLY4X2;
   }
   COMET_INSIST(false && "Invalid metric_type.");
   return 0;
@@ -485,57 +656,108 @@ int CEnv::data_type_metrics() const {
 //-----------------------------------------------------------------------------
 /// \brief Determine whether requested run possible on this hardware and build.
 
-bool CEnv::can_run(int tc) const {
+bool CEnv::can_run(int tc_try) const {
 
-  COMET_INSIST(TC::AUTO != tc);
+  // Using "auto" here is inadequate to determine whether can run.
+  COMET_INSIST(TC::AUTO != tc_try);
 
   bool result = true;
 
-  if (compute_method_ == ComputeMethod::REF) {
-    result = result && TC::NO == tc;
-  }
+  // Reference methods never use linalg or tc packages.
+  if (compute_method_ == ComputeMethod::REF)
+    result = result && !is_try_tc_(tc_try) && !is_using_linalg();
 
+  // MPI requirements.
   if (make_comms_) {
     result = result && num_proc_ <= System::num_proc();
-
-    if (num_proc_ > 1) {
+    if (num_proc_ > 1)
       result = result && BuildHas::MPI;
-    }
   }
 
+  // Can use tc package only for bitwise methods.
+  result = result && !(!is_metric_type_bitwise() && is_try_tc_(tc_try));
+
+  // CPU can use tc package only if have CPUBLAS and doing FP32 GEMM.
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
-    result = result && (TC::NO == tc ||
-                        (TC::FP32 == tc && BuildHas::CPUBLAS));
+    result = result && (!is_try_tc_(tc_try) ||
+                        (TC::FP32 == tc_try && BuildHas::CPUBLAS));
   }
 
+  // Use of GPU requires presence of GPU.
   if (is_compute_method_gpu()) {
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
-  if (is_using_linalg() && TC::NO == tc && num_way() == NUM_WAY::_3 &&
-      metric_type() == MetricType::DUO) {
+  // 3-way DUO requires either tc package or non-linalg code path.
+  if (can_use_linalg_(tc_try) && !is_try_tc_(tc_try) &&
+      num_way() == NumWay::_3 && metric_type() == MetricType::DUO) {
     result = false; // currently unimplemented
   }
 
-//TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc) {
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
-                     || (BuildHas::HIP && System::compute_capability() >= 900));
+  // If using GPU, must have MAGMA or SEMIRING if non-bitwise method
+  if (is_compute_method_gpu() && !is_metric_type_bitwise()) {
+    result = result && (BuildHas::MAGMA || BuildHas::SEMIRING);
+    //result = result && (BuildHas::MAGMA || (BuildHas::SEMIRING && !BuildHas::DOUBLE_PREC));
   }
 
-//TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc) {
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-                     || (BuildHas::HIP && System::compute_capability() >= 900));
-  }
-
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc) {
-    result = result && (BuildHas::CUDA==true || BuildHas::HIP==true);
-  }
-
-  if (is_compute_method_gpu() && (!is_metric_type_bitwise()
-      || (is_metric_type_bitwise() && TC::NO == tc))) {
+  // If using GPU, must have MAGMA if bitwise method and not using tc package.
+  if (is_compute_method_gpu() && is_metric_type_bitwise() &&
+      !is_try_tc_(tc_try)) {
     result = result && BuildHas::MAGMA;
+  }
+
+  // Checks based on GPU compute capability.
+
+  // NOTE: choices for AMD/HIP:
+  // /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802',
+  // 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
+  // NOTE: MI60 is 906
+  const int cc_mi60 = 906; // 900;
+  const int cc_mi100 = 908; // 900;
+  const int cc_minone = 1000;
+
+  const bool is_bitwise_gpu = is_metric_type_bitwise() &&
+    is_compute_method_gpu();
+
+  if (TC::FP32 == tc_try && is_bitwise_gpu) {
+    // ISSUE: may need to adjust CUDA compute capability here.
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
+                     || (BuildHas::HIP && System::compute_capability() >= cc_mi60));
+  }
+
+  if (TC::FP16 == tc_try && is_bitwise_gpu) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
+                  //|| (BuildHas::HIP && System::compute_capability() >= cc_minone));
+                  || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
+  }
+
+  if (TC::INT8 == tc_try && is_bitwise_gpu) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    // NOTE: pre-Turing can support INT8 but it is not necessarily fastest.
+    result = result &&((BuildHas::CUDA && System::compute_capability() >= 750)
+                  //|| (BuildHas::HIP && System::compute_capability() >= 1000));
+                  //|| (BuildHas::HIP && System::compute_capability() >= 908));
+                    //FIX|| (BuildHas::HIP && System::compute_capability() >= cc_minone));
+                    || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
+  }
+
+  if (TC::INT4 == tc_try && is_bitwise_gpu) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    // FIX: Temporary code below for testing mockup code on summit.
+//  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
+    result = result && ((BuildHas::CUDA && (BuildHas::CUTLASS && System::compute_capability() >= 700))
+                     || (BuildHas::HIP && System::compute_capability() >= cc_minone))
+                    ; // && can_use_xor_(tc_try);
+  }
+
+  if (TC::B1 == tc_try && is_bitwise_gpu) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    // FIX: Temporary code below for testing mockup code on summit.
+//  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
+    result = result && ((BuildHas::CUDA && (BuildHas::CUTLASS && System::compute_capability() >= 700))
+                     || (BuildHas::HIP && System::compute_capability() >= cc_minone))
+                     && (can_use_xor_(tc_try) || System::compute_capability() >= 800);
   }
 
   return result;
@@ -549,15 +771,24 @@ int CEnv::tc_eff_compute_() const {
   if (TC::AUTO != tc_)
     return tc_;
 
-  // NOTE: order is important here: fastest first.
-  for (auto tc : {TC::INT8, TC::FP16, TC::FP32}) {
-    if (can_run(tc))
-      return tc;
-  }
+  return
+    can_run(TC::B1) && can_use_cutlass(TC::B1) ? TC::B1 :
+    can_run(TC::INT4) && can_use_cutlass(TC::INT4) ? TC::INT4 :
+    can_run(TC::INT8) && can_use_cutlass(TC::INT8) ? TC::INT8 :
+    can_run(TC::FP16) ? TC::FP16 :
+    can_run(TC::INT8) ? TC::INT8 :
+    can_run(TC::FP32) ? TC::FP32 :
+    TC::NO;
 
-//  COMET_INSIST(false && "Suitable tc setting not found for this platform / build.");
-//  return 0;
-    return TC::NO;
+  // NOTE: order is important here: fastest first.
+  // TODO: move B1 to most favored status.
+  //for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
+  //for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1, TC::INT4}) {
+  //  if (can_run(tc_try))
+  //    return tc_try;
+  //}
+
+  //return TC::NO;
 }
 
 //-----------------------------------------------------------------------------
@@ -565,13 +796,12 @@ int CEnv::tc_eff_compute_() const {
 
 MPI_Datatype CEnv::metrics_mpi_type() const {
 
-  if (metric_type() == MetricType::CZEK) {
+  if (metric_type() == MetricType::CZEK)
     return COMET_MPI_FLOAT;
-  } else if (metric_type() == MetricType::CCC) {
+  else if (metric_type() == MetricType::CCC)
     return MPI_DOUBLE_COMPLEX;
-  } else if (metric_type() == MetricType::DUO) {
+  else if (metric_type() == MetricType::DUO)
     return MPI_DOUBLE_COMPLEX;
-  }
 
   COMET_INSIST(false && "Invalid metric_type.");
   return MPI_DOUBLE_COMPLEX; // Should never get here.
@@ -620,6 +850,7 @@ double CEnv::synced_time() {
 
 void CEnv::cpu_mem_local_inc(size_t n) {
  cpu_mem_local_ += n;
+//printf("CPU %zu %zu\n", n, cpu_mem_local_);
  cpu_mem_max_local_ = utils::max(cpu_mem_max_local_, cpu_mem_local_);
 }
 
@@ -628,6 +859,7 @@ void CEnv::cpu_mem_local_inc(size_t n) {
 
 void CEnv::gpu_mem_local_inc(size_t n) {
  gpu_mem_local_ += n;
+//printf("                             GPU %zu %zu\n", n, gpu_mem_local_);
  gpu_mem_max_local_ = utils::max(gpu_mem_max_local_, gpu_mem_local_);
 }
 
@@ -677,6 +909,69 @@ double CEnv::ops() const {
   return result;
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Compute and return (global) number of GEMM operations performed.
+
+double CEnv::ops_gemm() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&ops_gemm_local_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute and return (global) sum GEMM timings.
+
+double CEnv::gemmtime_sum() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&gemmtime_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer start.
+
+void CEnv::gemmtime_start() {
+# if defined COMET_USE_CUDA
+    cudaEventRecord(start_event(), stream_compute());
+# elif defined COMET_USE_HIP
+    hipEventRecord(start_event(), stream_compute());
+# endif
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer end.
+
+void CEnv::gemmtime_end() {
+# if defined COMET_USE_CUDA
+    cudaEventRecord(end_event(), stream_compute());
+# elif defined COMET_USE_HIP
+    hipEventRecord(end_event(), stream_compute());
+# endif
+  is_event_active(true);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer record.
+
+void CEnv::gemmtime_record() {
+  if (is_event_active()) {
+#   if defined COMET_USE_CUDA
+      cudaEventSynchronize(end_event());
+      float time = 0;
+      cudaEventElapsedTime(&time, start_event(), end_event());
+      gemmtime_inc(time / 1000.);
+#   elif defined COMET_USE_HIP
+      hipEventSynchronize(end_event());
+      float time = 0;
+      hipEventElapsedTime(&time, start_event(), end_event());
+      gemmtime_inc(time / 1000.);
+#   endif
+    is_event_active(false);
+  }
+}
+
 //=============================================================================
 // MPI comms
 
@@ -699,15 +994,15 @@ void CEnv::comms_initialize_() {
   // Communicator along repl / vector axis.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
-      is_proc_active_ ? proc_num_field_ : num_proc_,
-      is_proc_active_ ? proc_num_repl_vector_ : proc_num_,
+      is_proc_active_ ? proc_num_field() : num_proc_,
+      is_proc_active_ ? proc_num_repl_vector() : proc_num_,
       &comm_repl_vector_));
 
   // Communicator along field axis.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
-      is_proc_active_ ? proc_num_repl_vector_ : num_proc_,
-      is_proc_active_ ? proc_num_field_ : proc_num_,
+      is_proc_active_ ? proc_num_repl_vector() : num_proc_,
+      is_proc_active_ ? proc_num_field() : proc_num_,
       &comm_field_));
 
   are_comms_initialized_ = true;
@@ -731,7 +1026,7 @@ void CEnv::comms_terminate_() {
 }
 
 //=============================================================================
-// Accelerator streams
+// Accelerator streams.
 
 //-----------------------------------------------------------------------------
 /// \brief Allocated accelerator streams needed for computation.
@@ -744,8 +1039,8 @@ void CEnv::streams_initialize_() {
   if (!is_compute_method_gpu())
     return;
 
-  for (Stream_t* const stream : {&stream_compute_, &stream_togpu_,
-                                 &stream_fromgpu_}) {
+  for (AccelStream_t* const stream : {&stream_compute_, &stream_togpu_,
+                                      &stream_fromgpu_}) {
 #   if defined COMET_USE_CUDA
       cudaStreamCreate(stream);
 #   elif defined COMET_USE_HIP
@@ -756,6 +1051,17 @@ void CEnv::streams_initialize_() {
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream create.");
   }
+
+# if defined COMET_USE_CUDA
+    cudaEventCreate(&start_event_);
+    cudaEventCreate(&end_event_);
+# elif defined COMET_USE_HIP
+    hipEventCreate(&start_event_);
+    hipEventCreate(&end_event_);
+# endif
+  is_event_active_ = false;
+  COMET_INSIST(System::accel_last_call_succeeded() &&
+           "Failure in call to event create.");
 
   are_streams_initialized_ = true;
 }
@@ -768,8 +1074,8 @@ void CEnv::streams_terminate_() {
   if (! are_streams_initialized_)
     return;
 
-  for (const Stream_t stream : {stream_compute_, stream_togpu_,
-                                stream_fromgpu_}) {
+  for (const AccelStream_t stream : {stream_compute_, stream_togpu_,
+                                     stream_fromgpu_}) {
 #   if defined COMET_USE_CUDA
       cudaStreamDestroy(stream);
 #   elif defined COMET_USE_HIP
@@ -781,13 +1087,24 @@ void CEnv::streams_terminate_() {
              "Failure in call to stream destroy.");
   }
 
+# if defined COMET_USE_CUDA
+    cudaEventDestroy(start_event_);
+    cudaEventDestroy(end_event_);
+# elif defined COMET_USE_HIP
+    hipEventDestroy(start_event_);
+    hipEventDestroy(end_event_);
+# endif
+  COMET_INSIST(System::accel_last_call_succeeded() &&
+           "Failure in call to event destroy.");
+  COMET_INSIST(!is_event_active_);
+
   are_streams_initialized_ = false;
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for kernel launches on accelerator.
 
-CEnv::Stream_t CEnv::stream_compute() {
+AccelStream_t CEnv::stream_compute() {
   streams_initialize_(); // Lazy initialization.
   return stream_compute_;
 }
@@ -795,7 +1112,7 @@ CEnv::Stream_t CEnv::stream_compute() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for transfers from CPU to GPU.
 
-CEnv::Stream_t CEnv::stream_togpu() {
+AccelStream_t CEnv::stream_togpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_togpu_;
 }
@@ -803,15 +1120,31 @@ CEnv::Stream_t CEnv::stream_togpu() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for transfers to CPU from GPU.
 
-CEnv::Stream_t CEnv::stream_fromgpu() {
+AccelStream_t CEnv::stream_fromgpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_fromgpu_;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Accelerator event for timing start.
+
+AccelEvent_t CEnv::start_event() {
+  streams_initialize_(); // Lazy initialization.
+  return start_event_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator event for timing end.
+
+AccelEvent_t CEnv::end_event() {
+  streams_initialize_(); // Lazy initialization.
+  return end_event_;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief CPU wait for accelerator stream to complete queued work.
 
-void CEnv::stream_synchronize(Stream_t stream) const {
+void CEnv::stream_synchronize(AccelStream_t stream) const {
 
   if (!is_compute_method_gpu())
     return;
@@ -868,6 +1201,7 @@ void CEnv::set_num_proc_(int num_proc_vector,
 
   is_proc_active_ = proc_num_ < num_proc_;
 
+#if 0
   // Choose axis ordering for proc axes.
 
   enum {ORDER_FRV = 0,
@@ -894,15 +1228,15 @@ void CEnv::set_num_proc_(int num_proc_vector,
   }
 
   if (order == ORDER_FVR) {
-    proc_num_field_ = proc_num_ % num_proc_field_;
-    proc_num_vector_ = (proc_num_ / num_proc_field_)
-                                              % num_proc_vector_;
-    proc_num_repl_ = (proc_num_ / num_proc_field_)
-                                          / num_proc_vector_;
+#endif
+//    proc_num_field_ = proc_num_ % num_proc_field_;
+//    proc_num_vector_ = (proc_num_ / num_proc_field_) % num_proc_vector_;
+//    proc_num_repl_ = (proc_num_ / num_proc_field_) / num_proc_vector_;
+#if 0
   }
+#endif
 
-  proc_num_repl_vector_ = proc_num_repl_ + num_proc_repl_ *
-                               proc_num_vector_;
+//  proc_num_repl_vector_ = proc_num_repl_ + num_proc_repl_ * proc_num_vector_;
 
   // Destroy old communicators if necessary
 
@@ -915,62 +1249,6 @@ void CEnv::set_num_proc_(int num_proc_vector,
 
 //=============================================================================
 // Memory, arrays and floating point
-
-void* gm_malloc(size_t n, CEnv* env) {
-  COMET_INSIST(env);
-  COMET_INSIST(n+1 >= 1);
-
-  void* p = malloc(n);
-  COMET_INSIST(p &&
-           "Invalid pointer from malloc, possibly due to insufficient memory.");
-  env->cpu_mem_local_inc(n);
-  return p;
-}
-
-//-----------------------------------------------------------------------------
-
-void gm_free(void* p, size_t n, CEnv* env) {
-  COMET_INSIST(p && env);
-  COMET_INSIST(n+1 >= 1);
-
-  free(p);
-  env->cpu_mem_local_dec(n);
-}
-
-//-----------------------------------------------------------------------------
-
-GMFloat* GMFloat_malloc(size_t n, CEnv* env) {
-  COMET_INSIST(env);
-  COMET_INSIST(n+1 >= 1);
-
-  GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
-  GMFloat_fill_nan(p, n);
-  return p;
-}
-
-//-----------------------------------------------------------------------------
-
-void GMFloat_free(GMFloat* p, size_t n, CEnv* env) {
-  COMET_INSIST(p && env);
-
-  gm_free(p, n * sizeof(GMFloat), env);
-}
-
-//-----------------------------------------------------------------------------
-
-void GMFloat_fill_nan(GMFloat* const a, size_t n) {
-  COMET_INSIST(a);
-  COMET_INSIST(n+1 >= 1);
-
-# ifdef COMET_ASSERTIONS_ON
-    GMFloat value = sqrt(-1);
-    for (size_t i=0; i<n; ++i) {
-      a[i] = value;
-    }
-# endif
-}
-
-//-----------------------------------------------------------------------------
 
 void GMFloat_check(GMFloat* const a, size_t n) {
   COMET_INSIST(a);
@@ -985,23 +1263,6 @@ void GMFloat_check(GMFloat* const a, size_t n) {
     }
     COMET_INSIST(no_nans_found);
 # endif
-}
-
-//-----------------------------------------------------------------------------
-
-size_t gm_array_cksum(unsigned char* a, size_t n) {
-  COMET_INSIST(a);
-  COMET_INSIST(n+1 >= 1);
-
-  size_t result = 0;
-  const size_t mask = (((size_t)1) << 32) - 1;
-
-# pragma omp parallel for schedule(dynamic,1000) reduction(+:result)
-  for (size_t i=0; i<n; ++i) {
-    result += (a[i] * i) & mask;
-  }
-
-  return result;
 }
 
 //=============================================================================

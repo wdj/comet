@@ -4,16 +4,45 @@
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
  * \brief  Calculate numerators, 3-way, for a single block, GPU case.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "cstdint"
 #include "string.h"
+#define __STDC_FORMAT_MACROS 1
+#include "inttypes.h"
 
 #include "env.hh"
+#include "tc.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
+#include "compressed_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
@@ -35,151 +64,158 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
   const int step_2way,
   const int I_min,
   const int I_max,
-  const int npvfl,
+  const int npfl,
   CEnv& env) {
 
   matXitem_buf->lock_h();
 
+  typedef GMFloat Float_t;
+
+  //--------------------
   if (env.metric_type() == MetricType::CZEK) {
+  //--------------------
 
     // Populate leading columns of matX.
 
     // Don't use collapse because of overflow for large sizes
-    //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
     #pragma omp parallel for schedule(dynamic,1000)
     for (int I = I_min; I < I_max; ++I) {
       // Operate on columns x_i and x_j elementwise.
-      for (int f = 0; f < npvfl; ++f) {
-        const GMFloat a = vectors_I_buf->elt_const<GMFloat>(f, I);
-        const GMFloat b = vectors_J_buf->elt_const<GMFloat>(f, J);
-        matXitem_buf->elt<GMFloat>(f, I) = a < b ? a : b;
+      for (int f = 0; f < npfl; ++f) {
+        const Float_t a = vectors_I_buf->elt_const<Float_t>(f, I);
+        const Float_t b = vectors_J_buf->elt_const<Float_t>(f, J);
+        matXitem_buf->elt<Float_t>(f, I) = a < b ? a : b;
       }  //---for f---//
     }    //---for I---//
 
-  } else if (env.is_metric_type_bitwise()) {
+  //--------------------
+  } else if (env.is_metric_type_bitwise() && env.form_matX_tc()) {
+  //--------------------
 
-    // Extract column J of vectors_J, later use to form matX.
+    // Extract column J of vectors_J, later use this to form matX.
 
-    if (env.form_matX_tc()) {
+    for (int word = 0; word<2; ++word) {
+      for (int pfl = 0; pfl < npfl; ++pfl) {
 
-      for (int word = 0; word<2; ++word) {
-        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+        matXitem_buf->elt<GMBits2x64>(pfl, 0).data[word] =
+          vectors_J_buf->elt_const<GMBits2x64>(pfl, J).data[word];
 
-            matXitem_buf->elt<GMBits2x64>(pvfl, 0).data[word] =
-              vectors_J_buf->elt_const<GMBits2x64>(pvfl, J).data[word];
-
-        }
       }
+    }
 
-    } else { // if (!env.form_matX_tc())
+  //--------------------
+  } else if (env.is_metric_type_bitwise()) { // && !env.form_matX_tc()
+  //--------------------
 
-      COMET_INSIST(env.metric_type() == MetricType::CCC &&
-                   "Case currently unimplemented.");
-      // TODO: implement DUO here.
+    COMET_INSIST(env.metric_type() != MetricType::DUO &&
+                 "Case currently unimplemented.");
+    // TODO: implement DUO here.
 
-      // Populate leading columns of matX.
+    // Populate leading columns of matX.
 
-      for (int I = I_min; I < I_max; ++I) {
+    for (int I = I_min; I < I_max; ++I) {
 
-        // Mask for odd bits (starting at lowest-order bit: bit 0, bit 2, ...)
+      // Mask for odd bits (starting at lowest-order bit: bit 0, bit 2, ...)
 
-        const uint64_t oddbits = 0x5555555555555555;
+      const uint64_t oddbits = 0x5555555555555555;
 
-        // Operate on columns v_i and v_j elementwise.
-        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+      // Operate on columns v_i and v_j elementwise.
+      for (int pfl = 0; pfl < npfl; ++pfl) {
 
-          const bool sparse = env.sparse();
+        const bool sparse = env.sparse();
 
-          for (int word = 0; word<2; ++word) {
-            const uint64_t vI = vectors_I_buf->elt_const<GMBits2x64>(
-                                             pvfl, I).data[word];
-            const uint64_t vJ = vectors_J_buf->elt_const<GMBits2x64>(
-                                             pvfl, J).data[word];
+        for (int word = 0; word<2; ++word) {
+          const uint64_t vI = vectors_I_buf->elt_const<GMBits2x64>(
+                                           pfl, I).data[word];
+          const uint64_t vJ = vectors_J_buf->elt_const<GMBits2x64>(
+                                           pfl, J).data[word];
 
-            // Create word whose odd bits sample the lo (denoted here "..._0")
-            // or hi ("..._1") bit of the seminibble.  Also create the
-            // complement thereof (denoted "n...").
+          // Create word whose odd bits sample the lo (denoted here "..._0")
+          // or hi ("..._1") bit of the seminibble.  Also create the
+          // complement thereof (denoted "n...").
 
-            const uint64_t  vI_0 =   vI        & oddbits;
-            const uint64_t  vI_1 =  (vI >> 1)  & oddbits;
-            const uint64_t nvI_0 = ~ vI        & oddbits;
-            const uint64_t nvI_1 = ~(vI >> 1)  & oddbits;
+          const uint64_t  vI_0 =   vI        & oddbits;
+          const uint64_t  vI_1 =  (vI >> 1)  & oddbits;
+          const uint64_t nvI_0 = ~ vI        & oddbits;
+          const uint64_t nvI_1 = ~(vI >> 1)  & oddbits;
 
-            const uint64_t  vJ_0 =   vJ        & oddbits;
-            const uint64_t  vJ_1 =  (vJ  >> 1) & oddbits;
+          const uint64_t  vJ_0 =   vJ        & oddbits;
+          const uint64_t  vJ_1 =  (vJ  >> 1) & oddbits;
 
-            // Create a mask whose odd bits denote whether each respective
-            // seminibble of vector I matches the case we are handling
-            // in this 2-way step (and the complement thereof).
-            // step 0: select (only) entries equal to 00
-            // step 1: select (only) entries equal to 01 or 10 (nonsparse case)
-            // step 1: select (only) entries equal to 01 (sparse) (ignore 10)
-            // step 2: select (only) entries equal to 11
-            // Note here that 10 is in some situations used as a special marker
-            // meaning, ignore this seminiblle for the calculations.
+          // Create a mask whose odd bits denote whether each respective
+          // seminibble of vector I matches the case we are handling
+          // in this 2-way step (and the complement thereof).
+          // step 0: select (only) vector entries equal to 00
+          // step 1: select (only) vector entries equal to 01 or 10 (nonsparse case)
+          // step 1: select (only) vector entries equal to 01 (sparse) (ignore 10)
+          // step 2: select (only) vector entries equal to 11
+          // Note here that 10 is in some situations used as a special marker
+          // meaning, ignore this seminiblle for the calculations.
 
-            const uint64_t  vI_mask =
-              step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
-              step_2way==1 && sparse ?
-                             ( vI_0 & nvI_1) & oddbits : // 01
-              step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
-            /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
+          const uint64_t  vI_mask =
+            step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
+            step_2way==1 && sparse ?
+                           ( vI_0 & nvI_1) & oddbits : // 01
+            step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
+          /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
 
-            const uint64_t nvI_mask =
-              step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
-              step_2way==1 && sparse ?
-                           (nvI_0 |  vI_1) & oddbits :
-              step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
-            /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
+          const uint64_t nvI_mask =
+            step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
+            step_2way==1 && sparse ?
+                         (nvI_0 |  vI_1) & oddbits :
+            step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
+          /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
 
-            // Construct the lo and hi bit of the result seminibble of matrix X.
-            // This is best understood by looking at truth table (see paper).
-            // case vI_mask = 1: vJ = 00 => X = 00
-            // case vI_mask = 1: vJ = 01 => X = 01
-            // case vI_mask = 1: vJ = 10 => X = 01 (nonsparse case)
-            // case vI_mask = 1: vJ = 10 => X = 10 (sparse case)
-            // case vI_mask = 1: vJ = 11 => X = 11
-            // case vI_mask = 0: X = 10
-            // Thus for the nonsparse case:
-            //  - lo bit is 1 (11 or 01) if vJ is 01, 10 or 11 and vI is the
-            //    case being handled for this 2-way step.
-            //  - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
-            //    being handled for this 2-way step.
+          // Construct the lo and hi bit of the result seminibble of matrix X.
+          // This is best understood by looking at truth table (see paper).
+          // case vI_mask = 1: vJ = 00 => X = 00
+          // case vI_mask = 1: vJ = 01 => X = 01
+          // case vI_mask = 1: vJ = 10 => X = 01 (nonsparse case)
+          // case vI_mask = 1: vJ = 10 => X = 10 (sparse case)
+          // case vI_mask = 1: vJ = 11 => X = 11
+          // case vI_mask = 0: X = 10
+          // Thus for the nonsparse case:
+          //  - lo bit is 1 (11 or 01) if vJ is 01, 10 or 11 and vI is the
+          //    case being handled for this 2-way step.
+          //  - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
+          //    being handled for this 2-way step.
 
-            const uint64_t r_0 =  vI_mask & (sparse ? vJ_0 : vJ_0 | vJ_1);
-            const uint64_t r_1 = nvI_mask | (sparse ? vJ_1 : vJ_0 & vJ_1);
+          const uint64_t r_0 =  vI_mask & (sparse ? vJ_0 : vJ_0 | vJ_1);
+          const uint64_t r_1 = nvI_mask | (sparse ? vJ_1 : vJ_0 & vJ_1);
 
-            // Combine even and odd bits
+          // Combine even and odd bits
 
-            const uint64_t r = r_0 | (r_1 << 1);
+          const uint64_t r = r_0 | (r_1 << 1);
 
-            // Store result
+          // Store result
 
-            matXitem_buf->elt<GMBits2x64>(pvfl, I).data[word] = r;
-          } // word
-        }  // f
-      }    // I
+          matXitem_buf->elt<GMBits2x64>(pfl, I).data[word] = r;
+        } // word
+      }  // f
+    }    // I
 
-    } // if (env.form_matX_tc())
-
+  //--------------------
   } else {
+  //--------------------
 
     COMET_INSIST(false);
 
+  //--------------------
   } // env.metric_type()
+  //--------------------
 
   matXitem_buf->unlock_h();
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Set metrics numerators and denominators using GEMM results.
+/// \brief Finalize metrics values using GEMM results, Czek case.
 
 template<int METRIC_FORMAT>
-static void compute_metrics_3way_block_linalg_form_metrics_mf_(
+static void finalize_czek_(
   MirroredBuf* const matM_IJ_buf,
   MirroredBuf* const matM_JK_buf,
   MirroredBuf* const matM_KIK_buf,
-  MirroredBuf* const matB_buf,
+  CompressedBuf* const matB_cbuf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -194,100 +230,239 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
   COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_tc()) &&
                "Case currently unimplemented.");
 
-  matB_buf->lock_h();
+  matB_cbuf->lock_h();
+
+  typedef GMFloat Float_t;
 
   const VectorSums* const vs_I = si->perm0(vs_i, vs_j, vs_k);
   const VectorSums* const vs_J = si->perm1(vs_i, vs_j, vs_k);
   const VectorSums* const vs_K = si->perm2(vs_i, vs_j, vs_k);
 
-  //const size_t nvl64 = (size_t)nvl;
-  //const size_t I_max64 = (size_t)I_max;
+  //--------------------
+  // Compute numerators using ijk piece and (if needed) 2-way pieces.
+  //--------------------
+
+  if (!env.all2all()) {
+
+    // don't use collapse because of overflow for large sizes
+    #pragma omp parallel for schedule(dynamic,1000)
+    for (int K = K_min; K < K_max; ++K) {
+      for (int I = I_min; I < I_max; ++I) {
+        const Float_t min_IJ = matM_IJ_buf->elt_const<Float_t>(I, J);
+        const Float_t min_JK = matM_JK_buf->elt_const<Float_t>(J, K);
+        const Float_t min_KIK = matM_KIK_buf->elt_const<Float_t>(K, I);
+        // sum of mins vectors i, j, and k is matB(k,i).
+        const Float_t min_IJK = matB_cbuf->elt_const<Float_t>(I, K);
+        const Float_t numer = min_IJ + min_JK + min_KIK - min_IJK;
+        const int i = I;
+        const int j = J;
+        const int k = K;
+        // Make arithmetic order-independent.
+        Float_t smin, smid, smax;
+        const auto si = vs_i->sum<Float_t>(i);
+        const auto sj = vs_i->sum<Float_t>(j);
+        const auto sk = vs_i->sum<Float_t>(k);
+        utils::sort_3(smin, smid, smax, si, sj, sk);
+        const Float_t denom = smin + smid + smax;
+        const Float_t value = static_cast<Float_t>(1.5) * numer / denom;
+        Metrics_elt_3<Float_t>(*metrics, i, j, k,
+          env.proc_num_vector(), env.proc_num_vector(), env) = value;
+      } // K
+    }   // I
+
+  } else { // if (env.all2all())
+
+    MetricsIndexCache index_cache = {};
+    // don't use collapse because of overflow for large sizes
+    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
+    for (int K = K_min; K < K_max; ++K) {
+      for (int I = I_min; I < I_max; ++I) {
+        const Float_t min_IJ = matM_IJ_buf->elt_const<Float_t>(I, J);
+        const Float_t min_JK = matM_JK_buf->elt_const<Float_t>(J, K);
+        const Float_t min_KIK = si->is_part3 ?
+          matM_KIK_buf->elt_const<Float_t>(K, I) :
+          matM_KIK_buf->elt_const<Float_t>(I, K);
+        // sum of mins vectors i, j, and k is matB(k,i).
+        const Float_t min_IJK = matB_cbuf->elt_const<Float_t>(I, K);
+        const Float_t numer = min_IJ + min_JK + min_KIK - min_IJK;
+        // Make arithmetic order-independent.
+        Float_t smin, smid, smax;
+        const auto sI = vs_I->sum<Float_t>(I);
+        const auto sJ = vs_J->sum<Float_t>(J);
+        const auto sK = vs_K->sum<Float_t>(K);
+        utils::sort_3(smin, smid, smax, sI, sJ, sK);
+        const Float_t denom = smin + smid + smax;
+        const Float_t value = static_cast<Float_t>(1.5) * numer / denom;
+        Metrics_elt_3<Float_t>(*metrics, I, J, K,
+          j_block, k_block, index_cache, env) = value;
+      } // K
+    }   // I
+
+  } // if
+
+  metrics->num_metric_items_local_computed_inc((I_max - I_min) * (size_t)
+                                               (K_max - K_min));
+  matB_cbuf->unlock_h();
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Finalize metrics values using GEMM results, CCC/DUO case.
+
+template<int METRIC_FORMAT>
+static void finalize_ccc_duo_(
+  MirroredBuf* const matM_IJ_buf,
+  MirroredBuf* const matM_JK_buf,
+  MirroredBuf* const matM_KIK_buf,
+  CompressedBuf* const matB_cbuf,
+  GMMetrics* metrics,
+  int nvl, int J, int step_2way,
+  int I_min, int I_max, int K_min, int K_max,
+  int I_max_dim,
+  int j_block, int k_block,
+  GMSectionInfo* const si,
+  VectorSums* vs_i, VectorSums* vs_j, VectorSums* vs_k,
+  CEnv& env) {
+
+  COMET_INSIST(vs_i && vs_j && vs_k);
+
+  COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_tc()) &&
+               "Case currently unimplemented.");
+
+  typedef GMFloat Float_t;
+
+  matB_cbuf->lock_h();
 
   //--------------------
   // Compute numerators using ijk piece and (if needed) 2-way pieces.
   //--------------------
 
-  if (env.metric_type() == MetricType::CZEK && !env.all2all()) {
+  COMET_INSIST((env.metric_type() == MetricType::CCC ||
+                env.is_bitwise_3way_2step()) &&
+               "Case of DUO + 3-step algorithm currently unimplemented.");
+
+  enum {MF = METRIC_FORMAT};
+  typedef MetricFormatTraits<MF> MFT;
+  typedef typename MFT::TypeIn MFTypeIn;
+
+  const int nvle = I_max_dim;
+  const int nvleD2 = nvle / 2;
+  const int is_halved = env.is_vectors_halved();
+  const int num_halves = is_halved ? 2 : 1;
+
+  matB_cbuf->elt_read_start();
+
+  //--------------------
+  if (env.is_shrink()) {
+  //--------------------
+
+    COMET_ASSERT(env.is_threshold_tc());
+
+    // NOTE: this may be slight overestimate of amt of mem that will be needed.
+
+    COMET_INSIST(metrics->num_metric_items_local_computed +
+      static_cast<NML_t>(matB_cbuf->num_entries()) <=
+      metrics->num_metric_items_local_allocated &&
+      "Insufficient metrics memory; please decrease metrics_shrink.");
+
+    const int i_block = env.proc_num_vector();
+
+    // Loop over all table entries stored in compressed buffer.
+
+    for (size_t ind_entry = 0; ind_entry < matB_cbuf->num_entries();
+         ++ind_entry) {
+
+      // Read current item (i.e., entry).
+      const MFTypeIn metric_item = matB_cbuf->elt_const<MFTypeIn>(ind_entry);
+
+      // If this buf did not do_compress, may actually have zeros.
+      // Make guarantee that if is_shrink, all zeros
+      // (or to be exact, failed-threshold) values are removed from metrics.
+
+// FIXTHRESHOLD: this needs to be essentially a check for zero.
+// equivalent (CHECK) to pass_threshold here if single thresh case, but may not otherwise.
+// this should be EXACTLY a check for zero
+      //if (!env.pass_threshold(metric_item))
+      //if (!env.thresholds().is_pass(metric_item))
+      if (Thresholds::is_zero(metric_item))
+        continue;
+
+      // Get row, col nums of item just read.
+
+      const size_t K = matB_cbuf->ind1_recent();
+      const size_t I_mapped = matB_cbuf->ind0_recent();
+
+      const int half_num = I_mapped / nvleD2;
+
+      const size_t I = I_mapped % nvleD2 + step_2way * nvleD2;
+
+      // It was computed by GEMM; check is it an entry we need.
+
+      const bool is_in_range = I >= (size_t)I_min && I < (size_t)I_max &&
+                               K >= (size_t)K_min && K < (size_t)K_max;
+
+      if (!is_in_range)
+        continue;
+
+      // Get indexing info.
+
+      const size_t i = si->unperm0(I, (size_t)J, K);
+      const size_t j = si->unperm1(I, (size_t)J, K);
+      const size_t k = si->unperm2(I, (size_t)J, K);
+
+      // TODO: accessor functions
+      const size_t iG = i + nvl * i_block;
+      const size_t jG = j + nvl * j_block;
+      const size_t kG = k + nvl * k_block;
+
+      const int IE = half_num;
+      const int JE = matB_cbuf->iE_recent();
+      const int KE = matB_cbuf->jE_recent();
+
+      const int iE = si->unperm0(IE, JE, KE);
+      const int jE = si->unperm1(IE, JE, KE);
+      const int kE = si->unperm2(IE, JE, KE);
+
+      // Location to store it (item number in metrics array).
+      const NML_t index = metrics->num_metric_items_local_computed;
+      metrics->num_metric_items_local_computed_inc(1);
+      //COMET_ASSERT(metrics_mem_needed <= metrics->num_metric_items_local_allocated);
+      if (metrics->num_metric_items_local_computed >
+          metrics->num_metric_items_local_allocated)
+        continue;
+
+      // Store metric item.
+
+      Metrics_elt<MFTypeIn>(*metrics, index, env) = metric_item;
+
+      // Store the coords information for this metric item.
+      // TODO: accessor function
+      metrics->coords_[index] =
+        CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env);
+
+    } // for ind_entry
+
+    if (metrics->num_metric_items_local_computed >
+        metrics->num_metric_items_local_allocated)
+      fprintf(stderr,
+        "Error: insufficient metrics memory; "
+        "please lower metrics_shrink  or increase threshold. "
+        "At failure, needed %" PRIu64 ", have %" PRIu64 ".\n",
+        metrics->num_metric_items_local_computed,
+        metrics->num_metric_items_local_allocated);
+    COMET_INSIST(metrics->num_metric_items_local_computed <=
+                 metrics->num_metric_items_local_allocated);
+
+  //--------------------
+  } else { // if (!env.is_shrink())
+  //--------------------
+
+    MetricsIndexCache index_cache = {};
 
     // don't use collapse because of overflow for large sizes
-    //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-    #pragma omp parallel for schedule(dynamic,1000)
+    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000) if ((!matB_cbuf->do_compress()) && (!metrics->is_computing_histograms()))
     for (int K = K_min; K < K_max; ++K) {
-      for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);;
-        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);;
-        const GMFloat min_KIK = matM_KIK_buf->elt_const<GMFloat>(K, I);;
-        // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);;
-        const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
-        const int i = I;
-        const int j = J;
-        const int k = K;
-        // Make arithmetic order-independent.
-        GMFloat smin, smid, smax;
-        const auto si = vs_i->sum(i);
-        const auto sj = vs_i->sum(j);
-        const auto sk = vs_i->sum(k);
-        utils::sort_3(smin, smid, smax, si, sj, sk);
-        const GMFloat denom = smin + smid + smax;
-        const GMFloat value = ((GMFloat)1.5) * numer / denom;
-        GMMetrics_float_set_3(metrics, i, j, k, value, &env);
-      } // K
-    }   // I
-    metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
-                                        (K_max - K_min);
 
-  } else if (env.metric_type() == MetricType::CZEK && env.all2all()) {
-
-    GMIndexCache index_cache = {};
-    // don't use collapse because of overflow for large sizes
-    //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
-    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
-    for (int K = K_min; K < K_max; ++K) {
-      for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);;
-        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);;
-        const GMFloat min_KIK = si->is_part3 ?
-          matM_KIK_buf->elt_const<GMFloat>(K, I) :
-          matM_KIK_buf->elt_const<GMFloat>(I, K);
-        // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);;
-        const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
-        // Make arithmetic order-independent.
-        GMFloat smin, smid, smax;
-        const auto sI = vs_I->sum(I);
-        const auto sJ = vs_J->sum(J);
-        const auto sK = vs_K->sum(K);
-        utils::sort_3(smin, smid, smax, sI, sJ, sK);
-        const GMFloat denom = smin + smid + smax;
-        const GMFloat value = ((GMFloat)1.5) * numer / denom;
-        GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
-            j_block, k_block, value, &index_cache, &env);
-      } // K
-    }   // I
-    metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
-                                        (K_max - K_min);
-
-  } else if (env.is_metric_type_bitwise()) {
-
-    enum {MF = METRIC_FORMAT};
-    typedef MetricFormatTraits<MF> MFT;
-    typedef typename MFT::TypeIn MFTypeIn;
-
-    COMET_INSIST((env.metric_type() == MetricType::CCC ||
-                  env.is_bitwise_3way_2step()) &&
-                 "Case currently unimplemented.");
-
-    const int nvle = I_max_dim;
-    const int nvleD2 = nvle / 2;
-    const int is_halved = env.is_vectors_halved();
-
-    GMIndexCache index_cache = {};
-
-    // don't use collapse because of overflow for large sizes
-    //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
-    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
-    for (int K = K_min; K < K_max; ++K) {
+      for (int half_num = 0; half_num < num_halves; ++half_num) {
 
       // This "I" is the true I, the coordinate in the plane.
 
@@ -310,16 +485,19 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
           // Do we initialize relevant metric value on this 2-way step.
 
-          const bool init_numer = is_halved ? true : 0 == step_2way;
+          const bool init_numer = is_halved ? 0 == half_num : 0 == step_2way;
 
           // NOTE: numer is accessed through a permuted index, but
           // the 000, 001 etc. indices of numer are unpermuted.
 
-          Tally4x2<MF> numer = init_numer ? Tally4x2<MF>::null() :
-            env.all2all() ? 
-            Metrics_get<MF>(*metrics, I, J, K, j_block, k_block, index_cache,
-                            env) :
-            Metrics_get<MF>(*metrics, i, j, k, env);
+          const int j_block_eff = env.all2all() ?
+            j_block : env.proc_num_vector();
+          const int k_block_eff = env.all2all() ?
+            k_block : env.proc_num_vector();
+
+          auto numer = init_numer ? Tally4x2<MF>::null() :
+            Metrics_elt_const_3<Tally4x2<MF>>(*metrics, I, J, K,
+              j_block_eff, k_block_eff, index_cache, env);
 
           MFTypeIn r000, r001, r010, r011, r100, r101, r110, r111;
           MFT::decode(r000, r001, numer.data[0]);
@@ -348,12 +526,12 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
             // Add in lo part.
 
-            {
+            if (0 == half_num) {
               // NOTE: matB is generated by GEMM on permuted vectors objects,
-              // thus has permuted 001 etc. entries.
+              // thus has permuted 001 etc. table entries.
 
               const auto matB_perm =
-                matB_buf->elt_const<Tally2x2<MF>>(I_mapped_lo, K);
+                matB_cbuf->elt_const<Tally2x2<MF>>(I_mapped_lo, K);
               MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
               MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
               MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
@@ -366,9 +544,9 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
             // Add in hi part.
 
-            {
+            if (1 == half_num) {
               const Tally2x2<MF> matB_perm =
-                matB_buf->elt_const<Tally2x2<MF>>(I_mapped_hi, K);
+                matB_cbuf->elt_const<Tally2x2<MF>>(I_mapped_hi, K);
 
               MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
               MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
@@ -383,7 +561,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           } else if (env.is_bitwise_3way_2step()) { // && ! is_halved
 
             const auto matB_perm =
-              matB_buf->elt_const<Tally2x2<MF>>(I, K);
+              matB_cbuf->elt_const<Tally2x2<MF>>(I, K);
             MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
             MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
             MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
@@ -403,7 +581,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           } else { // if (! env.is_bitwise_3way_2step() && ! is_halved)
 
             const auto matB_perm =
-              matB_buf->elt_const<Tally2x2<MF>>(I, K);
+            matB_cbuf->elt_const<Tally2x2<MF>>(I, K);
             MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
             MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
             MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
@@ -422,7 +600,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
               r101_perm += matB01_perm;
               r110_perm += matB10_perm;
               r111_perm += matB11_perm;
-            } else /*---2 == step_2way---*/ {
+            } else { // 2 == step_2way
               r100_perm += 2 * matB00_perm;
               r101_perm += 2 * matB01_perm;
               r110_perm += 2 * matB10_perm;
@@ -445,69 +623,85 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           MFT::encode(numer.data[2], r100, r101);
           MFT::encode(numer.data[3], r110, r111);
 
-          if (env.all2all()) {
-            Metrics_set<MF>(*metrics, I, J, K,
-                            j_block, k_block, numer, index_cache, env);
-          } else {
-            Metrics_set<MF>(*metrics, i, j, k, numer, env);
-          }
+          Metrics_elt_3<Tally4x2<MF>>(*metrics, I, J, K,
+            j_block_eff, k_block_eff, index_cache, env) = numer;
 
         } // if (is_I_in_range)
 
         // Denominator.
 
-        if ((!env.threshold_tc()) &&
+        if (!env.is_threshold_tc() &&
             step_2way == env.num_step_2way_for_3way() - 1) {
 
-          const auto si1 = (GMTally1)vs_i->sum(i);
-          const auto sj1 = (GMTally1)vs_j->sum(j);
-          const auto sk1 = (GMTally1)vs_k->sum(k);
+          const auto si1 = (GMTally1)vs_i->sum<Float_t>(i);
+          const auto sj1 = (GMTally1)vs_j->sum<Float_t>(j);
+          const auto sk1 = (GMTally1)vs_k->sum<Float_t>(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-          if (env.all2all()) {
-            GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
-              j_block, k_block, si1_sj1_sk1, &index_cache, &env);
-          } else {
-            GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, &env);
-          }
+
+          const int j_block_eff = env.all2all() ?
+            j_block : env.proc_num_vector();
+          const int k_block_eff = env.all2all() ?
+            k_block : env.proc_num_vector();
+          
+          Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
+            j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
+
           if (env.sparse()) {
-            const auto ci = (GMTally1)vs_i->count(i);
-            const auto cj = (GMTally1)vs_j->count(j);
-            const auto ck = (GMTally1)vs_k->count(k);
-            const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
-            if (env.all2all()) {
-              GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
-                j_block, k_block, ci_cj_ck, &index_cache, &env);
-            } else {
-              GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, &env);
-            }
-          } /*---if sparse---*/
+            const auto ci1 = (GMTally1)vs_i->count<Float_t>(i);
+            const auto cj1 = (GMTally1)vs_j->count<Float_t>(j);
+            const auto ck1 = (GMTally1)vs_k->count<Float_t>(k);
+            const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+            Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
+              j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
+          } // if sparse
 
-        } // if
+          if (metrics->is_computing_histograms() &&
+              CoordsInfo::is_active(metrics->coords_value(
+                Metrics_index_3(*metrics, i, j, k, j_block_eff, k_block_eff, env)),
+                *metrics, env)) {
 
-      } // K
-    }   // I
-    if (step_2way == env.num_step_2way_for_3way() - 1) {
-      metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
-                                          (K_max - K_min);
+            const int cbpe = env.counted_bits_per_elt();
+            const int nfa = metrics->num_field_active;
+            const GMTally1 ci = env.sparse() ? vs_i->count<Float_t>(i) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 cj = env.sparse() ? vs_j->count<Float_t>(j) :
+                                                cbpe * cbpe * cbpe * nfa;
+            const GMTally1 ck = env.sparse() ? vs_k->count<Float_t>(k) :
+                                                cbpe * cbpe * cbpe * nfa;
+            COMET_ASSERT(!is_halved);
+            Tally4x2<MF> ttable = Metrics_elt_3<Tally4x2<MF>>(*metrics,
+              i, j, k, j_block_eff, k_block_eff, env);
+            metrics->dm->histograms()->add(ttable, si1, sj1, sk1, ci, cj, ck, nfa);
+          } // if is_computing_histograms
+//FIXHIST
+        } // if ((!env.is_threshold_tc()) && ...
+
+      } // I
+      } // for half_num
+    } // K
+
+    const bool is_last_step = step_2way == env.num_step_2way_for_3way() - 1;
+
+    if (is_last_step) {
+      metrics->num_metric_items_local_computed_inc((I_max - I_min) * (size_t)
+                                                   (K_max - K_min));
     }
 
-  } else { // if (env.metric_type() ...
+  //--------------------
+  } // if (env.is_shrink())
+  //--------------------
 
-    COMET_INSIST(false);
-
-  } // if (env.metric_type() ...
-
-  matB_buf->unlock_h();
+  matB_cbuf->unlock_h();
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Set metrics numerators and denominators using GEMM results.
+/// \brief Finalize metrics values using GEMM results.
 
-static void compute_metrics_3way_block_linalg_form_metrics_(
+static void finalize_(
   MirroredBuf* const matM_IJ_buf,
   MirroredBuf* const matM_JK_buf,
   MirroredBuf* const matM_KIK_buf,
-  MirroredBuf* const matB_buf,
+  CompressedBuf* const matB_cbuf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -517,19 +711,31 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
   VectorSums* vs_i, VectorSums* vs_j, VectorSums* vs_k,
   CEnv& env) {
 
-  if (env.threshold_tc()) {
+  if (env.metric_type() == MetricType::CZEK && env.is_threshold_tc()) {
 
-    compute_metrics_3way_block_linalg_form_metrics_mf_<
-      MetricFormat::SINGLE>(
-      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_buf, metrics,
+    finalize_czek_<MetricFormat::SINGLE>(
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
       nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
       j_block, k_block, si, vs_i, vs_j, vs_k, env);
 
-  } else {
+  } else if (env.metric_type() == MetricType::CZEK && !env.is_threshold_tc()) {
 
-    compute_metrics_3way_block_linalg_form_metrics_mf_<
-      MetricFormat::PACKED_DOUBLE>(
-      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_buf, metrics,
+    finalize_czek_<MetricFormat::PACKED_DOUBLE>(
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
+      nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
+      j_block, k_block, si, vs_i, vs_j, vs_k, env);
+
+  } else if (env.is_threshold_tc()) { // && env.is_metric_type_bitwise()
+
+    finalize_ccc_duo_<MetricFormat::SINGLE>(
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
+      nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
+      j_block, k_block, si, vs_i, vs_j, vs_k, env);
+
+  } else { // !env.is_threshold_tc()) && env.is_metric_type_bitwise()
+
+    finalize_ccc_duo_<MetricFormat::PACKED_DOUBLE>(
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
       nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
       j_block, k_block, si, vs_i, vs_j, vs_k, env);
 
@@ -537,12 +743,13 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Compute 3-way metrics for cases that use the linalg package.
+/// \brief Compute 3-way metrics for block for cases using the linalg package.
 
 void ComputeMetrics3WayBlock::compute_linalg_(
   VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& metrics,
-  int j_block, int k_block, int section_step) {
+  int j_block, int k_block, int section_step, MagmaWrapper& magma_wrapper) {
 
+  COMET_INSIST(env_.is_using_linalg());
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());
   COMET_INSIST(k_block >= 0 && k_block < env_.num_block_vector());
   COMET_INSIST(! (env_.proc_num_vector() == j_block &&
@@ -550,12 +757,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   COMET_INSIST(! (env_.proc_num_vector() == k_block &&
               env_.proc_num_vector() != j_block));
   COMET_INSIST(env_.is_using_linalg());
-  COMET_INSIST(env_.num_way() == NUM_WAY::_3);
+  COMET_INSIST(env_.num_way() == NumWay::_3);
 
   // Initializations.
 
   const int nvl = metrics.num_vector_local;
-  const int npvfl = vdata_i.vectors->num_packedval_field_local;
+  const int npfl = vdata_i.vectors->num_packedfield_local();
   const int i_block = env_.proc_num_vector();
 
   GMSectionInfo si_value, *si = &si_value;
@@ -565,7 +772,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const bool need_mat_jk = env_.does_3way_need_2way() && ! si->is_part1;
   const bool need_mat_kik = env_.does_3way_need_2way() && si->is_part3;
 
-  GMDecompMgr* const dm = vdata_i.vectors->dm;
+  GMDecompMgr* const dm = vdata_i.vectors->dm();
 
   //----------------------------------------
   // First get the required 2-way ij, jk, ik metrics.
@@ -575,24 +782,21 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // Compute i_block - j_block PROD.
   //--------------------
 
-//CHANGE: remove this?
-  MirroredBuf* tmp_buf[NUM_BUF] = {&tmp_buf_[0], &tmp_buf_[1]};
-
   MirroredBuf* const matM_ij_buf = need_mat_ij ? &matM_ij_buf_ : NULL;
 
   if (need_mat_ij) {
-    MirroredBuf* matM_ij_buf_ptr = env_.do_reduce()
-      ? tmp_buf[0] : matM_ij_buf;
-
-    gm_linalg_gemm(nvl, nvl, npvfl,
-                   vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
-                   vdata_i.sums->sums(), vdata_j.sums->sums(),
-                   vdata_i.sums->counts(), vdata_j.sums->counts(),
-                   dm, &env_);
+    MirroredBuf* matM_ij_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_ij_buf;
+    GemmShapeNone gemm_shape;
+    GemmShapes gemm_shapes(&gemm_shape);
+    LinAlg::gemm(nvl, nvl, npfl,
+                 vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
+                 vdata_i.sums->sums(), vdata_j.sums->sums(),
+                 vdata_i.sums->counts(), vdata_j.sums->counts(),
+                 *dm, magma_wrapper, gemm_shapes, env_);
 
     matM_ij_buf_ptr->from_accel();
 
-    gm_reduce_metrics(&metrics, matM_ij_buf, matM_ij_buf_ptr, &env_);
+    reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env_);
   }
 
   //--------------------
@@ -605,18 +809,19 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     ? &matM_jk_buf_ : matM_ij_buf;
 
   if (need_mat_jk) {
-    MirroredBuf* matM_jk_buf_ptr = env_.do_reduce()
-      ? tmp_buf[0] : matM_jk_buf;
+    MirroredBuf* matM_jk_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_jk_buf;
 
-    gm_linalg_gemm(nvl, nvl, npvfl,
-                   vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
-                   vdata_j.sums->sums(), vdata_k.sums->sums(),
-                   vdata_j.sums->counts(), vdata_k.sums->counts(),
-                   dm, &env_);
+    GemmShapeNone gemm_shape;
+    GemmShapes gemm_shapes(&gemm_shape);
+    LinAlg::gemm(nvl, nvl, npfl,
+                 vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
+                 vdata_j.sums->sums(), vdata_k.sums->sums(),
+                 vdata_j.sums->counts(), vdata_k.sums->counts(),
+                 *dm, magma_wrapper, gemm_shapes, env_);
 
     matM_jk_buf_ptr->from_accel();
 
-    gm_reduce_metrics(&metrics, matM_jk_buf, matM_jk_buf_ptr, &env_);
+    reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env_);
   }
 
   //--------------------
@@ -628,37 +833,33 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // NOTE: for Part 3, this is indexed directly as (k,i).
   //  Otherwise, it is indexed through an alias as (i,k).
 
-  MirroredBuf* const matM_kik_buf = si->is_part3
-    ? &matM_kik_buf_ : matM_ij_buf;
+  MirroredBuf* const matM_kik_buf = si->is_part3 ? &matM_kik_buf_ : matM_ij_buf;
 
   if (need_mat_kik) {
     MirroredBuf* matM_kik_buf_ptr =
-        env_.do_reduce() ? tmp_buf[0] : matM_kik_buf;
+        env_.do_reduce() ? tmp_buf_[0] : matM_kik_buf;
 
-    gm_linalg_gemm(nvl, nvl, npvfl,
-                   vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
-                   vdata_k.sums->sums(), vdata_i.sums->sums(),
-                   vdata_k.sums->counts(), vdata_i.sums->counts(),
-                   dm, &env_);
+    GemmShapeNone gemm_shape;
+    GemmShapes gemm_shapes(&gemm_shape);
+    LinAlg::gemm(nvl, nvl, npfl,
+                 vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
+                 vdata_k.sums->sums(), vdata_i.sums->sums(),
+                 vdata_k.sums->counts(), vdata_i.sums->counts(),
+                 *dm, magma_wrapper, gemm_shapes, env_);
 
     matM_kik_buf_ptr->from_accel();
 
-    gm_reduce_metrics(&metrics, matM_kik_buf, matM_kik_buf_ptr, &env_);
-  } /*---is_part3---*/
+    reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env_);
+  }
 
   //----------------------------------------
   // Now compute ijk piece, via an outer loop over j values.
   //----------------------------------------
 
-  // Allocate magma CPU/GPU memory for matrices X and B.
   // X = elementwise OP of one vector with each of the rest of the vectors.
   // For the jth iteration, the ith column of X is the elementwise OP
   //   of vectors i and j.
   // B = X^T PROD V = three way PROD.
-
-//CHANGE: these as class members, init in ctor?
-  MirroredBuf* matXitem_buf[NUM_BUF] = {&matXitem_buf_[0], &matXitem_buf_[1]};
-  MirroredBuf* matB_buf[NUM_BUF] = {&matB_buf_[0], &matB_buf_[1]};
 
   // Set up pointers to permute the access of axes for Part 3.
   // Use capitals I, J, K here to denote the PERMUTED axes.
@@ -684,23 +885,29 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   MirroredBuf* const matM_KIK_buf =
                         si->perm2(matM_ij_buf, matM_jk_buf, matM_kik_buf);
 
-  if (env_.form_matX_tc()) {
-    vectors_I_buf->to_accel();
-  }
+  const int I_block = si->perm0(i_block, j_block, k_block);
+  const int J_block = si->perm1(i_block, j_block, k_block);
+  const int K_block = si->perm2(i_block, j_block, k_block);
 
-  //--------------------
-  // Collapsed loops over J and over 2-way steps.
-  //--------------------
+//FIX
+  TCDebug tc_debug;
+//  tc_debug.I_base = I_block * nvl;
+//  tc_debug.J_base = J_block * nvl;
+//  tc_debug.K_base = K_block * nvl;
 
   const int J_min = si->J_lb;
   const int J_max = si->J_ub;
   const int J_count = J_max - J_min;
 
-  const int num_step_2way = env_.num_step_2way_for_3way();
-  const int num_step = J_count * num_step_2way;
-  const int extra_step = 1;
-
   MPI_Request mpi_requests[NUM_BUF] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+
+  // Make left vectors resident on GPU to repeatedly form matX.
+
+  if (env_.form_matX_tc())
+    vectors_I_buf->to_accel();
+
+  // Convenience struct to remember loop state across cycles.
+  // NOTE: ensures values are persistent across lifespan of async launches.
 
   struct LoopVars {
     int step_num;
@@ -719,11 +926,15 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     MirroredBuf matB_buf;
     MirroredBuf tmp_buf;
     MirroredBuf* matB_buf_ptr() {return do_reduce ? &tmp_buf : &matB_buf;}
+    GemmShape3Way gemm_shape;
+    GemmShapes gemm_shapes;
     LoopVars(CEnv& env)
       : do_compute(false)
       , do_reduce(env.do_reduce())
       , matB_buf(env)
-      , tmp_buf(env) {}
+      , tmp_buf(env)
+      , gemm_shape()
+      , gemm_shapes(&gemm_shape) {}
     //LoopVars& operator=(LoopVars&) = default;
     //static void copy(LoopVars& w, const LoopVars* v) {
 //      memcpy(&w, &v, sizeof(LoopVars));
@@ -732,30 +943,54 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   const int num_buf = 4;
 
-  std::vector<LoopVars> vars_buf;
-  for (int i=0; i<num_buf; ++i)
-    vars_buf.push_back(LoopVars(env_));
+  LoopVars vars_buf0(env_);
+  LoopVars vars_buf1(env_);
+  LoopVars vars_buf2(env_);
+  LoopVars vars_buf3(env_);
 
+  LoopVars* const vars_buf[num_buf] =
+    {&vars_buf0, &vars_buf1, &vars_buf2, &vars_buf3};
+
+  // Optionally compress the result data on the GPU.
+
+  //CompressedBuf matB_cbuf_(*matB_buf_[0], env_);
+  //CompressedBuf* matB_cbuf = &matB_cbuf_;
+  CompressedBuf* matB_cbuf = matB_cbuf_;
+
+  // Num steps to take to compute the blocks
+
+  const int num_step_2way = env_.num_step_2way_for_3way();
+  const int num_step = J_count * num_step_2way;
+
+  // Add extra step/s at begin/end, to fill/drain pipeline.
+
+  const int extra_step = 1;
   const int first_step = 0 - extra_step;
 
+  //--------------------
+  // Collapsed loops over J and over 2-way steps.
+  //--------------------
+
+//const double t1 = env_.synced_time();
+//if (System::is_proc_num_0()) printf("T1\n");
+
   //========================================
-  for (int step_num = first_step; step_num < num_step+extra_step*2;
-       ++step_num) {
+  for (int step_num = first_step; step_num < num_step+extra_step*2; ++step_num){
   //========================================
 
     // Set per-step variables.
 
-    LoopVars& vars_prevprev = vars_buf[(step_num - first_step + 0) % num_buf];
-    LoopVars& vars_prev = vars_buf[(step_num - first_step + 1) % num_buf];
-    LoopVars& vars = vars_buf[(step_num - first_step + 2) % num_buf];
-    LoopVars& vars_next = vars_buf[(step_num - first_step + 3) % num_buf];
+    LoopVars& vars_prevprev = *vars_buf[(step_num - first_step + 0) % num_buf];
+    LoopVars& vars_prev = *vars_buf[(step_num - first_step + 1) % num_buf];
+    LoopVars& vars = *vars_buf[(step_num - first_step + 2) % num_buf];
+    LoopVars& vars_next = *vars_buf[(step_num - first_step + 3) % num_buf];
 
     vars_next.step_num = step_num + 1;
     vars_next.step_2way = utils::mod_i(vars_next.step_num, num_step_2way);
     vars_next.J = J_min + utils::trunc(vars_next.step_num, num_step_2way);
     vars_next.I_min = 0;
     vars_next.I_max = si->is_part1 ? vars_next.J : nvl;
-    vars_next.I_max_dim = tc_gemm_size_required(vars_next.I_max, env_);
+    vars_next.I_max_dim = tc_nvl_size_required_for_gemm(vars_next.I_max, env_);
     vars_next.K_min = si->is_part3 ? 0 : vars_next.J + 1;
     vars_next.K_max = nvl;
     vars_next.empty = vars_next.I_min >= vars_next.I_max ||
@@ -769,10 +1004,10 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                "Block size rounding-up error.");
       // Create buffer aliases with required shape.
       if (env_.do_reduce()) {
-        vars_next.tmp_buf.allocate(*tmp_buf[vars_next.index_01],
+        vars_next.tmp_buf.allocate(*tmp_buf_[vars_next.index_01],
                                    vars_next.I_max_dim);
       }
-      vars_next.matB_buf.allocate(*matB_buf[vars_next.index_01],
+      vars_next.matB_buf.allocate(*matB_buf_[vars_next.index_01],
                                   vars_next.I_max_dim);
     }
 
@@ -780,99 +1015,119 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //========== Send matrix matXitem to GPU - WAIT
 
-    if (vars.do_compute) {
-      matXitem_buf[vars.index_01]->to_accel_wait();
-    }
+    if (vars.do_compute)
+      matXitem_buf_[vars.index_01]->to_accel_wait();
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
-      gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
-          matXitem_buf[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
+      vars_prev.gemm_shape.set(vars_prev.I_max, vars_prev.K_min,
+        vars_prev.K_max, metrics.dm->num_vector_local,
+        metrics.dm->num_vector_active,
+        I_block, J_block, K_block);
+      LinAlg::gemm_wait(vars_prev.I_max, nvl, npfl,
+          matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
           vars_prev.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
-          vars_prev.J, vars_prev.step_2way, dm, &env_);
+          vars_prev.J, vars_prev.step_2way, *dm, vars_prev.gemm_shapes, env_);
+      matB_cbuf->attach(*vars_prev.matB_buf_ptr());
+      matB_cbuf->compress();
     }
 
     //========== Calculate matXitem
 
     if (vars_next.do_compute) {
       compute_metrics_3way_block_linalg_form_matXitem_(
-          vectors_I_buf, vectors_J_buf, matXitem_buf[vars_next.index_01],
+          vectors_I_buf, vectors_J_buf, matXitem_buf_[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
-          vars_next.I_min, vars_next.I_max, npvfl, env_);
+          vars_next.I_min, vars_next.I_max, npfl, env_);
     }
 
     //========== Send matrix matXitem to GPU - START
 
-    if (vars_next.do_compute) {
-      matXitem_buf[vars_next.index_01]->to_accel_start();
-    }
+    if (vars_next.do_compute)
+      matXitem_buf_[vars_next.index_01]->to_accel_start();
 
     //========== Copy result matrix matB from GPU - START
 
-    if (vars_prev.do_compute) {
-      vars_prev.matB_buf_ptr()->from_accel_start();
-    }
+    if (vars_prev.do_compute)
+      matB_cbuf->from_accel_start();
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
     if (vars.do_compute) {
-      gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-          matXitem_buf[vars.index_01], vectors_I_buf, vectors_K_buf,
+      vars.gemm_shape.set(vars.I_max, vars.K_min,
+        vars.K_max, metrics.dm->num_vector_local,
+        metrics.dm->num_vector_active,
+        I_block, J_block, K_block);
+      LinAlg::gemm_start(vars.I_max, nvl, npfl,
+          matXitem_buf_[vars.index_01], vectors_I_buf, vectors_K_buf,
           vars.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
-          vars.J, vars.step_2way, dm, &env_);
+          vars.J, vars.step_2way, *dm, magma_wrapper, vars.gemm_shapes, env_, tc_debug);
     }
 
     //========== Copy result matrix matB from GPU - WAIT
 
     if (vars_prev.do_compute) {
-      vars_prev.matB_buf_ptr()->from_accel_wait();
+      //vars_prev.matB_buf_ptr()->from_accel_wait();
+      matB_cbuf->from_accel_wait();
       if (vars_prev.step_2way == 0) {
         gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
           //CHECK
-          env_.is_bitwise_3way_2step() && env_.metric_type() == MetricType::CCC ? 2 : 1);
+          env_.is_bitwise_3way_2step() &&
+          env_.metric_type() == MetricType::CCC ? 2 : 1);
       }
     }
 
     //========== Reduce along field procs - WAIT
 
     if (vars_prevprev.do_compute && env_.do_reduce()) {
-      gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]),
-          &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), &env_);
+      reduce_metrics_wait(mpi_requests[vars_prevprev.index_01],
+        &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), env_);
+      matB_cbuf->attach(vars_prevprev.matB_buf);
     }
 
     //========== Reduce along field procs - START
 
-    if (vars_prev.do_compute && env_.do_reduce()) {
-      mpi_requests[vars_prev.index_01] = gm_reduce_metrics_start(&metrics,
-          &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), &env_);
-    }
+    if (vars_prev.do_compute && env_.do_reduce())
+      mpi_requests[vars_prev.index_01] = reduce_metrics_start(metrics,
+          &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), env_);
 
     //========== Compute numerators using ijk piece and (if needed) 2-way pieces
 
     //---NOTE: matB_buf[vars_prevprev.index_01]->d is locked now
     //---but matB_buf[vars_prevprev.index_01]->h is usable.
 
-    if (vars_prevprev.do_compute) {
-      compute_metrics_3way_block_linalg_form_metrics_(
+    LoopVars& vars_tail = env_.do_reduce() ? vars_prevprev : vars_prev;
+
+    if (vars_tail.do_compute) {
+      finalize_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
-          &vars_prevprev.matB_buf,
-          &metrics, nvl, vars_prevprev.J, vars_prevprev.step_2way,
-          vars_prevprev.I_min, vars_prevprev.I_max,
-          vars_prevprev.K_min, vars_prevprev.K_max,
-          vars_prevprev.I_max_dim,
+          matB_cbuf,
+          //&vars_tail.matB_buf,
+          &metrics, nvl, vars_tail.J, vars_tail.step_2way,
+          vars_tail.I_min, vars_tail.I_max,
+          vars_tail.K_min, vars_tail.K_max,
+          vars_tail.I_max_dim,
           j_block, k_block, si,
           vdata_i.sums, vdata_j.sums, vdata_k.sums,
           env_);
     }
 
+    //if (env_.verbosity() > 0 && System::proc_num() == 0)
+//    if (System::proc_num() == 0)
+//      printf("    Completing compute pipeline step %i of %i active steps\n",
+//        step_num, num_step);
+
   //========================================
   } // step_num
   //========================================
+
+//const double t2 = env_.synced_time();
+//if (System::is_proc_num_0()) printf("T2   %i   %.20f  %.20f\n", num_step, (t2-t1), (t2 - t1) / num_step);
 
   // Terminations
 

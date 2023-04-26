@@ -4,9 +4,34 @@
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Main driver code for genomics metric calculation.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "cstdio"
 #include "cstdlib"
@@ -71,7 +96,7 @@ void bt_sighandler(int sig, struct sigcontext ctx) {
     fprintf(stdout,"MPI rank %i: stack trace for %s pid=%s\n",
             proc_num, name_buf, pid_buf);
 
-    //FIX
+    //this needs work
     //char cmd[512];
     //sprintf(cmd, "gdb --batch -n -ex thread -ex bt %s %s 2>&1"
     //             " | grep '^#' | sed -e 's/^/MPI rank %i: /'",
@@ -110,187 +135,77 @@ void install_handler() {
 #endif
 
 //=============================================================================
-/*---Inform user of usage of command---*/
+// Inform user of usage of command.
 
 void usage() {
   /* clang-format off */
   printf(
-  "genomics_metric: calculation of comparison metrics from genomics data\n"
+  "genomics_metric: calculation of comparison metrics from vector data\n"
   "\n"
   "Usage:\n"
   "\n"
   "    genomics_metric <option> ...\n"
-  "\n"
-  "Options:\n"
-  "\n"
-  "    --num_field <value>\n"
-  "        (Required) the number of elements in each vector\n"
-  "\n"
-  "    --num_field_local <value>\n"
-  "        (Required) the number of elements in each vector on each processor\n"
-  "\n"
-  "    --num_vector <value>\n"
-  "        (Required) the number of vectors to be processed"
-  "\n"
-  "    --num_vector_local <value>\n"
-  "        (Required) the number of vectors to be processed on each processor\n"
-  "\n"
-  "    --metric_type <value>\n"
-  "        metric type to compute (czekanowski=Czekanowski (default),\n"
-  "        ccc=CCC, duo=DUO)\n"
-  "\n"
-  "    --ccc_multiplier <value>\n"
-  "        fixed front multiplier value used to calculate the CCC metric\n"
-  "        (default floating point value is 9/2).\n"
-  "\n"
-  "    --duo_multiplier <value>\n"
-  "        fixed front multiplier value used to calculate the DUO metric\n"
-  "        (default floating point value is 4).\n"
-  "\n"
-  "    --ccc_param <value>\n"
-  "        fixed coefficient value used to calculate the CCC or DUO metric\n"
-  "        (default floating point value is 2/3).\n"
-  "\n"
-  "    --sparse <value>\n"
-  "        for CCC and DUO, interpret vector entries of binary \"10\"\n"
-  "        as empty or incomplete data (yes=yes, no=no (default))\n"
-  "\n"
-  "    --num_way <value>\n"
-  "        dimension of metric to compute (2=2-way (default), 3=3-way)\n"
-  "\n"
-  "    --all2all <value>\n"
-  "        whether to perform global all-to-all rather than computing\n"
-  "        on each processor separately (yes=yes, no=no (default))\n"
-  "\n"
-  "    --compute_method <value>\n"
-  "        manner of computing the result (CPU=cpu, GPU=gpu (default),\n"
-  "        REF=reference method)\n"
-  "\n"
-  "    --tc <value>\n"
-  "        for CCC and DUO, use a standard GEMM computation that employs\n"
-  "        special hardware such as GPU tensor cores when available\n"
-  "        (0=no (default), 1=fp16/fp32, 2=int8/int32, 3=fp32, 4=auto)\n"
-  "\n"
-  "    --num_tc_steps <value>\n"
-  "        for tc methods, tuning parameter to reduce memory usage \n"
-  "        by breaking GEMM into multiple steps (default 1)\n"
-  "\n"
-//"\n"
-//"    --fastnodes\n"
-//"        experimental method to preselect the fastest nodes to run on\n"
-  "\n"
-  "    --num_proc_vector <value>\n"
-  "        blocking factor to denote number of blocks used to decompose\n"
-  "        the total number of vectors across processors \n"
-  "        (default is the total number of procs requested)\n"
-  "\n"
-  "    --num_proc_field <value>\n"
-  "        blocking factor to denote number of blocks used to decompose\n"
-  "        each vector across processors (default is 1)\n"
-  "\n"
-  "    --num_proc_repl <value>\n"
-  "        processor replication factor.  For each block along the vector\n"
-  "        and field axes, this number of processors is applied to\n"
-  "        computations for the block (default is 1)\n"
-  "\n"
-  "    --num_stage <value>\n"
-  "        the number of stages the computation is divided into\n"
-  "        (default is 1) (available for 3-way case only)\n"
-  "\n"
-  "    --stage_min <value>\n"
-  "        the lowest stage number of the sequence of stages to be computed\n"
-  "        for this run (0-based, default is 0)\n"
-  "\n"
-  "    --stage_max <value>\n"
-  "        the highest stage number of the sequence of stages to be computed\n"
-  "        for this run (0-based, default is num_stage-1)\n"
-  "\n"
-  "    --num_phase <value>\n"
-  "        the number of phases the computation is divided into\n"
-  "        (default is 1)\n"
-  "\n"
-  "    --phase_min <value>\n"
-  "        the lowest phase number of the sequence of phases to be computed\n"
-  "        for this run (0-based, default is 0)\n"
-  "\n"
-  "    --phase_max <value>\n"
-  "        the highest phase number of the sequence of phases to be computed\n"
-  "        for this run (0-based, default is num_phase-1)\n"
-  "\n"
-  "    --input_file <value>\n"
-  "        string denoting the filename or pathname file\n"
-  "        used to store input vectors.  If this option not present,\n"
-  "        a synthetic test case is run.\n"
-  "\n"
-  "    --problem_type <value>\n"
-  "        the kind of synthetic test case to run. Allowed choices are\n"
-  "        analytic (default) or random\n"
-  "\n"
-  "    --output_file_stub <value>\n"
-  "        string denoting the filename or pathname stub of filenames\n"
-  "        used to store result metrics.  Metric values are stored in files\n"
-  "        whose names are formed by appending a unique identifier\n"
-  "        (e.g., processor number) to the end of this string.  If this\n"
-  "        option is absent, no output files are written.\n"
-  "\n"
-  "    --threshold <value>\n"
-  "        output each result value only if its magnitude is greater than\n"
-  "        this threshold.  If set negative, no thresholding is done\n"
-  "        (default -1)\n"
-  "\n"
-  "    --checksum <value>\n"
-  "        compute checksum of the metrics results (yes=yes (default), no=no)\n"
-  "\n"
-  "    --verbosity <value>\n"
-  "       verbosity level of output (0=none, 1=some (default) 2,3=more)\n"
   "\n"
   );
   /* clang-format on */
 }
 
 //=============================================================================
+// Return an unique integer identifying the node.
 
 int get_node_id() {
 
-  //int proc_num = 0;
-  //COMET_MPI_SAFE_CALLMPI_Comm_size(MPI_COMM_WORLD, &proc_num));
+  const bool is_node_id_from_mpi = false;
 
-  //char name[MPI_MAX_PROCESSOR_NAME];
-  //int len = MPI_MAX_PROCESSOR_NAME;
-  //COMET_MPI_SAFE_CALLMPI_Get_processor_name(name, &len));
-
-  const size_t len = 256;
+  const size_t len = is_node_id_from_mpi ? MPI_MAX_PROCESSOR_NAME : 256;
   char name[len];
-  gethostname(name, len);
 
-  // Ignore trailing nonnumeric chars
+  if (is_node_id_from_mpi) {
+    // Get info from MPI.
+    int len_int = len;
+    COMET_MPI_SAFE_CALL(MPI_Get_processor_name(name, &len_int));
+    //int proc_num = 0;
+    //COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &proc_num));
+    //return proc_num;
+  } else {
+    // Get info from gethostname.
+    gethostname(name, len);
+  }
+
+  // Now extract a unique integer from the string.
+
+  // First ignore trailing nonnumeric chars
 
   for (size_t i=len-1; i>=0; --i) {
     int c = name[i];
-    if (c >= '0' && c <= '9') {
+    if (c >= '0' && c <= '9')
       break;
-    }
     name[i] = 0;
   }
 
-  int node_id = 1;
+  // Loop over chars.
+
+  int node_id = 0;
   for (size_t i=0; i<len; ++i) {
-    if (! name[i]) {
-      break;
-    }
     int c = name[i];
-    if (c >= '0' && c <= '9') {
+    if (!c)
+      break;
+    // Parse digit or letter.
+#   ifdef COMET_PLATFORM_JUWELS_BOOSTER
+      if (!(c >= '0' && c <= '9'))
+        continue;
+#   endif
+    if (c >= '0' && c <= '9')
       node_id = node_id * 10 + (c - '0');
-    }
-    if (c >= 'a' && c <= 'z') {
+    if (c >= 'a' && c <= 'z')
       node_id = node_id * 26 + (c - 'a');
-    }
   }
 
   return node_id;
 }
 
 //=============================================================================
+// Weight some nodes to tilt toward non-use (functionality, performance).
 
 double bad_node_penalty() {
   const size_t len = 256;
@@ -299,6 +214,9 @@ double bad_node_penalty() {
 
   return false ? 1
 
+       : strcmp(name, "h41n17") == 0 ? 1e3 - .01 // nonfunctioning burst buffer
+
+#if 1
        : strcmp(name, "a04n08") == 0 ? 1e3 - .01
        : strcmp(name, "a07n16") == 0 ? 1e3 - .02
        : strcmp(name, "a13n10") == 0 ? 1e3 - .03
@@ -343,6 +261,11 @@ double bad_node_penalty() {
        : strcmp(name, "a12n18") == 0 ? 1e4 - 1 // to help workaround: ERROR:  One or more process terminated with signal 9
        : strcmp(name, "a03n12") == 0 ? 1e4 - 1 // ditto
 
+       : strcmp(name, "c11n16") == 0 ? 1e4 - 1 // ? low memory
+       : strcmp(name, "d21n10") == 0 ? 1e4 - 1 // ? low memory
+
+#endif
+
        //: strcmp(name, "a03n10") == 0 ? 1e3 - 1 // one of these 5 nodes causes
        //: strcmp(name, "a03n11") == 0 ? 1e3 - 1 // ERROR:  One or more process terminated with signal 9
        //: strcmp(name, "a03n12") == 0 ? 1e3 - 1 //
@@ -358,6 +281,7 @@ double bad_node_penalty() {
 }
 
 //=============================================================================
+// Helpers for sort function.
 
 typedef struct {
   double time;
@@ -372,10 +296,11 @@ int pfelt_cmp(const void* e1, const void* e2) {
 }
 
 //=============================================================================
+// Attempt to create a communicator containing fastest nodes.
 
-void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
+void get_fastnodes_comm(int argc, char** argv, MPI_Comm* fast_comm) {
 
-  // Create an env just to extract run options
+  // Create an env in order to extract run options.
 
   CEnv env_val(MPI_COMM_WORLD, argc, (char**)argv);
   CEnv* env = &env_val;
@@ -392,19 +317,14 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   const int metric_type = env->metric_type();
 
-  // Identify nodes for which can't open output file (if needed), mark down.
+  // Identify nodes for which can't open output file (if needed); mark down.
 
   bool outfile_can_open = true;
 
   for (int i=1; i<argc; ++i) {
     if (strcmp(argv[i], "--output_file_stub") == 0) {
       if (i < argc-1) {
-        FILE* const outfile = MetricsIO::open(argv[i+1], *env);
-        if (outfile) {
-          fclose(outfile);
-        } else {
-          outfile_can_open= false;
-        }
+        outfile_can_open = MetricsIO::can_write_file(argv[i+1], *env);
         break;
       }
     }
@@ -412,19 +332,8 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   // Initialize communicators.
 
-  //int num_proc = 0;
-  //MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
-
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-
-    //char name[MPI_MAX_PROCESSOR_NAME];
-    //int len = 0;
-    //MPI_Get_processor_name(name, &len);
-    //const size_t len2 = 256;
-    //char name2[len2];
-    //gethostname(name2, len2);
-    //printf("%s %s %i\n", name, name2, rank);
 
   // Identify node
 
@@ -456,7 +365,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   int node_num = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(rank_in_node_comm, &node_num));
 
-  // Run single node case on every node
+  // Prepare for run of single node case on every node
 
   const char* options_template =
     metric_type == MetricType::CZEK && env->is_double_prec() ?
@@ -474,16 +383,25 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     "--num_proc_vector %i --num_proc_field 1 "
     "--num_phase 1 --phase_min 0 --phase_max 0 --checksum no --verbosity 0"
     :
+#ifdef COMET_PLATFORM_JUWELS_BOOSTER
+    "--num_field 262144 --num_vector_local 12288 "
+    "--metric_type duo --sparse yes "
+    "--num_proc_vector %i --all2all no --num_way 2 "
+    "--compute_method GPU --tc 4 --verbosity 0";
+#else
     "--num_field 1280000 --num_vector_local 4000 --metric_type ccc --sparse no "
     "--all2all yes --compute_method GPU --num_proc_vector %i "
     "--num_proc_field 1 --num_phase 1 --phase_min 0 --phase_max 0 "
-    "--checksum no --verbosity 0";
+    "--checksum no --verbosity 0 --tc 4";
+#endif
 
   char options[1024];
   sprintf(options, options_template, ranks_in_node);
 
-  int num_trial = 1; //FIX 3;
+  int num_trial = 1; // 3
   double max_time = 0.;
+
+  // Loop over trials, get CoMet timings.
 
   for (int trial=0; trial<num_trial; ++trial) {
     const size_t len = 256;
@@ -496,13 +414,17 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     }
     CEnv env(node_comm, options);
     double t1 = env.synced_time();
-    perform_run(options, node_comm, &env);
+    Driver::perform_run(options, node_comm, env);
     double t2 = env.synced_time();
     double time = t2 - t1;
+    // Penalize if any trial is slow.
     if (!(trial == 0 && num_trial != 1)) {
       max_time = time > max_time ? time : max_time;
     }
   }
+
+  // Print out discovered timing info.
+
   if (rank_in_node == 0) {
     const size_t len = 256;
     char name[len];
@@ -510,14 +432,14 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     printf("Warmup run: node %s time %f\n", name, max_time);
   }
 
-  // Collect all timings to node 0
+  // Collect all timings to node 0.
 
   double* max_times = (double*)malloc(num_node * sizeof(*max_times));
 
   COMET_MPI_SAFE_CALL(MPI_Gather(&max_time, 1, MPI_DOUBLE,
     max_times, 1, MPI_DOUBLE, 0, rank_in_node_comm));
 
-  // Sort
+  // Do sort.
 
   int* node_ranking = (int*)malloc(num_node * sizeof(*node_ranking));
 
@@ -531,37 +453,41 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
     for (int i=0; i<num_node; ++i) {
       node_ranking[i] = pf_elt[i].node;
-      //printf("%i %i %f\n", i, pf_elt[i].node,  pf_elt[i].time);
     }
 
     free(pf_elt);
   }
 
-  // Broadcast ranking
+  // Broadcast the node ranking.
 
-  COMET_MPI_SAFE_CALL(MPI_Bcast(node_ranking, num_node,
-    MPI_INT, 0, MPI_COMM_WORLD));
+  COMET_MPI_SAFE_CALL(MPI_Bcast(node_ranking, num_node, MPI_INT, 0,
+                                MPI_COMM_WORLD));
 
   int node_ranking_this = 0;
   for (int i=0; i<num_node; ++i) {
-    if (node_ranking[i] == node_num) {
+    if (node_ranking[i] == node_num)
       node_ranking_this = i;
-    }
   }
 
-  //if (rank_in_node == 0) {
-  //  printf("%i %f\n", node_ranking_this, max_time);
-  //}
+  // Get proc ranking.
 
+#ifdef COMET_PLATFORM_JUWELS_BOOSTER
+  const int num_node_requested = (num_rank_requested + max_ranks_in_node - 1)
+    / max_ranks_in_node;
+  const int proc_ranking_this = node_ranking_this >= num_node_requested ?
+    ( 1 << 29 ) :
+    rank_in_node + max_ranks_in_node * node_id;
+#else
   const int proc_ranking_this = rank_in_node +
     max_ranks_in_node * node_ranking_this;
+#endif
 
-  // Create world communicator with this ranking
+  // Create communicator with this ranking.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(MPI_COMM_WORLD, 0, proc_ranking_this,
     fast_comm));
 
-  // Cleanup
+  // Cleanup.
 
   free(node_ranking);
   free(max_times);
@@ -570,38 +496,45 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 }
 
 //=============================================================================
+// Perform short CoMet run to warm up node.
 
 void perform_run_preflight(int argc, char** argv) {
 
-// TODO: make this better.
-#ifdef COMET_USE_MAGMA
   CEnv env(MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
-  if (env.compute_method() == ComputeMethod::GPU) {
+  if (env.compute_method() == ComputeMethod::GPU &&
+      (env.metric_type() != MetricType::CZEK || BuildHas::MAGMA)) {
 
-    /*---Perform preliminary run on GPU since sometimes first use is slower---*/
+    // Perform preliminary run on GPU since sometimes first use is slower.
 
     int num_proc = 0;
     COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
 
+    // ISSUE: may need better-matching settings.
     const char* options_template_1 =
         env.metric_type() == MetricType::CZEK ?
-          "--num_field 1 --num_vector_local 2 "
-          "--metric_type ccc "
-          "--num_proc_vector %i --all2all no --num_way 2 "
-          "--compute_method GPU --verbosity 0" :
-          "--num_field 1 --num_vector_local 2 "
+          "--num_field 768 --num_vector_local 768 "
           "--metric_type czekanowski "
           "--num_proc_vector %i --all2all no --num_way 2 "
-          "--compute_method GPU --verbosity 0";
+          "--compute_method GPU --verbosity 0" :
+
+#ifdef COMET_PLATFORM_JUWELS_BOOSTER
+          "--metric_type duo --sparse yes "
+          "--num_field 262144 --num_vector_local 12288 "
+#else
+          "--num_field 768 --num_vector_local 768 "
+          "--metric_type ccc "
+#endif
+          "--num_proc_vector %i --all2all no --num_way 2 "
+          "--compute_method GPU --tc 4 --verbosity 0";
 
     char options1[1024];
     sprintf(options1, options_template_1, num_proc);
 
-    perform_run(options1);
+    Driver::perform_run(options1);
   }
 
-#endif
+//#endif
 }
 
 //=============================================================================
@@ -615,17 +548,19 @@ int main(int argc, char** argv) {
 
   using namespace comet; 
 
-  /*---Initialize---*/
+  // Initialize.
 
   const double t1 = System::time();
 
   COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
   bool use_fast_nodes = false;
+  bool no_preflight = false;
   for (int i=1; i<argc; ++i) {
-    if (strcmp(argv[i], "--fastnodes") == 0) {
+    if (strcmp(argv[i], "--fastnodes") == 0)
       use_fast_nodes = true;
-    }
+    if (strcmp(argv[i], "--nopreflight") == 0)
+      no_preflight = true;
   }
 
   setbuf(stdout, NULL);
@@ -634,58 +569,57 @@ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
   if (argc == 1) {
-    if (rank == 0) {
+
+    if (rank == 0)
       usage();
-    }
     COMET_MPI_SAFE_CALL(MPI_Finalize());
     return 0;
+
   }
 
-  //install_handler();
-
-  //const bool use_fast_nodes = false;
-  //const bool use_fast_nodes = true;
+  // install_handler();
 
   if (use_fast_nodes) { 
 
     COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
     const double t2 = System::time();
-    if (rank == 0) {
+    if (rank == 0)
       printf("MPI_Init called, %i seconds.\n", (int)(.5+t2-t1));
-    }
 
     MPI_Comm fast_comm;
 
-    /*---Perform preflight warmup---*/
+    // Perform preflight warmup.
 
-    perform_run_preflight(argc, argv);
+    if (!no_preflight)
+      perform_run_preflight(argc, argv);
 
-    perform_run_preflight_2(argc, argv, &fast_comm);
+    get_fastnodes_comm(argc, argv, &fast_comm);
 
-    /*---Perform actual run---*/
+    // Perform actual run.
 
     COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
-    if (rank == 0) {
+    if (rank == 0)
       printf("Commencing run.\n");
-    }
 
-    perform_run(argc, (char**)argv, NULL, fast_comm);
+    Driver::perform_run(argc, (char**)argv, fast_comm);
 
     COMET_MPI_SAFE_CALL(MPI_Comm_free(&fast_comm));
 
   } else {
 
-    /*---Perform preflight warmup---*/
+    // Perform preflight warmup.
 
-    perform_run_preflight(argc, argv);
+    if (!no_preflight)
+      perform_run_preflight(argc, argv);
 
-    /*---Perform actual run---*/
+    // Perform actual run.
 
-    perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
+    Driver::perform_run(argc, (char**)argv, MPI_COMM_WORLD);
 
   }
 
   COMET_MPI_SAFE_CALL(MPI_Finalize());
+
   return 0;
 }
 

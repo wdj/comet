@@ -123,8 +123,9 @@ uid=${uid}_${num_field_local}_${num_vector}_${phase_min}_${phase_max}_${num_phas
 out_stub=out_2way_$uid
 outfile=${out_stub}_log.txt
 
-ar_opts="PAMI_IBV_ENABLE_DCT=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ADAPTER_AFFINITY=0 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_OOO_AR=1"
-launch_command="env OMP_NUM_THREADS=7 $ar_opts jsrun --nrs $(( $num_node_launch * $ranks_per_node )) --bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 --rs_per_host $ranks_per_node --tasks_per_rs 1 -X 1"
+#ar_opts="PAMI_IBV_ENABLE_DCT=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ADAPTER_AFFINITY=0 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_OOO_AR=1"
+ar_opts="PAMI_IBV_DEVICE_NAME=mlx5_0:1,mlx5_3:1 PAMI_IBV_DEVICE_NAME_1=mlx5_3:1,mlx5_0:1 PAMI_IBV_ADAPTER_AFFINITY=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ENABLE_OOO_AR=1 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_DCT=1"
+launch_command="env OMP_NUM_THREADS=7 $ar_opts jsrun --smpiargs=-gpu --nrs $(( $num_node_launch * $ranks_per_node )) --bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 --rs_per_host $ranks_per_node --tasks_per_rs 1 -X 1"
 
 #------------------------------------------------------------------------------
 

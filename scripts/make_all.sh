@@ -35,30 +35,93 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function main
 {
   # Location of this script.
-  local SCRIPT_DIR=$(script_dir)
+  #local SCRIPT_DIR=$(script_dir)
+  local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  if [ -z "${1:-}" ] ; then
-    local DIRS="$(ls -d build_*_$COMET_PLATFORM_STUB)"
-  else
-    # Build only versions needed for debugging work.
-    if [ $COMET_CAN_USE_MPI = ON ] ; then
-      local DIRS="build_test_$COMET_PLATFORM_STUB \
-                  build_single_test_$COMET_PLATFORM_STUB"
-    else
-      local DIRS="build_test_nompi_$COMET_PLATFORM_STUB \
-                  build_single_test_nompi_$COMET_PLATFORM_STUB"
+  # Pick up builds directory.
+  local BUILDS_DIR="${COMET_BUILDS_DIR:-$PWD}"
+
+  local DO_TEST=1
+  local DO_RELEASE=1
+  local DO_MPI=1
+  local DO_NOMPI=1
+  local DO_SINGLE=1
+  local DO_DOUBLE=1
+
+  while [ "${1:-}" != "" ] ; do
+    case $1 in
+      --notest)     DO_TEST=0 ;;
+      --norelease)  DO_RELEASE=0 ;;
+      --nompi)      DO_MPI=0 ;;
+      --nonompi)    DO_NOMPI=0 ;;
+      --nosingle)   DO_SINGLE=0 ;;
+      --nodouble)   DO_DOUBLE=0 ;;
+      *)            echo "${0##*/}: Unrecognized argumnt. $1" 1>&2 ; exit 1 ;;
+    esac
+    shift
+  done
+
+  local DIRS=""
+
+  if [ $DO_TEST = 1 ] ; then
+    if [ $DO_MPI = 1 ] ; then
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_single_test_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_test_$COMET_PLATFORM_STUB"
+      fi
+    fi
+    if [ $DO_NOMPI = 1 ] ; then
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_single_test_nompi_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_test_nompi_$COMET_PLATFORM_STUB"
+      fi
+    fi
+  fi
+
+  if [ $DO_RELEASE = 1 ] ; then
+    if [ $DO_MPI = 1 ] ; then
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_single_release_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_release_$COMET_PLATFORM_STUB"
+      fi
+    fi
+    if [ $DO_NOMPI = 1 ] ; then
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_single_release_nompi_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" $BUILDS_DIR/build_release_nompi_$COMET_PLATFORM_STUB"
+      fi
     fi
   fi
 
   local DIR
   for DIR in $DIRS ; do
+    if [ ! -e $DIR ] ; then
+      continue
+    fi
+    printf -- '-%.0s' {1..79}; echo ""
     pushd $DIR
     $SCRIPT_DIR/make.sh 2>&1 | tee out_make.txt
     local MYSTATUS=$?
@@ -67,6 +130,7 @@ function main
       exit $MYSTATUS
     fi
     popd
+    printf -- '-%.0s' {1..79}; echo ""
   done
 }
 

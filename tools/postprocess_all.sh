@@ -8,29 +8,30 @@ function process_files_simple
 {
   local num_way="$1"
   shift
-  local alfile="$1"
+  local allele_label_file="$1"
   shift
-  local labelfile="$1"
+  local line_label_file="$1"
   shift
-  local metricsbinfiles="$*"
+  local metrics_bin_files="$*"
 
-  local metricsbinfile
-  for metricsbinfile in $metricsbinfiles ; do
+  local metrics_bin_file
+  for metrics_bin_file in $metrics_bin_files ; do
 
-    if [ ! -e $metricsbinfile ] ; then
-      echo "Error: file $metricsbinfile does not exist." 1>&2
+    if [ ! -e $metrics_bin_file ] ; then
+      echo "Error: file $metrics_bin_file does not exist." 1>&2
       exit 1
     fi
 
-    local metricstxtfile
-    metricstxtfile=$(echo $metricsbinfile | sed -e 's/.bin$/.txt/')
+    local metrics_txt_file
+    metrics_txt_file=$(echo $metrics_bin_file | sed -e 's/.bin$/.txt/')
 
-    if [ "$metricsbinfile" = "$metricstxtfile" ] ; then
-      echo "Error: invalid filename. $metricstxtfile" 1>&2
+    if [ "$metrics_bin_file" = "$metrics_txt_file" ] ; then
+      echo "Error: invalid filename. $metrics_txt_file" 1>&2
       exit 1
     fi
 
-    postprocess_file $num_way $alfile $labelfile $metricsbinfile $metricstxtfile
+    postprocess_file $num_way $allele_label_file $line_label_file \
+      $metrics_bin_file $metrics_txt_file
 
   done
 }
@@ -40,7 +41,8 @@ function process_files_simple
 function main
 {
   if [ "$*" = "" ] ; then
-    echo "Usage: ${0##*/} <num_way> <allele_label_file> <label_file> <metrics_bin_file> ..."
+    echo -n "Usage: ${0##*/} <num_way> <allele_label_file> <line_label_file> "
+    echo "<metrics_bin_file> ..."
     exit
   fi
 
@@ -71,16 +73,17 @@ function main
         | tr ' ' '\12' \
         | tail -n +3 \
         | awk 'NR%'${OMPI_COMM_WORLD_SIZE}'=='${OMPI_COMM_WORLD_RANK})"
-      local alfile
-      alfile=$(echo $files \
+      local allele_label_file
+      allele_label_file=$(echo $files \
         | tr ' ' '\12' \
         | sed -n -e '1p')
-      local labelfile
-      labelfile=$(echo $files \
+      local line_label_file
+      line_label_file=$(echo $files \
         | tr ' ' '\12' \
         | sed -n -e '2p')
       # Process the files serially
-      process_files_simple $num_way $alfile $labelfile $files_thisrank
+      process_files_simple $num_way $allele_label_file $line_label_file \
+        $files_thisrank
     fi
   else # Not a rhea batch job ...
     # Process the files serially

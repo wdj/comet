@@ -4,17 +4,38 @@
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  I/O utilities for vectors.
- * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "cstdio"
 #include "cstdint"
 #include "string.h"
-//#include "stdlib.h"
-//#include "stddef.h"
-//#include "float.h"
-//#include "errno.h"
 
 #include "env.hh"
 #include "vectors.hh"
@@ -28,7 +49,7 @@ namespace comet {
 /// \brief Read vectors from files: floating point case.
 
 template<typename IO_t = GMFloat>
-void static VectorsIO_read_float(GMVectors& vectors, const char* path,
+void static VectorsIO_read_float(Vectors& vectors, const char* path,
   CEnv& env) {
   COMET_INSIST(path);
 
@@ -38,39 +59,39 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
   FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nva = vectors.dm->num_vector_active;
-  const size_t nfa = vectors.dm->num_field_active;
-  const size_t nvl = vectors.num_vector_local;
-  const size_t nfl = vectors.num_field_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
+  const NV_t nva = vectors.dm()->num_vector_active;
+  const size_t nfa = vectors.dm()->num_field_active;
+  const size_t nvl = vectors.dm()->num_vector_local;
+  const size_t nfl = vectors.dm()->num_field_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
 
   const int fl_min = 0;
-  const size_t f_min = fl_min + vectors.dm->field_base;
+  const size_t f_min = fl_min + vectors.dm()->field_base;
 
   // Loop to input vectors
 
   for (size_t vl = 0; vl < nvl; ++vl) {
 
     // (global) vector number.
-    const size_t v = vl + vectors.dm->vector_base;
+    const NV_t v = vl + vectors.dm()->vector_base;
 
     // Fill pad vectors at end with copies of last active vector.
-    const size_t v_file = utils::min(v, nva-1);
+    const NV_t v_file = utils::min(v, nva-1);
 
     // Offset into file of first byte to read
-    const size_t loc_min_file = sizeof(IO_t) * (f_min + nfa * v_file);
+    const NV_t loc_min_file = sizeof(IO_t) * (f_min + nfa * v_file);
 
     // Position to that location in file.
     const int success = fseek(file, loc_min_file, SEEK_SET);
     COMET_INSIST(0 == success && "File seek failure.");
 
     // Get first location in memory to store into.
-    IO_t* const loc_min_mem = GMVectors_float_ptr(&vectors, fl_min, vl, &env);
+    IO_t* const loc_min_mem = &vectors.elt_float<IO_t>(fl_min, vl);
 
     // Sanity check on vectors layout in memory.
     // NOTE: the following call is ok since has no side effects
     COMET_INSIST((fl_min+1 >= nfl ||
-        GMVectors_float_ptr(&vectors, fl_min+1, vl, &env) == loc_min_mem + 1)
+        &vectors.elt_float<IO_t>(fl_min+1, vl) == loc_min_mem + 1)
         && "Vector layout is incompatible with operation.");
 
     const size_t num_to_read = nfal;
@@ -81,7 +102,7 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
   } //---for vl
 
   // Ensure any end pad of each vector is set to zero
-  GMVectors_initialize_pad(&vectors, &env);
+  vectors.initialize_pad();
 
   fclose(file);
 }
@@ -89,7 +110,7 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
 //-----------------------------------------------------------------------------
 /// \brief Read vectors from files: bits2 case.
 
-void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
+void VectorsIO_read_bits2(Vectors& vectors, const char* path, CEnv& env) {
   COMET_INSIST(path);
 
   typedef unsigned char IO_t;
@@ -97,20 +118,20 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   if (! env.is_proc_active())
     return;
 
-  if (0 == vectors.dm->num_field_active_local)
+  if (0 == vectors.dm()->num_field_active_local)
     return;
 
   FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nva = vectors.dm->num_vector_active;
-  const size_t nfa = vectors.dm->num_field_active;
-  const size_t nvl = vectors.num_vector_local;
-  const size_t npfl = vectors.dm->num_packedfield_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
-  const size_t bit_per_f = vectors.dm->num_bit_per_field; // = 2
+  const NV_t nva = vectors.dm()->num_vector_active;
+  const size_t nfa = vectors.dm()->num_field_active;
+  const size_t nvl = vectors.num_vector_local();
+  const size_t npfl = vectors.dm()->num_packedfield_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
+  const size_t bit_per_f = vectors.dm()->num_bit_per_field; // = 2
 
-  const size_t bit_per_pf = vectors.dm->num_bit_per_packedfield;
+  const size_t bit_per_pf = vectors.dm()->num_bit_per_packedfield;
   const size_t bit_per_byte = 8;
   const size_t f_per_byte = bit_per_byte / bit_per_f;
   const size_t byte_per_pf = bit_per_pf / bit_per_byte;
@@ -123,11 +144,10 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   const size_t byte_per_v_file = utils::ceil(nfa, f_per_byte);
 
   const size_t fl_min = 0;
-  const size_t f_min = fl_min + vectors.dm->field_base;
+  const size_t f_min = fl_min + vectors.dm()->field_base;
   const size_t f_max = f_min + nfal;
 
   // Buffer to capture read-in data that is possibly not correctly bit-aligned.
-  //const size_t buf_size = nfal * f_per_byte + 1;
   const size_t buf_size = byte_per_v_mem + 1;
   IO_t* const buf = (IO_t*)malloc(buf_size * sizeof(*buf));
   COMET_INSIST(sizeof(IO_t) == 1);
@@ -137,17 +157,17 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   for (size_t vl = 0; vl < nvl; ++vl) {
 
     // (global) vector number.
-    const size_t v = vl + vectors.dm->vector_base;
+    const NV_t v = vl + vectors.dm()->vector_base;
 
     // Fill pad vectors at end with copies of last active vector.
-    const size_t v_file = utils::min(v, nva-1);
+    const NV_t v_file = utils::min(v, nva-1);
 
     // Byte in file where this vector starts
-    const size_t v_base = byte_per_v_file * v_file;
+    const NV_t v_base = byte_per_v_file * v_file;
 
     // Offset into file to first byte to read
     // NOTE: round downward to capture all bits of required byte.
-    const size_t loc_min_file = utils::trunc(f_min, f_per_byte) + v_base;
+    const NV_t loc_min_file = utils::trunc(f_min, f_per_byte) + v_base;
 
     // Last field of this vector that must be read (0-based).
     const size_t last_field_needed = f_max - 1;
@@ -158,7 +178,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
 
     // Offset into file to [1 plus] last byte to read.
     // NOTE: Rounded upward to capture all bits of required byte.
-    const size_t loc_max_file = last_byte_needed + 1 + v_base;
+    const NV_t loc_max_file = last_byte_needed + 1 + v_base;
     COMET_INSIST(loc_max_file > loc_min_file);
     COMET_INSIST(loc_max_file <= nva * nfa);
 
@@ -212,16 +232,16 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
       if (is_outval_full || is_end_of_buf) {
         // Flush buffer
         const size_t pfl = i_out / 16;
-        GMVectors_bits2x64_set(&vectors, pfl, vl, outval, &env);
+        vectors.elt_bits2x64(pfl, vl) = outval;
         // Reinitialize outval.
         outval = GMBits2x64_null();
       }
     } // for i
 
-  } /*---vl---*/
+  } // vl
 
   // Ensure any end of vector pad set to zero
-  GMVectors_initialize_pad(&vectors, &env);
+  vectors.initialize_pad();
 
   free(buf);
   fclose(file);
@@ -230,16 +250,16 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Read vectors from files.
 
-void VectorsIO::read(GMVectors& vectors, const char* path, CEnv& env) {
+void VectorsIO::read(Vectors& vectors, const char* path, CEnv& env) {
   COMET_INSIST(path);
 
   switch (env.data_type_vectors()) {
 
-    case GM_DATA_TYPE_FLOAT:
+    case DataTypeId::FLOAT:
       VectorsIO_read_float(vectors, path, env);
     break;
 
-    case GM_DATA_TYPE_BITS2:
+    case DataTypeId::BITS2:
       VectorsIO_read_bits2(vectors, path, env);
     break;
 
@@ -252,7 +272,7 @@ void VectorsIO::read(GMVectors& vectors, const char* path, CEnv& env) {
 /// \brief Write vectors to files: floating point case.
 
 template<typename IO_t = GMFloat>
-void static VectorsIO_write_float(GMVectors& vectors, const char* path,
+void static VectorsIO_write_float(Vectors& vectors, const char* path,
   CEnv& env) {
   COMET_INSIST(path);
 
@@ -265,8 +285,8 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
   FILE* file = fopen(path, "wb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nval = vectors.dm->num_vector_active_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
+  const size_t nval = vectors.dm()->num_vector_active_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
 
   size_t num_written = 0;
   const size_t num_written_attempted = nval * nfal;
@@ -274,7 +294,7 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
   for (size_t vl = 0 ; vl < nval; ++vl) {
     for (size_t fl = 0 ; fl < nfal; ++fl) {
 
-      const IO_t outv = GMVectors_float_get(&vectors, fl, vl, &env);
+      const IO_t outv = vectors.elt_float_const<IO_t>(fl, vl);
       const size_t num_to_write = 1;
       const size_t num_written_this = fwrite(&outv, sizeof(IO_t), num_to_write,
                                              file);
@@ -291,7 +311,7 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
 //-----------------------------------------------------------------------------
 /// \brief Write vectors to files: bits2 case.
 
-void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
+void static VectorsIO_write_bits2(Vectors& vectors, const char* path,
   CEnv& env) {
   COMET_INSIST(path);
 
@@ -306,12 +326,12 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
   FILE* file = fopen(path, "wb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
-  const size_t nval = vectors.dm->num_vector_active_local;
-  const size_t npfl = vectors.dm->num_packedfield_local;
-  const size_t nfal = vectors.dm->num_field_active_local;
-  const size_t bit_per_f = vectors.dm->num_bit_per_field; // = 2
+  const size_t nval = vectors.dm()->num_vector_active_local;
+  const size_t npfl = vectors.dm()->num_packedfield_local;
+  const size_t nfal = vectors.dm()->num_field_active_local;
+  const size_t bit_per_f = vectors.dm()->num_bit_per_field; // = 2
 
-  const size_t bit_per_pf = vectors.dm->num_bit_per_packedfield;
+  const size_t bit_per_pf = vectors.dm()->num_bit_per_packedfield;
   const size_t bit_per_byte = 8;
   const size_t f_per_byte = bit_per_byte / bit_per_f;
   const size_t byte_per_pf = bit_per_pf / bit_per_byte;
@@ -322,7 +342,7 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
   for (size_t vl = 0 ; vl < nval; ++vl) {
     for (size_t pfl = 0 ; pfl < npfl; ++pfl) {
 
-      GMBits2x64 val = GMVectors_bits2x64_get(&vectors, pfl, vl, &env);
+      GMBits2x64 val = vectors.elt_bits2x64_const(pfl, vl);
 
       // Calculate begin and end byte numbers of vector to write
 
@@ -364,16 +384,16 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
 //-----------------------------------------------------------------------------
 /// \brief Write vectors to files.
 
-void VectorsIO::write(GMVectors& vectors, const char* path, CEnv& env) {
+void VectorsIO::write(Vectors& vectors, const char* path, CEnv& env) {
   COMET_INSIST(path);
 
   switch (env.data_type_vectors()) {
 
-    case GM_DATA_TYPE_FLOAT:
+    case DataTypeId::FLOAT:
       VectorsIO_write_float(vectors, path, env);
     break;
 
-    case GM_DATA_TYPE_BITS2:
+    case DataTypeId::BITS2:
       VectorsIO_write_bits2(vectors, path, env);
     break;
 
@@ -384,21 +404,21 @@ void VectorsIO::write(GMVectors& vectors, const char* path, CEnv& env) {
 
 //=============================================================================
 
-void VectorsIO::print(GMVectors& vectors, CEnv& env) {
+void VectorsIO::print(Vectors& vectors, CEnv& env) {
 
   if (! env.is_proc_active())
     return;
 
-  const int nval = vectors.dm->num_vector_active_local;
-  const int nfal = vectors.dm->num_field_active_local;
+  const int nval = vectors.dm()->num_vector_active_local;
+  const int nfal = vectors.dm()->num_field_active_local;
 
   switch (env.data_type_vectors()) {
 
-    case GM_DATA_TYPE_FLOAT: {
+    case DataTypeId::FLOAT: {
 
       for (int vl = 0; vl < nval; ++vl) {
         for (int fl = 0; fl < nfal; ++fl) {
-          const GMFloat value = GMVectors_float_get(&vectors, fl, vl, &env);
+          const auto value = vectors.elt_float_const<GMFloat>(fl, vl);
             printf("vec_proc %i vec %i field_proc %i field %i value %.16e\n",
                    env.proc_num_vector(), vl,
                    env.proc_num_field(), fl, (double)value);
@@ -406,24 +426,24 @@ void VectorsIO::print(GMVectors& vectors, CEnv& env) {
       } // vl
     } break;
 
-    case GM_DATA_TYPE_BITS2: {
+    case DataTypeId::BITS2: {
 
       for (int vl = 0; vl < nval; ++vl) {
         for (int fl = 0; fl < nfal; ++fl) {
-          const GMBits2 value = GMVectors_bits2_get(&vectors, fl, vl, &env);
+          const GMBits2 value = vectors.bits2_get(fl, vl, env);
             printf("vec_proc %i vec %i "
                    "field_proc %i field %i value %.1i%.1i\n",
                    env.proc_num_vector(), vl,
                    env.proc_num_field(), fl, value / 2, value % 2);
-        } /*---fl---*/
-      }   /*---vl---*/
+        } // fl
+      }   // vl
     } break;
 
     default:
 
       COMET_INSIST(false && "Invalid data_type_vectors.");
 
-  } /*---switch---*/
+  } // switch
 }
 
 //=============================================================================

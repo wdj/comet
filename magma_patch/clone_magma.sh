@@ -16,9 +16,11 @@ function main
   # Parse command line.
 
   local tag="${1:-}"
+  local version="${2:-}"
   if [ "$tag" = "" -o "$tag" = "-h" -o "$tag" = "--help" ] ; then 
-    echo "Usage: ${0##*/} <tag>"
+    echo "Usage: ${0##*/} <tag> <version>"
     echo "  where <tag> is an alphanumeric string. magma_<tag> is the new library name."
+    echo "  <version> is the magma version id."
     exit 0
   fi
 
@@ -32,26 +34,24 @@ function main
 
   # Set up input and output directory names.
 
-  local magma_name="magma-1.6.2"
-  # NOTE: if the MAGMA librsry version is updated, the lists below may also need
-  # to be updated and other changes made, e.g, patch files.
+  local magma_name="magma-$version"
 
   local source_file=${magma_name}.tar.gz
   if [ ! -e $source_file ] ; then
-    echo "Error: unable to locate source file. $source_file" 1>&2
+    echo "Error: unable to locate source file. $source_file PWD=$PWD" 1>&2
     exit 1
   fi
 
   local source_dir=$magma_name
   if [ -e $source_dir ] ; then
-    echo "Error: source directory already exists. $source_dir" 1>&2
+    echo "Error: source directory already exists. $source_dir PWD=$PWD" 1>&2
     exit 1
   fi
 
   local target_dir=magma_${tag}.cloned
 
   if [ -e $target_dir ] ; then
-    echo "Error: target directory already exists. $source_dir" 1>&2
+    echo "Error: target directory already exists. $target_dir PWD=$PWD" 1>&2
     exit 1
   fi
 
@@ -72,9 +72,12 @@ function main
 
   # Remove a few unneeded files from the library.
 
-  rm $(find $source_dir -name '._*' -print)
-  rmdir $source_dir/exp/lib $source_dir/exp/quark/lib
-  rmdir $source_dir/testing/checkdiag/lib
+  local i
+  for i in $(find $source_dir -name '._*' -print) ; do
+    rm $i
+  done
+  rm -rf $source_dir/exp/lib $source_dir/exp/quark/lib
+  rm -rf $source_dir/testing/checkdiag/lib
 
   # Modify possibly conflicting strings.
 
@@ -146,6 +149,56 @@ function main
   zlaset_lower_kernel
   zlaset_upper_kernel
   zlaset_full_kernel
+
+  hipblas_trans_const
+  hipblas_uplo_const
+  hipblas_diag_const
+  hipblas_side_const
+
+  hipblasSetAtomicsMode
+  hipblasStrmm
+  hipblasDtrmm
+  hipblasCtrmm
+  hipblasZtrmm
+
+  setup_pivinfo
+  zgeqrf_copy_upper_batched
+  blas_zgemm_batched
+  blas_ztrsm_batched
+  blas_ztrmm_batched
+  blas_zhemm_batched
+  blas_zherk_batched
+  blas_zher2k_batched
+  cgeqrf_copy_upper_batched
+  blas_cgemm_batched
+  blas_ctrsm_batched
+  blas_ctrmm_batched
+  blas_chemm_batched
+  blas_cherk_batched
+  blas_cher2k_batched
+  dgeqrf_copy_upper_batched
+  blas_dgemm_batched
+  blas_dtrsm_batched
+  blas_dtrmm_batched
+  blas_dhemm_batched
+  blas_dherk_batched
+  blas_dher2k_batched
+  sgeqrf_copy_upper_batched
+  blas_sgemm_batched
+  blas_strsm_batched
+  blas_strmm_batched
+  blas_shemm_batched
+  blas_sherk_batched
+  blas_sher2k_batched
+
+  stepinit_ipiv
+  adjust_ipiv
+
+  blas_ssyrk_batched
+  blas_dsyrk_batched
+  blas_csyrk_batched
+  blas_zsyrk_batched
+
   "
 
   local name
@@ -172,6 +225,7 @@ function main
   dpanel_to_q
   ssytrf_nopiv
   spanel_to_q
+  getrf_setup_pivinfo
   "
 
   for name in $names ; do

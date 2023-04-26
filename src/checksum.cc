@@ -4,9 +4,34 @@
  * \author Wayne Joubert
  * \date   Mon Aug  7 14:47:01 EDT 2017
  * \brief  Utility to compute checksum of data in a metrics object.
- * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
 
 #include "cstdlib"
 #include "cstdint"
@@ -28,7 +53,7 @@ namespace comet {
 
 Checksum::Checksum(bool computing_checksum)
   : is_overflowed_(false)
-  , value_max_(-DBL_MAX)
+  , value_max_(Checksum::entry_min_())
   , sum_d_(0)
   , num_(0)
   , num_zero_(0)
@@ -98,22 +123,35 @@ void Checksum::print(CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Checksum helper function: perform one bubble sort step.
 
-inline static void makegreater(size_t& i, size_t& j, int& ind_i, int& ind_j) {
+template<typename T, typename TI>
+inline static void sort2(T& i, T& j, TI& ind_i, TI& ind_j) {
   if (i < j) {
-    const size_t tmp = i;
+    const T tmp = i;
     i = j;
     j = tmp;
-    const int tmp2 = ind_i;
+    const TI tmp2 = ind_i;
     ind_i = ind_j;
     ind_j = tmp2;
   }
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Checksum helper function: perform bubble sort on three elts.
+
+template<typename T, typename TI>
+inline static void sort3(T& i, T& j, T& k, TI& ind_i, TI& ind_j, TI& ind_k) {
+  sort2(j, k, ind_j, ind_k);
+  sort2(i, j, ind_i, ind_j);
+  sort2(j, k, ind_j, ind_k);
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Checksum helper function: left shift that works for any shift amount.
 
-inline static size_t lshift(size_t a, int j) {
-  if (j >= 64 || j <= -64) {
+template<class T>
+inline static T lshift(T a, int j) {
+  if (j >=  static_cast<int>(sizeof(T)*BITS_PER_BYTE) ||
+      j <= -static_cast<int>(sizeof(T)*BITS_PER_BYTE)) {
     return 0;
   }
   return j > 0 ? a << j : a >> (-j);
@@ -126,89 +164,67 @@ inline static size_t lshift(size_t a, int j) {
 
 double Checksum::metrics_elt(
   GMMetrics& metrics,
-  size_t index,
-  int i_value,
+  NML_t index,
+  int entry_num,
   CEnv& env) { 
-  COMET_INSIST(index < metrics.num_elts_local); // && index >= 0
-  COMET_INSIST(i_value >= 0 && i_value < metrics.data_type_num_values);
-
-  // Obtain global coords of metrics elt
-  size_t coords[NUM_WAY::MAX];
-  int ind_coords[NUM_WAY::MAX]; // permutation index
-  for (int i = 0; i < NUM_WAY::MAX; ++i) {
-    coords[i] = 0;
-    ind_coords[i] = i;
-  }
-  for (int i = 0; i < env.num_way(); ++i) {
-    const size_t coord =
-      GMMetrics_coord_global_from_index(&metrics, index, i, &env);
-    coords[i] = coord;
-  }
-  // Reflect coords by symmetry to get uniform result -
-  //   sort into descending order
-  //
-  // The idea here is that, because the tensor has reflective
-  // symmetries, a different equivlent reflected tensor value may be
-  // computed based on the parallel decomposition.
-  // This permutation puts the indices into a uniform order
-  // so that this is not viewed as a difference in the results.
-  // Note also below we will permute i0 / i1 / i2 as needed.
-  makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
-  makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
-  makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
+  COMET_INSIST(index < metrics.num_metric_items_local_allocated); // && index >= 0
+  COMET_INSIST(entry_num >= 0 && entry_num < env.num_entries_per_metric_item());
 
   // Pick up value of this metrics elt
   double value = 0;
+  bool do_set_zero = false;
   switch (metrics.data_type_id) {
     // --------------
-    case GM_DATA_TYPE_FLOAT: {
-      value = Metrics_get<GMFloat>(metrics, index, env);
+    case DataTypeId::FLOAT: {
+      value = Metrics_elt_const<GMFloat>(metrics, index, env);
+      // TODO: consider thresholding out here.
     } break;
     // --------------
-    case GM_DATA_TYPE_TALLY2X2: {
-      const int i0_unpermuted = i_value / 2;
-      const int i1_unpermuted = i_value % 2;
-      const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
-      const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
-      value = env.metric_type() == MetricType::CCC ?
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(&metrics, index, i0, i1, &env) :
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(&metrics, index, i0, i1, &env);
-      if (!env.is_double_prec()) {
-        value = (double)(float)value; // ensure result independent of threshold_tc
-      }
+    case DataTypeId::TALLY2X2: {
+      value = Metrics_ccc_duo_get_2(metrics, index, entry_num, env);
+      // ensure result independent of is_threshold_tc
+      if (!env.is_double_prec())
+        value = (double)(float)value;
+
+      //do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
+      //do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
+
+      // Threshold out value if not doing in TC package and if value fails test.
+      if (!env.is_threshold_tc()) {
+        const MetricItemCoords_t coords = metrics.coords_value(index);
+        const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
+        const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
+        do_set_zero = ! Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, env);
+      } // if (env->is_threshold_tc())
+
     } break;
     // --------------
-    case GM_DATA_TYPE_TALLY4X2: {
-      const int i0_unpermuted = i_value / 4;
-      const int i1_unpermuted = (i_value / 2) % 2;
-      const int i2_unpermuted = i_value % 2;
-      const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
-                     ind_coords[1] == 0 ? i1_unpermuted :
-                                          i2_unpermuted;
-      const int i1 = ind_coords[0] == 1 ? i0_unpermuted :
-                     ind_coords[1] == 1 ? i1_unpermuted :
-                                          i2_unpermuted;
-      const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
-                     ind_coords[1] == 2 ? i1_unpermuted :
-                                          i2_unpermuted;
-      value = env.metric_type() == MetricType::CCC ?
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(&metrics, index, i0, i1, i2, &env) :
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(&metrics, index, i0, i1, i2, &env);
-      if (!env.is_double_prec()) {
-        value = (double)(float)value; // ensure result independent of threshold_tc
-      }
+    case DataTypeId::TALLY4X2: {
+      value = Metrics_ccc_duo_get_3(metrics, index, entry_num, env);
+      // ensure result independent of is_threshold_tc
+      if (!env.is_double_prec())
+        value = (double)(float)value;
+
+      //do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
+      //do_set_zero = !env.is_threshold_tc() && !env.thresholds().is_pass(value);
+
+      // Threshold out value if not doing in TC package and if value fails test.
+      if (!env.is_threshold_tc()) {
+        const MetricItemCoords_t coords = metrics.coords_value(index);
+        const int iE = CoordsInfo::getiE(coords, entry_num, metrics, env);
+        const int jE = CoordsInfo::getjE(coords, entry_num, metrics, env);
+        const int kE = CoordsInfo::getkE(coords, entry_num, metrics, env);
+        do_set_zero = ! Metrics_is_pass_threshold_noshrink(metrics, index, iE, jE, kE,
+          env);
+      } // if (env->is_threshold_tc())
+
     } break;
     // --------------
     default:
       COMET_INSIST(false && "Invalid data type. metrics.data_type_id.");
   } // switch
 
-  // Apply the thresold if not doing in TC package and if value fails test.
-
-  const bool do_set_zero = !env.threshold_tc() && !env.pass_threshold(value);
-//  const bool do_set_zero = !env.pass_threshold(value);
-
-  const double result = do_set_zero ? 0e0 : value;
+  const double result = do_set_zero ? (double)0 : value;
   return result;
 }
 
@@ -220,33 +236,34 @@ double Checksum::metrics_elt(
 
 double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 
-  double result = -DBL_MAX;
+  double result = Checksum::entry_min_();
 
   // TODO: make this unnecessary.
-  if (! env.is_proc_active()) {
+  if (! env.is_proc_active())
     return result;
-  }
 
   // Loop over metrics indices to find max.
   #pragma omp parallel for reduction(max:result)
-  for (size_t index = 0; index < metrics.num_elts_local; ++index) {
+  for (NML_t index = 0; index < metrics.num_metric_items_local_computed;
+       ++index) {
 
     // Determine whether this cell is active.
     bool is_active = true;
     for (int i = 0; i < env.num_way(); ++i) {
-      const size_t coord = GMMetrics_coord_global_from_index(&metrics, index,
-                                                             i, &env);
+      const NV_t coord = Metrics_coords_getG(metrics, index, i,
+        env);
       is_active = is_active && coord < metrics.num_vector_active;
     }
-    double value_max = -DBL_MAX;
+    double value_max = Checksum::entry_min_();
     if (is_active) {
-      for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
+      for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
+           ++entry_num) {
         // Pick up value of this metrics elt
-        const double value = Checksum::metrics_elt(metrics, index, i_value,
+        const double value = Checksum::metrics_elt(metrics, index, entry_num,
                                                    env);
         // value_max is the largest of the values at this index.
         value_max = value > value_max ? value : value_max;
-      } // for i_value
+      } // for entry_num
     } // if is_active
 
     result = value_max > result ? value_max : result;
@@ -266,6 +283,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 ///        Note that cksum and cksum_local are input/output
 ///        variables; they are added to for multiple stages or phases
 ///        of the calculation.
+
 void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
                        GMMetrics& metrics, CEnv& env){
   // TODO: make this check unnecessary.
@@ -280,8 +298,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   // TODO: put this in metrics class - a heavyweight validity check function
   switch (metrics.data_type_id) {
-    case GM_DATA_TYPE_FLOAT: {
-      GMFloat_check((GMFloat*)(metrics.data), metrics.num_elts_local);
+    case DataTypeId::FLOAT: {
+      GMFloat_check((GMFloat*)(metrics.data), metrics.num_metrics_local);
     } break;
   }
 
@@ -347,37 +365,63 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     double num_zero_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
-    for (size_t index = 0; index < metrics.num_elts_local; ++index) {
+    for (NML_t index = 0; index < metrics.num_metric_items_local_computed;
+         ++index) {
       // Loop over data values at this index
-      for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
+      for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
+           ++entry_num) {
+
+        const MetricItemCoords_t coords = metrics.coords_value(index);
+        const bool is_active = CoordsInfo::is_active(coords, metrics, env);
 
         // Obtain global coords of metrics elt
-        size_t coords[NUM_WAY::MAX];
-        int ind_coords[NUM_WAY::MAX]; // permutation index
-        for (int i = 0; i < NUM_WAY::MAX; ++i) {
-          coords[i] = 0;
-        }
-        bool is_active = true;
+        NV_t coord_perm[NumWay::MAX] = {0};
+        int iperm[NumWay::MAX] = {0};
+
         for (int i = 0; i < env.num_way(); ++i) {
-          const size_t coord =
-            GMMetrics_coord_global_from_index(&metrics, index, i, &env);
-          // Ignore padding vectors.
-          is_active = is_active && coord < metrics.num_vector_active;
-          coords[i] = coord;
-          ind_coords[i] = i;
+          const NV_t coord = Metrics_coords_getG(metrics, index, i, env);
+          coord_perm[i] = coord;
+          iperm[i] = i;
         }
 
         // Pick up value of this metrics elt
-        const double value = Checksum::metrics_elt(metrics, index, i_value,
+        const double value = Checksum::metrics_elt(metrics, index, entry_num,
                                                    env);
+
         num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
 
-        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
-        makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
-        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
+        // Reflect coords by symmetry to get uniform result -
+        //   sort into descending order
+        //
+        // The idea here is that, because the tensor has reflective
+        // symmetries, a different equivlent reflected tensor value may be
+        // computed based on the parallel decomposition.
+        // This permutation puts the indices into a uniform order
+        // so that this is not viewed as a difference in the results.
+        // Note also below we will permute iE / jE / kE as needed.
 
-        // Convert to uint64.  Store only 2*w+1 bits, at most -
+        if (env.num_way() == NumWay::_2)
+          sort2(coord_perm[0], coord_perm[1], iperm[0], iperm[1]);
+        else
+          sort3(coord_perm[0], coord_perm[1], coord_perm[2],
+                iperm[0], iperm[1], iperm[2]);
+
+        // Get elt_num that is uniform independeont of is_shrink().
+
+        int ijkE_perm[NumWay::MAX] = {0};
+        for (int i = 0; i < env.num_way(); ++i) {
+          ijkE_perm[i] =
+            CoordsInfo::getE(coords, iperm[i], entry_num, metrics, env);
+       }
+
+        //const int entry_num_perm = !env.is_shrink() ? entry_num :
+        const int entry_num_perm =
+          NumWay::_2 == env.num_way() ?
+            ijkE_perm[1] + 2 * ijkE_perm[0] :
+           ijkE_perm[2] + 2 * (ijkE_perm[1] + 2 * ijkE_perm[0]);
+
+        // Convert value to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if
         // floating point arithmetic works as expected,
         // must have ivalue <= (1<<(2*w)).
@@ -388,11 +432,11 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         UI64_t ivalue = (UI64_t)( (value / scaling) * (one64 << (2 * w)) );
         // Construct an id that is a single number representing the coord
         // and value number.
-        UI64_t uid = coords[0];
+        MetricItemCoords_t uid = coord_perm[0];
         for (int i = 1; i < env.num_way(); ++i) {
-          uid = uid * metrics.num_vector_active + coords[i];
+          uid = uid * metrics.num_vector_active + coord_perm[i];
         }
-        uid = uid * metrics.data_type_num_values + i_value;
+        uid = uid * env.num_entries_per_metric() + entry_num_perm;
         // Randomize this id
         const UI64_t rand1 = utils::randomize(uid + 956158765);
         const UI64_t rand2 = utils::randomize(uid + 842467637);
@@ -430,7 +474,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
             sum_local_private.data_[8 + i] += value1; // (private) reduction
           }
         }
-      } // for i_value
+      } // for entry_num
     } // for index
     // omp for collapse
 
