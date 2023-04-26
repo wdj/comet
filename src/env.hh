@@ -105,8 +105,8 @@ static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
     }
 #endif
 
-//      no_unused_variable_warning<const int>(numthreadblocks); \
-//      no_unused_variable_warning<const int>(threadblocksize); \
+//      no_unused_variable_warning<const int>(numthreadblocks);
+//      no_unused_variable_warning<const int>(threadblocksize);
 
 //-----------------------------------------------------------------------------
 
