@@ -10,6 +10,13 @@ metrics, Custom Correlation Coefficient and DUO method are supported.
 Currently the OLCF Summit system and single GPU systems are supported.
 Dependencies include GCC, CUDA, MAGMA, MPI, CMake and googletest.
 
+CoMet 1.2 New Features
+----------------------
+
+- Support for new architectures, including AMD MI100/MI250X and NVIDIA Ampere
+- Option for lossless metrics data compression, allowing solution of much larger problems.
+- Up to 33% performance improvement for 3-way methods.
+
 Getting started
 ---------------
 

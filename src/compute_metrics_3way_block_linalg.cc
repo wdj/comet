@@ -643,7 +643,7 @@ static void finalize_ccc_duo_(
           const int k_block_eff = env.all2all() ?
             k_block : env.proc_num_vector();
           
-          Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
+          Metrics_elt_3<GMFloat3, MetricsArrayId::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
 
           if (env.sparse()) {
@@ -651,7 +651,7 @@ static void finalize_ccc_duo_(
             const auto cj1 = (GMTally1)vs_j->count<Float_t>(j);
             const auto ck1 = (GMTally1)vs_k->count<Float_t>(k);
             const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
-            Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
+            Metrics_elt_3<GMFloat3, MetricsArrayId::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
           } // if sparse
 

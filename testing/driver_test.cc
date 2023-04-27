@@ -739,7 +739,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  MetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env_value);
   GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
@@ -862,7 +862,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  MetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env_value);
   GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
@@ -1029,7 +1029,7 @@ void DriverTest_duo2_simple_sparse_(int compute_method, double tLL, double tLH,
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  MetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env_value);
   GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
@@ -1261,7 +1261,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  MetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env_value);
   GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
@@ -1436,7 +1436,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  MetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env_value);
   GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 
@@ -1709,7 +1709,7 @@ void DriverTest_duo3_simple_sparse_(int compute_method, double tLLL,
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  MetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env_value);
   GMMetrics_create(metrics, env->data_type_metrics(), &dm,
                    &metrics_mem, env);
 

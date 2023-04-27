@@ -629,7 +629,7 @@ void Driver::perform_run_(Checksum& cksum_result, int argc, char** argv,
   // Initialize metrics mem, compute metrics.
 
   timer.start();
-  MetricsMem metrics_mem(&env);
+  MetricsMem metrics_mem(env);
   ComputeMetrics compute_metrics(dm, env);
   timer.add_elapsed(counters_.mctime);
 

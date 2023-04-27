@@ -50,6 +50,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/*!
+ * \class MetricsArrayId
+ * \brief Helper class to designate which array (metrics proper, sums, counts.
+ *
+ */
+//-----------------------------------------------------------------------------
+struct MetricsArrayId {
+  enum {_ = 0,
+        S = 1,
+        C = 2,
+        COORDS = 3,
+        NUM = 4};
+};
+
+//-----------------------------------------------------------------------------
 /// \brief Helper class for metrics memory.
 
 // Forward declartion.
@@ -57,24 +72,89 @@ struct GMMetrics;
 
 class MetricsMem {
 
+  typedef MetricsArrayId MAI;
+
+  template<int MAI> struct Array;
+
+  template<> struct Array<MAI::_> {
+    typedef void* __restrict__ Data_t;
+    static Data_t& data(MetricsMem* p) {return p->data_;}
+    static size_t& size(MetricsMem* p) {return p->data_size_;}
+  };
+
+  template<> struct Array<MAI::S> {
+    typedef void* __restrict__ Data_t;
+    static Data_t& data(MetricsMem* p) {return p->data_S_;}
+    static size_t& size(MetricsMem* p) {return p->data_S_size_;}
+  };
+
+  template<> struct Array<MAI::C> {
+    typedef void* __restrict__ Data_t;
+    static Data_t& data(MetricsMem* p) {return p->data_C_;}
+    static size_t& size(MetricsMem* p) {return p->data_C_size_;}
+  };
+
+  template<> struct Array<MAI::COORDS> {
+    typedef MetricItemCoords_t* __restrict__ Data_t;
+    static Data_t& data(MetricsMem* p) {return p->coords_;}
+    static size_t& size(MetricsMem* p) {return p->coords_size_;}
+  };
+
 public:
-  MetricsMem(CEnv* env);
+
+  MetricsMem(CEnv& env);
   ~MetricsMem();
   void deallocate();
 
-  void* malloc_data(size_t data_size);
-  void* malloc_data_S(size_t data_size_S);
-  void* malloc_data_C(size_t data_size_C);
-  MetricItemCoords_t* malloc_coords(size_t coords_size);
+  // \brief Re/allocate one of the four arrays, as needed.
+
+  template<int MAI>
+  typename Array<MAI>::Data_t
+  array_malloc(size_t data_size) {
+
+    if (!env_.is_proc_active())
+      return NULL;
+
+    COMET_INSIST(is_allocated_);
+
+    typename Array<MAI>::Data_t& data_ref = Array<MAI>::data(this);
+    size_t& data_size_ref = Array<MAI>::size(this);
+
+    if (!data_ref || data_size > data_size_ref) {
+      if (data_ref)
+        utils::free(data_ref, data_size_ref, env_);
+      data_ref = static_cast<typename Array<MAI>::Data_t>(
+        utils::malloc(data_size, env_));
+      data_size_ref = data_size;
+    }
+
+    return data_ref;
+  }
+
+  // \brief Deallocate one of the four arrays.
+
+  template<int MAI>
+  void array_free() {
+
+    typename Array<MAI>::Data_t& data_ref = Array<MAI>::data(this);
+    size_t data_size = Array<MAI>::size(this);
+
+    if (data_ref)
+      utils::free(data_ref, data_size, env_);
+
+    data_ref = NULL;
+  }
 
 private:
 
-  CEnv* env_;
+  CEnv& env_;
   bool is_allocated_;
+
   void* __restrict__ data_;
   void* __restrict__ data_S_;
   void* __restrict__ data_C_;
   MetricItemCoords_t* __restrict__ coords_;
+
   size_t data_size_;
   size_t data_S_size_;
   size_t data_C_size_;
@@ -462,19 +542,6 @@ static bool metrics_is_proc_repl_active(const GMMetrics& metrics,
 
 //-----------------------------------------------------------------------------
 /*!
- * \class MetricsArray
- * \brief Helper class to designate which array (metrics proper, sums, counts.
- *
- */
-//-----------------------------------------------------------------------------
-struct MetricsArray {
-  enum {_ = 0,
-        S = 1,
-        C = 2};
-};
-
-//-----------------------------------------------------------------------------
-/*!
  * \class MetricsArrayData
  * \brief Helper class to access selected metrics array.
  *
@@ -483,7 +550,7 @@ struct MetricsArray {
 template<int MA> struct MetricsArrayData;
 
 // Metrics proper.
-template<> struct MetricsArrayData<MetricsArray::_> {
+template<> struct MetricsArrayData<MetricsArrayId::_> {
   static size_t elt_size(const GMMetrics& metrics) {
    return metrics.data_elt_size;
   }
@@ -491,7 +558,7 @@ template<> struct MetricsArrayData<MetricsArray::_> {
 };
 
 // Sums.
-template<> struct MetricsArrayData<MetricsArray::S> {
+template<> struct MetricsArrayData<MetricsArrayId::S> {
   static size_t elt_size(const GMMetrics& metrics) {
     return metrics.data_S_elt_size;
   }
@@ -499,7 +566,7 @@ template<> struct MetricsArrayData<MetricsArray::S> {
 };
 
 // Counts.
-template<> struct MetricsArrayData<MetricsArray::C> {
+template<> struct MetricsArrayData<MetricsArrayId::C> {
   static size_t elt_size(const GMMetrics& metrics) {
     return metrics.data_C_elt_size;
   }
@@ -511,7 +578,7 @@ template<> struct MetricsArrayData<MetricsArray::C> {
  * \brief Const accessor for direct access to metrics array.
  *
  */
-template<typename T, int MA = MetricsArray::_>
+template<typename T, int MA = MetricsArrayId::_>
 static T Metrics_elt_const(const GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
@@ -524,7 +591,7 @@ static T Metrics_elt_const(const GMMetrics& metrics, NML_t index, CEnv& env) {
  * \brief Accessor for direct access to metrics array.
  *
  */
-template<typename T, int MA = MetricsArray::_>
+template<typename T, int MA = MetricsArrayId::_>
 static T& Metrics_elt(GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));

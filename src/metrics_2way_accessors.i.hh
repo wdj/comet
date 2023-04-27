@@ -129,7 +129,7 @@ static double GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   const auto ttable = Metrics_elt_const<GMTally2x2>(*metrics, index, *env);
   const GMTally1 rij = GMTally2x2_get(ttable, iE, jE);
 
-  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(*metrics,
+  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArrayId::S>(*metrics,
     index, *env);
   GMTally1 si1, sj1;
   GMFloat2_decode(si1, sj1, si1_sj1);
@@ -137,7 +137,7 @@ static double GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   GMTally1 ci = 0, cj = 0, cij = 0;
 
   if (env->sparse()) {
-    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(*metrics,
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArrayId::C>(*metrics,
       index, *env);
     GMFloat2_decode(ci, cj, ci_cj);
 
@@ -186,7 +186,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
-  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(metrics,
+  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArrayId::S>(metrics,
     index, env);
   GMTally1 si1, sj1;
   GMFloat2_decode(si1, sj1, si1_sj1);
@@ -200,7 +200,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
   if (env.sparse()) {
 
-    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(metrics,
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArrayId::C>(metrics,
       index, env);
     GMTally1 ci, cj;
     GMFloat2_decode(ci, cj, ci_cj);
@@ -226,7 +226,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
   const auto ttable = Metrics_elt_const<GMTally2x2>(metrics, index, env);
   const GMTally1 rij = GMTally2x2_get(ttable, iE, jE);
 
-  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(metrics,
+  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArrayId::S>(metrics,
     index, env);
   GMTally1 si1, sj1;
   GMFloat2_decode(si1, sj1, si1_sj1);
@@ -235,7 +235,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
   if (env.sparse()) {
 
-    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(metrics,
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArrayId::C>(metrics,
       index, env);
     GMTally1 ci, cj;
     GMFloat2_decode(ci, cj, ci_cj);
@@ -504,12 +504,12 @@ static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
     const GMTally1 rij10 = GMTally2x2_get(ttable, 1, 0);
     const GMTally1 rij11 = GMTally2x2_get(ttable, 1, 1);
 
-    const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(metrics,
+    const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArrayId::S>(metrics,
       index, env);
     GMTally1 si1 = 0, sj1 = 0;
     GMFloat2_decode(si1, sj1, si1_sj1);
 
-    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(metrics,
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArrayId::C>(metrics,
       index, env);
     GMTally1 ci = 0, cj = 0;
     GMFloat2_decode(ci, cj, ci_cj);
@@ -599,7 +599,7 @@ static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
 //=============================================================================
 // Accessors: value from (local) coord: set: 2-way.
 
-template<typename T, int MA = MetricsArray::_>
+template<typename T, int MA = MetricsArrayId::_>
 static T& Metrics_elt_2(GMMetrics& metrics, int i, int j, int j_block,
   CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_2);

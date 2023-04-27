@@ -140,7 +140,7 @@ static double GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   const auto ttable = Metrics_elt_const<GMTally4x2>(*metrics, index, *env);
   const GMTally1 rijk = GMTally4x2_get(ttable, iE, jE, kE);
 
-  const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArray::S>(*metrics,
+  const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArrayId::S>(*metrics,
     index, *env);
   GMTally1 si1, sj1, sk1;
   GMFloat3_decode(&si1, &sj1, &sk1, si1_sj1_sk1);
@@ -148,7 +148,7 @@ static double GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   GMTally1 ci = 0, cj = 0, ck = 0, cijk = 0;
 
   if (env->sparse()) {
-    const auto ci_cj_ck = Metrics_elt_const<GMFloat3, MetricsArray::C>(*metrics,
+    const auto ci_cj_ck = Metrics_elt_const<GMFloat3, MetricsArrayId::C>(*metrics,
       index, *env);
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
 
@@ -219,7 +219,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
   const auto ttable = Metrics_elt_const<GMTally4x2>(metrics, index, env);
   const GMTally1 rijk = GMTally4x2_get(ttable, iE, jE, kE);
 
-  const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArray::S>(metrics,
+  const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArrayId::S>(metrics,
     index, env);
   GMTally1 si1, sj1, sk1;
   GMFloat3_decode(&si1, &sj1, &sk1, si1_sj1_sk1);
@@ -228,7 +228,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
   if (env.sparse()) {
 
-    const auto ci_cj_ck = Metrics_elt_const<GMFloat3, MetricsArray::C>(metrics,
+    const auto ci_cj_ck = Metrics_elt_const<GMFloat3, MetricsArrayId::C>(metrics,
       index, env);
     GMTally1 ci, cj, ck;
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
@@ -461,12 +461,12 @@ static bool Metrics_ccc_duo_threshold_detector_3(
     const GMTally1 rijk110 = GMTally4x2_get(ttable, 1, 1, 0);
     const GMTally1 rijk111 = GMTally4x2_get(ttable, 1, 1, 1);
 
-    const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArray::S>(metrics,
+    const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArrayId::S>(metrics,
       index, env);
     GMTally1 si1 = 0, sj1 = 0, sk1 = 0;
     GMFloat3_decode(&si1, &sj1, &sk1, si1_sj1_sk1);
 
-    const auto ci_cj_ck = Metrics_elt_const<GMFloat3, MetricsArray::C>(metrics,
+    const auto ci_cj_ck = Metrics_elt_const<GMFloat3, MetricsArrayId::C>(metrics,
       index, env);
     GMTally1 ci = 0, cj = 0, ck = 0;
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
@@ -566,7 +566,7 @@ static bool Metrics_ccc_duo_threshold_detector_3(
 
 //-----------------------------------------------------------------------------
 
-template<typename T, int MA = MetricsArray::_>
+template<typename T, int MA = MetricsArrayId::_>
 static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);
@@ -582,7 +582,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
 
 //-----------------------------------------------------------------------------
 
-template<typename T, int MA = MetricsArray::_>
+template<typename T, int MA = MetricsArrayId::_>
 static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);
