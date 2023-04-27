@@ -101,47 +101,19 @@ class MetricsMem {
 
   typedef MetricsArrayId MAI;
 
-public:
+  /// \brief Helper class to select array pointer and size, via overloading.
 
-  struct Array {
-    static MAI::M_t::Data_t& data(MAI::M_t, MetricsMem* mm) {return mm->data_;}
-    static MAI::S_t::Data_t& data(MAI::S_t, MetricsMem* mm) {return mm->data_S_;}
-    static MAI::C_t::Data_t& data(MAI::C_t, MetricsMem* mm) {return mm->data_C_;}
-    static MAI::O_t::Data_t& data(MAI::O_t, MetricsMem* mm) {return mm->coords_;}
+  struct ArrayHelper {
+    static MAI::M_t::Data_t& data(MAI::M_t, MetricsMem* mm) {return mm->data_m_;}
+    static MAI::S_t::Data_t& data(MAI::S_t, MetricsMem* mm) {return mm->data_s_;}
+    static MAI::C_t::Data_t& data(MAI::C_t, MetricsMem* mm) {return mm->data_c_;}
+    static MAI::O_t::Data_t& data(MAI::O_t, MetricsMem* mm) {return mm->data_o_;}
 
-    static size_t& size(MAI::M_t, MetricsMem* mm) {return mm->data_size_;}
-    static size_t& size(MAI::S_t, MetricsMem* mm) {return mm->data_S_size_;}
-    static size_t& size(MAI::C_t, MetricsMem* mm) {return mm->data_C_size_;}
-    static size_t& size(MAI::O_t, MetricsMem* mm) {return mm->coords_size_;}
+    static size_t& size(MAI::M_t, MetricsMem* mm) {return mm->size_m_;}
+    static size_t& size(MAI::S_t, MetricsMem* mm) {return mm->size_s_;}
+    static size_t& size(MAI::C_t, MetricsMem* mm) {return mm->size_c_;}
+    static size_t& size(MAI::O_t, MetricsMem* mm) {return mm->size_o_;}
   };
-
-#if 0
-  template<int MAI> struct Array;
-
-  template<> struct Array<MAI::M> {
-    typedef void* __restrict__ Data_t;
-    static Data_t& data(MetricsMem* mm) {return mm->data_;}
-    static size_t& size(MetricsMem* mm) {return mm->data_size_;}
-  };
-
-  template<> struct Array<MAI::S> {
-    typedef void* __restrict__ Data_t;
-    static Data_t& data(MetricsMem* mm) {return mm->data_S_;}
-    static size_t& size(MetricsMem* mm) {return mm->data_S_size_;}
-  };
-
-  template<> struct Array<MAI::C> {
-    typedef void* __restrict__ Data_t;
-    static Data_t& data(MetricsMem* mm) {return mm->data_C_;}
-    static size_t& size(MetricsMem* mm) {return mm->data_C_size_;}
-  };
-
-  template<> struct Array<MAI::COORDS> {
-    typedef MetricItemCoords_t* __restrict__ Data_t;
-    static Data_t& data(MetricsMem* mm) {return mm->coords_;}
-    static size_t& size(MetricsMem* mm) {return mm->coords_size_;}
-  };
-#endif
 
 public:
 
@@ -149,12 +121,14 @@ public:
   ~MetricsMem();
   void deallocate();
 
+  // Helper objects to assist with array selection, via overloading.
+
   MAI::M_t m_selector;
   MAI::S_t s_selector;
   MAI::C_t c_selector;
   MAI::O_t o_selector;
 
-  // \brief Re/allocate one of the four arrays, as needed.
+  /// \brief Re/allocate one of the four arrays, as needed.
 
   template<class MAI_t>
   typename MAI_t::Data_t
@@ -167,8 +141,8 @@ public:
 
     typedef typename MAI_t::Data_t Data_t;
 
-    Data_t& data_ref = Array::data(mai_selector, this);
-    size_t& data_size_ref = Array::size(mai_selector, this);
+    Data_t& data_ref = ArrayHelper::data(mai_selector, this);
+    size_t& data_size_ref = ArrayHelper::size(mai_selector, this);
 
     if (!data_ref || data_size > data_size_ref) {
       if (data_ref)
@@ -180,75 +154,41 @@ public:
     return data_ref;
   }
 
-#if 0
-  template<int MAI>
-  typename Array<MAI>::Data_t
-  array_malloc(size_t data_size) {
-
-    if (!env_.is_proc_active())
-      return NULL;
-
-    COMET_INSIST(is_allocated_);
-
-    typename Array<MAI>::Data_t& data_ref = Array<MAI>::data(this);
-    size_t& data_size_ref = Array<MAI>::size(this);
-
-    if (!data_ref || data_size > data_size_ref) {
-      if (data_ref)
-        utils::free(data_ref, data_size_ref, env_);
-      data_ref = static_cast<typename Array<MAI>::Data_t>(
-        utils::malloc(data_size, env_));
-      data_size_ref = data_size;
-    }
-
-    return data_ref;
-  }
-#endif
-
-  // \brief Deallocate one of the four arrays.
+  /// \brief Deallocate one of the four arrays.
 
   template<class MAI_t>
   void array_free(MAI_t mai_selector) {
 
     typedef typename MAI_t::Data_t Data_t;
 
-    Data_t& data_ref = Array::data(mai_selector, this);
-    size_t data_size = Array::size(mai_selector, this);
+    Data_t& data_ref = ArrayHelper::data(mai_selector, this);
+    size_t data_size = ArrayHelper::size(mai_selector, this);
 
     if (data_ref)
       utils::free(data_ref, data_size, env_);
 
     data_ref = NULL;
   }
-
-#if 0
-  template<int MAI>
-  void array_free() {
-
-    typename Array<MAI>::Data_t& data_ref = Array<MAI>::data(this);
-    size_t data_size = Array<MAI>::size(this);
-
-    if (data_ref)
-      utils::free(data_ref, data_size, env_);
-
-    data_ref = NULL;
-  }
-#endif
 
 private:
 
   CEnv& env_;
   bool is_allocated_;
 
-  void* __restrict__ data_;
-  void* __restrict__ data_S_;
-  void* __restrict__ data_C_;
-  MetricItemCoords_t* __restrict__ coords_;
+  typename MAI::M_t::Data_t data_m_;
+  typename MAI::S_t::Data_t data_s_;
+  typename MAI::C_t::Data_t data_c_;
+  typename MAI::O_t::Data_t data_o_;
 
-  size_t data_size_;
-  size_t data_S_size_;
-  size_t data_C_size_;
-  size_t coords_size_;
+  //void* __restrict__ data_m_;
+  //void* __restrict__ data_s_;
+  //void* __restrict__ data_c_;
+  //MetricItemCoords_t* __restrict__ data_o_;
+
+  size_t size_m_;
+  size_t size_s_;
+  size_t size_c_;
+  size_t size_o_;
 
   friend GMMetrics;
 
