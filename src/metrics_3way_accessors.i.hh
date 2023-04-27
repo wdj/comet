@@ -566,7 +566,7 @@ static bool Metrics_ccc_duo_threshold_detector_3(
 
 //-----------------------------------------------------------------------------
 
-template<typename T, int MA = MetricsArrayId::_>
+template<typename T, int MA = MetricsArrayId::M>
 static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);
@@ -582,7 +582,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
 
 //-----------------------------------------------------------------------------
 
-template<typename T, int MA = MetricsArrayId::_>
+template<typename T, int MA = MetricsArrayId::M>
 static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_3);

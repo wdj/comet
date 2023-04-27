@@ -599,7 +599,7 @@ static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
 //=============================================================================
 // Accessors: value from (local) coord: set: 2-way.
 
-template<typename T, int MA = MetricsArrayId::_>
+template<typename T, int MA = MetricsArrayId::M>
 static T& Metrics_elt_2(GMMetrics& metrics, int i, int j, int j_block,
   CEnv& env) {
   COMET_ASSERT(env.num_way() == NumWay::_2);

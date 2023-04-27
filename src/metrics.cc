@@ -80,10 +80,16 @@ void MetricsMem::deallocate() {
   if (!is_allocated_)
     return;
 
+  array_free(m_selector);
+  array_free(s_selector);
+  array_free(c_selector);
+  array_free(o_selector);
+#if 0
   array_free<MetricsArrayId::_>();
   array_free<MetricsArrayId::S>();
   array_free<MetricsArrayId::C>();
   array_free<MetricsArrayId::COORDS>();
+#endif
 
   is_allocated_ = false;
 }
@@ -478,13 +484,15 @@ void GMMetrics_create(GMMetrics* metrics,
   const size_t data_size = metrics->num_metric_items_local_allocated *
     env->metric_item_size();
 
-  metrics->data = metrics_mem->array_malloc<MetricsArrayId::_>(data_size);
+  //metrics->data = metrics_mem->array_malloc<MetricsArrayId::_>(data_size);
+  metrics->data = metrics_mem->array_malloc(metrics_mem->m_selector, data_size);
 
   //--------------------
   // Allocations: coords.
   //--------------------
 
-  metrics->coords_ = metrics_mem->array_malloc<MetricsArrayId::COORDS>(
+  //metrics->coords_ = metrics_mem->array_malloc<MetricsArrayId::COORDS>(
+  metrics->coords_ = metrics_mem->array_malloc(metrics_mem->o_selector,
     metrics->num_metric_items_local_allocated * sizeof(MetricItemCoords_t));
 
   //--------------------
@@ -503,13 +511,15 @@ void GMMetrics_create(GMMetrics* metrics,
         metrics->data_S_elt_size = sizeof(GMFloat2);
         const size_t data_S_size = metrics->num_metrics_local *
                                metrics->data_S_elt_size;
-        metrics->data_S = metrics_mem->array_malloc<MetricsArrayId::S>(data_S_size);
+        //metrics->data_S = metrics_mem->array_malloc<MetricsArrayId::S>(data_S_size);
+        metrics->data_S = metrics_mem->array_malloc(metrics_mem->s_selector, data_S_size);
 
          metrics->data_C_elt_size = sizeof(GMFloat2);
         if (env->sparse()) {
           const size_t data_C_size = metrics->num_metrics_local *
                                     metrics->data_C_elt_size;
-          metrics->data_C = metrics_mem->array_malloc<MetricsArrayId::C>(data_C_size);
+          //metrics->data_C = metrics_mem->array_malloc<MetricsArrayId::C>(data_C_size);
+          metrics->data_C = metrics_mem->array_malloc(metrics_mem->c_selector, data_C_size);
         }
 
       }
@@ -523,13 +533,15 @@ void GMMetrics_create(GMMetrics* metrics,
         metrics->data_S_elt_size = sizeof(GMFloat3);
         const size_t data_S_size = metrics->num_metrics_local *
                                    metrics->data_S_elt_size;
-        metrics->data_S = metrics_mem->array_malloc<MetricsArrayId::S>(data_S_size);
+        //metrics->data_S = metrics_mem->array_malloc<MetricsArrayId::S>(data_S_size);
+        metrics->data_S = metrics_mem->array_malloc(metrics_mem->s_selector, data_S_size);
 
         metrics->data_C_elt_size = sizeof(GMFloat3);
         if (env->sparse()) {
           const size_t data_C_size = metrics->num_metrics_local *
                                      metrics->data_C_elt_size;
-          metrics->data_C = metrics_mem->array_malloc<MetricsArrayId::C>(data_C_size);
+          //metrics->data_C = metrics_mem->array_malloc<MetricsArrayId::C>(data_C_size);
+          metrics->data_C = metrics_mem->array_malloc(metrics_mem->c_selector, data_C_size);
         }
 
       }
