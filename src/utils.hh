@@ -512,7 +512,9 @@ static void fill_nan(Float_t* a, size_t n) {
 //-----------------------------------------------------------------------------
 
 void* malloc(size_t n, CEnv& env);
+void* malloc_nometer(size_t n, CEnv& env);
 void free(void* p, size_t n, CEnv& env);
+void free_nometer(void* p, size_t n, CEnv& env);
 
 size_t array_cksum(const unsigned char* const a, size_t n);
 

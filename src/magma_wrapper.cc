@@ -256,7 +256,7 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
   if (use_minproduct_(env)) { //--------------------
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu()) {
-      buf->h = utils::malloc(n * env.sizeof_float(), env); // WORKAROUND
+      buf->h = utils::malloc_nometer(n * env.sizeof_float(), env); // WORKAROUND
     } else {
       if (env.is_double_prec()) {
         MAGMA_SAFE_CALL(magma_minproduct_dmalloc_pinned(
@@ -377,7 +377,7 @@ void MagmaWrapper::free(MirroredBuf* buf, size_t dim0, size_t dim1,
   if (use_minproduct_(env)) { //--------------------
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu()) {
-      utils::free(buf->h, n * env.sizeof_float(), env); // WORKAROUND
+      utils::free_nometer(buf->h, n * env.sizeof_float(), env); // WORKAROUND
     } else {
       MAGMA_SAFE_CALL(magma_minproduct_free_pinned(buf->h),
                       "Error in CPU memory free.");

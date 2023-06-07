@@ -55,20 +55,36 @@ void CommVectors::send_start(const Vectors& vectors,
   COMET_INSIST(!(env.is_comm_gpu() && !vectors.has_buf()));
 
   const int tag_multiplier = BuildHas::DEBUG ? 2 : 1;
+  const int tag_base = tag_multiplier * mpi_tag;
 
-  COMET_MPI_SAFE_CALL(MPI_Isend(
-    env.is_comm_gpu() ?
-      (void*)vectors.buf()->d :
-      (void*)vectors.data(),
-    vectors.num_packedfield_vector_local(), env.metrics_mpi_type(), proc_num,
-    0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &mpi_request_));
+  const size_t num_to_communicate = vectors.num_packedfield_vector_local();
+  const size_t msg_size_max = (static_cast<size_t>(1) << 31) - 1;
+
+  // See https://blogs.cisco.com/performance/can-i-mpi_send-and-mpi_recv-with-a-count-larger-than-2-billion
+
+  for (size_t num_communicated = 0; num_communicated < num_to_communicate;
+      num_communicated = utils::min(num_communicated+msg_size_max,
+                                    num_to_communicate)) {
+
+    const size_t msg_size_size_t = utils::min(msg_size_max,
+                                     num_to_communicate-num_communicated);
+    int msg_size = 0;
+    safe_cast_insist(msg_size, msg_size_size_t);
+
+    COMET_MPI_SAFE_CALL(MPI_Isend(
+      env.is_comm_gpu() ?
+        static_cast<char*>(vectors.buf()->d) + num_communicated:
+        static_cast<char*>(vectors.data()) + num_communicated,
+      msg_size, env.metrics_mpi_type(), proc_num,
+      0+tag_base, env.comm_repl_vector(), &mpi_request_));
+  }
 
   if (BuildHas::DEBUG) {
     cksum_ = vectors.cksum();
     COMET_MPI_SAFE_CALL(MPI_Isend(
       (void*)&cksum_,
       sizeof(cksum_), MPI_BYTE, proc_num,
-      1+2*mpi_tag, env.comm_repl_vector(), &mpi_request_cksum_));
+      1+tag_base, env.comm_repl_vector(), &mpi_request_cksum_));
   }
 }
 
@@ -83,27 +99,42 @@ void CommVectors::recv_start(const Vectors& vectors,
   COMET_INSIST(!(env.is_comm_gpu() && !vectors.has_buf()));
 
   const int tag_multiplier = BuildHas::DEBUG ? 2 : 1;
+  const int tag_base = tag_multiplier * mpi_tag;
 
-  COMET_MPI_SAFE_CALL(MPI_Irecv(
-    env.is_comm_gpu() ?
-      (void*)vectors.buf()->d :
-      (void*)vectors.data(),
-    vectors.num_packedfield_vector_local(), env.metrics_mpi_type(), proc_num,
-    0+tag_multiplier*mpi_tag, env.comm_repl_vector(), &mpi_request_));
+  const size_t num_to_communicate = vectors.num_packedfield_vector_local();
+  const size_t msg_size_max = (static_cast<size_t>(1) << 31) - 1;
+
+  // See https://blogs.cisco.com/performance/can-i-mpi_send-and-mpi_recv-with-a-count-larger-than-2-billion
+
+  for (size_t num_communicated = 0; num_communicated < num_to_communicate;
+      num_communicated = utils::min(num_communicated+msg_size_max,
+                                    num_to_communicate)) {
+
+    const size_t msg_size_size_t = utils::min(msg_size_max,
+                                     num_to_communicate-num_communicated);
+    int msg_size = 0;
+    safe_cast_insist(msg_size, msg_size_size_t);
+
+    COMET_MPI_SAFE_CALL(MPI_Irecv(
+      env.is_comm_gpu() ?
+        static_cast<char*>(vectors.buf()->d) + num_communicated:
+        static_cast<char*>(vectors.data()) + num_communicated,
+      msg_size, env.metrics_mpi_type(), proc_num,
+      0+tag_base, env.comm_repl_vector(), &mpi_request_));
+  }
 
   if (BuildHas::DEBUG) {
     COMET_MPI_SAFE_CALL(MPI_Irecv(
       (void*)&cksum_,
       sizeof(cksum_), MPI_BYTE, proc_num,
-      1+2*mpi_tag, env.comm_repl_vector(), &mpi_request_cksum_));
+      1+tag_base, env.comm_repl_vector(), &mpi_request_cksum_));
   }
 }
 
 //=============================================================================
 // MPI reduce operations
 
-void reduce_metrics(GMMetrics& metrics,
-                    MirroredBuf* target,
+void reduce_metrics(MirroredBuf* target,
                     MirroredBuf* source,
                     CEnv& env) {
   COMET_INSIST(target && source);
@@ -111,17 +142,21 @@ void reduce_metrics(GMMetrics& metrics,
   if (!env.do_reduce())
     return;
 
-  const int nvl = metrics.num_vector_local;
+  COMET_INSIST(source->size() == target->size());
+
+  const size_t msg_size_size_t = source->size();
+  const auto msg_size = static_cast<unsigned int>(msg_size_size_t);
+  COMET_INSIST(static_cast<size_t>(msg_size) == msg_size_size_t
+    && "Data size for reduction too large in current implementation.");
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(source->h,
-    target->h, nvl * (size_t)nvl, env.metrics_mpi_type(), MPI_SUM,
+    target->h, msg_size, env.metrics_mpi_type(), MPI_SUM,
     env.comm_field()));
 }
 
 //-----------------------------------------------------------------------------
 
-MPI_Request reduce_metrics_start(GMMetrics& metrics,
-                                 MirroredBuf* target,
+MPI_Request reduce_metrics_start(MirroredBuf* target,
                                  MirroredBuf* source,
                                  CEnv& env) {
   COMET_INSIST(target && source);
@@ -129,14 +164,19 @@ MPI_Request reduce_metrics_start(GMMetrics& metrics,
   if (!env.do_reduce())
     return MPI_REQUEST_NULL;
 
-  const int nvl = metrics.num_vector_local;
+  COMET_INSIST(source->size() == target->size());
+
+  const size_t msg_size_size_t = source->size();
+  const auto msg_size = static_cast<unsigned int>(msg_size_size_t);
+  COMET_INSIST(static_cast<size_t>(msg_size) == msg_size_size_t
+    && "Data size for reduction too large in current implementation.");
 
   target->lock_h();
   source->lock_h();
 
   MPI_Request mpi_request;
   COMET_MPI_SAFE_CALL(MPI_Iallreduce(source->h,
-    target->h, nvl * (size_t)nvl, env.metrics_mpi_type(), MPI_SUM,
+    target->h, msg_size, env.metrics_mpi_type(), MPI_SUM,
     env.comm_field(), &mpi_request));
 
   return mpi_request;

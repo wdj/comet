@@ -88,13 +88,11 @@ private:
 
 //-----------------------------------------------------------------------------
 
-void reduce_metrics(GMMetrics& metrics,
-                    MirroredBuf* target,
+void reduce_metrics(MirroredBuf* target,
                     MirroredBuf* source,
                     CEnv& env);
 
-MPI_Request reduce_metrics_start(GMMetrics& metrics,
-                                 MirroredBuf* target,
+MPI_Request reduce_metrics_start(MirroredBuf* target,
                                  MirroredBuf* source,
                                  CEnv& env);
 

@@ -796,7 +796,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_ij_buf_ptr->from_accel();
 
-    reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env_);
+    reduce_metrics(matM_ij_buf, matM_ij_buf_ptr, env_);
   }
 
   //--------------------
@@ -821,7 +821,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_jk_buf_ptr->from_accel();
 
-    reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env_);
+    reduce_metrics(matM_jk_buf, matM_jk_buf_ptr, env_);
   }
 
   //--------------------
@@ -849,7 +849,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_kik_buf_ptr->from_accel();
 
-    reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env_);
+    reduce_metrics(matM_kik_buf, matM_kik_buf_ptr, env_);
   }
 
   //----------------------------------------
@@ -1093,7 +1093,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Reduce along field procs - START
 
     if (vars_prev.do_compute && env_.do_reduce())
-      mpi_requests[vars_prev.index_01] = reduce_metrics_start(metrics,
+      mpi_requests[vars_prev.index_01] = reduce_metrics_start(
           &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), env_);
 
     //========== Compute numerators using ijk piece and (if needed) 2-way pieces
