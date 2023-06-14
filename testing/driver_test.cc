@@ -2806,7 +2806,7 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-#if 0
+#if 1
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
@@ -2820,7 +2820,7 @@ TEST(DriverTest, threshold) {
 }
 #endif
 
-#if 0
+#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
