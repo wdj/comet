@@ -860,7 +860,7 @@ public:
   // Nomenclature:
   // "metric": a table of 4 or 8 entries (or trivially 1, if non-bitwise).
   // "entry": one of the entries of this table.
-  // "metric item": an entry if using the "shrink" method, else a metric table.
+  // "metric item": an entry if using the "shrink" method, else a metric (table).
 
   int num_entries_per_metric() const {
     return MetricType::CZEK == metric_type_ ? 1 : pow2_num_way();

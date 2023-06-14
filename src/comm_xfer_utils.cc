@@ -144,7 +144,7 @@ void reduce_metrics(MirroredBuf* target,
 
   COMET_INSIST(source->size() == target->size());
 
-  const size_t msg_size_size_t = source->size();
+  const size_t msg_size_size_t = source->num_elts();
   const auto msg_size = static_cast<unsigned int>(msg_size_size_t);
   COMET_INSIST(static_cast<size_t>(msg_size) == msg_size_size_t
     && "Data size for reduction too large in current implementation.");
@@ -166,7 +166,7 @@ MPI_Request reduce_metrics_start(MirroredBuf* target,
 
   COMET_INSIST(source->size() == target->size());
 
-  const size_t msg_size_size_t = source->size();
+  const size_t msg_size_size_t = source->num_elts();
   const auto msg_size = static_cast<unsigned int>(msg_size_size_t);
   COMET_INSIST(static_cast<size_t>(msg_size) == msg_size_size_t
     && "Data size for reduction too large in current implementation.");

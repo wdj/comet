@@ -290,7 +290,7 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm4DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu())
-      buf->h = utils::malloc(n * sizeof(Float_t), env); // WORKAROUND
+      buf->h = utils::malloc_nometer(n * sizeof(Float_t), env); // WORKAROUND
     else
       MAGMA_SAFE_CALL(magma_mgemm4_zmalloc_pinned(
         reinterpret_cast<Float_t**>(&buf->h), n),
@@ -306,7 +306,7 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm2DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu())
-      buf->h = utils::malloc(n * sizeof(Float_t), env); // WORKAROUND
+      buf->h = utils::malloc_nometer(n * sizeof(Float_t), env); // WORKAROUND
     else
       MAGMA_SAFE_CALL(magma_mgemm2_zmalloc_pinned(
         reinterpret_cast<Float_t**>(&buf->h), n),
@@ -322,7 +322,7 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm3DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu())
-      buf->h = utils::malloc(n * sizeof(Float_t), env); // WORKAROUND
+      buf->h = utils::malloc_nometer(n * sizeof(Float_t), env); // WORKAROUND
     else
       MAGMA_SAFE_CALL(magma_mgemm3_zmalloc_pinned(
         reinterpret_cast<Float_t**>(&buf->h), n),
@@ -338,7 +338,7 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm5DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu())
-      buf->h = utils::malloc(n * sizeof(Float_t), env); // WORKAROUND
+      buf->h = utils::malloc_nometer(n * sizeof(Float_t), env); // WORKAROUND
     else
       MAGMA_SAFE_CALL(magma_mgemm5_zmalloc_pinned(
         reinterpret_cast<Float_t**>(&buf->h), n),
@@ -391,7 +391,7 @@ void MagmaWrapper::free(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm4DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu()) {
-      utils::free(buf->h, n * sizeof(Float_t), env); // WORKAROUND
+      utils::free_nometer(buf->h, n * sizeof(Float_t), env); // WORKAROUND
     } else {
       MAGMA_SAFE_CALL(magma_mgemm4_free_pinned(buf->h),
                       "Error in CPU memory free.");
@@ -405,7 +405,7 @@ void MagmaWrapper::free(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm2DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu()) {
-      utils::free(buf->h, n * sizeof(Float_t), env); // WORKAROUND
+      utils::free_nometer(buf->h, n * sizeof(Float_t), env); // WORKAROUND
     } else {
       MAGMA_SAFE_CALL(magma_mgemm2_free_pinned(buf->h),
                       "Error in CPU memory free.");
@@ -419,7 +419,7 @@ void MagmaWrapper::free(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm3DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu()) {
-      utils::free(buf->h, n * sizeof(Float_t), env); // WORKAROUND
+      utils::free_nometer(buf->h, n * sizeof(Float_t), env); // WORKAROUND
     } else {
       MAGMA_SAFE_CALL(magma_mgemm3_free_pinned(buf->h),
                       "Error in CPU memory free.");
@@ -433,7 +433,7 @@ void MagmaWrapper::free(MirroredBuf* buf, size_t dim0, size_t dim1,
     typedef magma_mgemm5DoubleComplex Float_t;
 
     if (System::compute_capability() >= 800 || !buf->is_compute_method_gpu()) {
-      utils::free(buf->h, n * sizeof(Float_t), env); // WORKAROUND
+      utils::free_nometer(buf->h, n * sizeof(Float_t), env); // WORKAROUND
     } else {
       MAGMA_SAFE_CALL(magma_mgemm5_free_pinned(buf->h),
                       "Error in CPU memory free.");

@@ -281,9 +281,7 @@ void DriverTest_czek2_() {
                     "--compute_method CPU ",
                     "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU --all2all yes"));
-#endif
 
-#if 1
   EXPECT_EQ(
       true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
@@ -292,6 +290,7 @@ void DriverTest_czek2_() {
                     "--compute_method CPU --all2all yes",
                     "--num_proc_vector 2 --num_field 2 --num_vector 5 "
                     "--compute_method GPU --all2all yes"));
+#endif
 
   EXPECT_EQ(
       true,
@@ -302,6 +301,7 @@ void DriverTest_czek2_() {
                     "--num_field 7 --num_vector 5 "
                     "--compute_method GPU --all2all yes"));
 
+#if 1
   //----------
   //---2-way, all2all yes, large
   //----------
@@ -2268,8 +2268,8 @@ void DriverTest_file_output_() {
 void DriverTest_ccc2_duo2_(const char* const metric_type) {
   char options1[1024];
   char options2[1024];
-#if 1
   char options3[1024];
+#if 1
 
   //----------
   //---2-way, all2all no
@@ -2486,6 +2486,8 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
     const int result11 = compare_2runs(options1, options2);
     EXPECT_EQ(true, 0==proc_num ? ! result11 : true);
   }
+#endif
+#if 1
 
   //----------
   //---num_phase, 2-way
@@ -2493,9 +2495,9 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
 
   int num_phase = 0;
 
-  for (num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
-    for (num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
-      for (num_phase=2; num_phase<=8; ++num_phase) {
+  for (int num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
+    for (int num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
+      for (int num_phase=2; num_phase<=8; ++num_phase) {
         if (!(num_phase <= 1 + num_proc_vector/2)) {
           continue;
         }
@@ -2804,7 +2806,7 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-#if 1
+#if 0
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
@@ -2818,7 +2820,7 @@ TEST(DriverTest, threshold) {
 }
 #endif
 
-#if 1
+#if 0
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }

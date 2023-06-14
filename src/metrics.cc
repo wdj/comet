@@ -466,6 +466,9 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_metric_items_local = metrics->num_metrics_local *
                                     env->num_metric_items_per_metric();
 
+//if (System::proc_num() == 0)
+//printf("%zu %zu\n", metrics->num_metric_items_local, (size_t)env->metric_item_size());
+
   //--------------------
   // Allocations: data.
   //--------------------
