@@ -14,8 +14,11 @@ CoMet 1.2 New Features
 ----------------------
 
 - Support for new architectures, including AMD MI100/MI250X and NVIDIA Ampere
+- Support for INT4 and B1 precisions for NVIDIA Turing and Ampere architectures
+- Up to 33% performance improvement for 3-way methods
 - Option for lossless metrics data compression, allowing solution of much larger problems.
-- Up to 33% performance improvement for 3-way methods.
+- Ability to set fine-grained output thresholds for different metric values.
+- Option to calculate and output histograms of metric values.
 
 Getting started
 ---------------
