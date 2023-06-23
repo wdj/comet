@@ -643,7 +643,7 @@ static void finalize_ccc_duo_(
           const int k_block_eff = env.all2all() ?
             k_block : env.proc_num_vector();
           
-          Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
+          Metrics_elt_3<GMFloat3, MetricsArrayId::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
 
           if (env.sparse()) {
@@ -651,7 +651,7 @@ static void finalize_ccc_duo_(
             const auto cj1 = (GMTally1)vs_j->count<Float_t>(j);
             const auto ck1 = (GMTally1)vs_k->count<Float_t>(k);
             const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
-            Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
+            Metrics_elt_3<GMFloat3, MetricsArrayId::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
           } // if sparse
 
@@ -796,7 +796,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_ij_buf_ptr->from_accel();
 
-    reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env_);
+    reduce_metrics(matM_ij_buf, matM_ij_buf_ptr, env_);
   }
 
   //--------------------
@@ -821,7 +821,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_jk_buf_ptr->from_accel();
 
-    reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env_);
+    reduce_metrics(matM_jk_buf, matM_jk_buf_ptr, env_);
   }
 
   //--------------------
@@ -849,7 +849,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     matM_kik_buf_ptr->from_accel();
 
-    reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env_);
+    reduce_metrics(matM_kik_buf, matM_kik_buf_ptr, env_);
   }
 
   //----------------------------------------
@@ -1093,7 +1093,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Reduce along field procs - START
 
     if (vars_prev.do_compute && env_.do_reduce())
-      mpi_requests[vars_prev.index_01] = reduce_metrics_start(metrics,
+      mpi_requests[vars_prev.index_01] = reduce_metrics_start(
           &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), env_);
 
     //========== Compute numerators using ijk piece and (if needed) 2-way pieces

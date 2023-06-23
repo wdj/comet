@@ -51,17 +51,17 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Helper class for memory.
 
-MetricsMem::MetricsMem(CEnv* env)
+MetricsMem::MetricsMem(CEnv& env)
   : env_(env)
   , is_allocated_(false)
-  , data_(NULL)
-  , data_S_(NULL)
-  , data_C_(NULL)
-  , coords_(NULL)
-  , data_size_(0)
-  , data_S_size_(0)
-  , data_C_size_(0)
-  , coords_size_(0) {
+  , data_m_(NULL)
+  , data_s_(NULL)
+  , data_c_(NULL)
+  , data_o_(NULL)
+  , size_m_(0)
+  , size_s_(0)
+  , size_c_(0)
+  , size_o_(0) {
   is_allocated_ = true;
 }
 
@@ -74,113 +74,18 @@ MetricsMem::~MetricsMem() {
 //-----------------------------------------------------------------------------
 
 void MetricsMem::deallocate() {
-  if (! env_->is_proc_active())
+  if (!env_.is_proc_active())
     return;
 
   if (!is_allocated_)
     return;
 
-  if (data_)
-    utils::free(data_, data_size_, *env_);
-
-  if (data_S_)
-    utils::free(data_S_, data_S_size_, *env_);
-
-  if (data_C_)
-    utils::free(data_C_, data_C_size_, *env_);
-
-  if (coords_)
-    utils::free(coords_, coords_size_, *env_);
-
-  data_ = NULL;
-  data_S_ = NULL;
-  data_C_ = NULL;
-  coords_ = NULL;
+  array_free(m_selector);
+  array_free(s_selector);
+  array_free(c_selector);
+  array_free(o_selector);
 
   is_allocated_ = false;
-}
-
-//-----------------------------------------------------------------------------
-
-void* MetricsMem::malloc_data(size_t data_size) {
-
-  if (! env_->is_proc_active())
-    return NULL;
-
-  COMET_INSIST(is_allocated_);
-
-  if (!data_ || data_size > data_size_) {
-    if (data_) {
-      utils::free(data_, data_size_, *env_);
-    }
-    data_ = (size_t*)utils::malloc(data_size, *env_);
-    data_size_ = data_size;
-  }
-
-  return data_;
-}
-
-//-----------------------------------------------------------------------------
-
-void* MetricsMem::malloc_data_S(size_t data_S_size) {
-
-  if (! env_->is_proc_active())
-    return NULL;
-
-  COMET_INSIST(is_allocated_);
-
-  if (!data_S_ || data_S_size > data_S_size_) {
-    if (data_S_) {
-      utils::free(data_S_, data_S_size_, *env_);
-    }
-    data_S_ = (size_t*)utils::malloc(data_S_size, *env_);
-    data_S_size_ = data_S_size;
-  }
-
-  return data_S_;
-}
-
-//-----------------------------------------------------------------------------
-
-void* MetricsMem::malloc_data_C(size_t data_C_size) {
-
-  if (! env_->is_proc_active())
-    return NULL;
-
-  COMET_INSIST(is_allocated_);
-
-  if (!data_C_ || data_C_size > data_C_size_) {
-    if (data_C_) {
-      utils::free(data_C_, data_C_size_, *env_);
-    }
-    data_C_ = (size_t*)utils::malloc(data_C_size, *env_);
-    data_C_size_ = data_C_size;
-  }
-
-  return data_C_;
-}
-
-//-----------------------------------------------------------------------------
-
-MetricItemCoords_t* MetricsMem::malloc_coords(
-  size_t coords_size) {
-
-  if (! env_->is_proc_active())
-    return NULL;
-
-  COMET_INSIST(is_allocated_);
-
-  if (!coords_ ||
-      coords_size > coords_size_) {
-    if (coords_) {
-      utils::free(coords_, coords_size_, *env_);
-    }
-    coords_
-       = (MetricItemCoords_t*)utils::malloc(coords_size, *env_);
-    coords_size_ = coords_size;
-  }
-
-  return coords_;
 }
 
 //=============================================================================
@@ -561,6 +466,9 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_metric_items_local = metrics->num_metrics_local *
                                     env->num_metric_items_per_metric();
 
+//if (System::proc_num() == 0)
+//printf("%zu %zu\n", metrics->num_metric_items_local, (size_t)env->metric_item_size());
+
   //--------------------
   // Allocations: data.
   //--------------------
@@ -570,16 +478,16 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_metric_items_local_allocated =
     env->apply_shrink(metrics->num_metric_items_local);
 
-  const size_t data_size = metrics->num_metric_items_local_allocated *
+  const size_t size_m = metrics->num_metric_items_local_allocated *
     env->metric_item_size();
 
-  metrics->data = metrics_mem->malloc_data(data_size);
+  metrics->data = metrics_mem->array_malloc(metrics_mem->m_selector, size_m);
 
   //--------------------
   // Allocations: coords.
   //--------------------
 
-  metrics->coords_ = metrics_mem->malloc_coords(
+  metrics->coords_ = metrics_mem->array_malloc(metrics_mem->o_selector,
     metrics->num_metric_items_local_allocated * sizeof(MetricItemCoords_t));
 
   //--------------------
@@ -596,15 +504,15 @@ void GMMetrics_create(GMMetrics* metrics,
       if (!env->is_threshold_tc()) {
 
         metrics->data_S_elt_size = sizeof(GMFloat2);
-        const size_t data_S_size = metrics->num_metrics_local *
-                               metrics->data_S_elt_size;
-        metrics->data_S = metrics_mem->malloc_data_S(data_S_size);
+        const size_t size_s = metrics->num_metrics_local *
+                              metrics->data_S_elt_size;
+        metrics->data_S = metrics_mem->array_malloc(metrics_mem->s_selector, size_s);
 
          metrics->data_C_elt_size = sizeof(GMFloat2);
         if (env->sparse()) {
-          const size_t data_C_size = metrics->num_metrics_local *
-                                    metrics->data_C_elt_size;
-          metrics->data_C = metrics_mem->malloc_data_C(data_C_size);
+          const size_t size_c = metrics->num_metrics_local *
+                                metrics->data_C_elt_size;
+          metrics->data_C = metrics_mem->array_malloc(metrics_mem->c_selector, size_c);
         }
 
       }
@@ -616,15 +524,15 @@ void GMMetrics_create(GMMetrics* metrics,
       if (!env->is_threshold_tc()) {
 
         metrics->data_S_elt_size = sizeof(GMFloat3);
-        const size_t data_S_size = metrics->num_metrics_local *
-                                   metrics->data_S_elt_size;
-        metrics->data_S = metrics_mem->malloc_data_S(data_S_size);
+        const size_t size_s = metrics->num_metrics_local *
+                              metrics->data_S_elt_size;
+        metrics->data_S = metrics_mem->array_malloc(metrics_mem->s_selector, size_s);
 
         metrics->data_C_elt_size = sizeof(GMFloat3);
         if (env->sparse()) {
-          const size_t data_C_size = metrics->num_metrics_local *
-                                     metrics->data_C_elt_size;
-          metrics->data_C = metrics_mem->malloc_data_C(data_C_size);
+          const size_t size_c = metrics->num_metrics_local *
+                                metrics->data_C_elt_size;
+          metrics->data_C = metrics_mem->array_malloc(metrics_mem->c_selector, size_c);
         }
 
       }

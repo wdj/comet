@@ -187,7 +187,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Do reduction across field procs if needed
 
-  reduce_metrics(metrics, &metrics_buf, metrics_buf_ptr, env_);
+  reduce_metrics(&metrics_buf, metrics_buf_ptr, env_);
 
   // Combine
 
@@ -533,7 +533,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //========== Reduce along field procs
 
         if (env_.do_reduce()) {
-          reduce_metrics(metrics, metrics_buf_prev_ptr,
+          reduce_metrics(metrics_buf_prev_ptr,
                          vars_prev.metrics_buf, env_);
           matB_buf_compressed.attach(*metrics_buf_prev_ptr);
         }

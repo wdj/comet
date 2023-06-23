@@ -546,8 +546,8 @@ static void finalize_ccc_duo_(
 
   // Compute multipliers; update counts.
 
-  enum {S = MetricsArray::S};
-  enum {C = MetricsArray::C};
+  enum {S = MetricsArrayId::S};
+  enum {C = MetricsArrayId::C};
 
   // --------------
   if (env->all2all() && do_compute_triang_only) {

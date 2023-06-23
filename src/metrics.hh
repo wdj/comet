@@ -50,6 +50,48 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/*!
+ * \class MetricsArrayId
+ * \brief Helper class to designate which array (metrics proper, sums, counts.
+ *
+ */
+//-----------------------------------------------------------------------------
+class MetricsArrayId {
+
+//  template<int> class Enum2Type {};
+
+public:
+
+  enum {M = 0, // Matrics
+        S = 1, // Sums
+        C = 2, // Counts
+        O = 3, // coOrdinates
+        NUM = 4};
+
+  struct M_t {
+    typedef void* __restrict__ Data_t;
+  };
+
+  struct S_t {
+    typedef void* __restrict__ Data_t;
+  };
+
+  struct C_t {
+    typedef void* __restrict__ Data_t;
+  };
+
+  struct O_t {
+    typedef MetricItemCoords_t* __restrict__ Data_t;
+  };
+
+
+//  typedef Enum2Type<M> M_t;
+//  typedef Enum2Type<S> S_t;
+//  typedef Enum2Type<C> C_t;
+//  typedef Enum2Type<O> O_t;
+};
+
+//-----------------------------------------------------------------------------
 /// \brief Helper class for metrics memory.
 
 // Forward declartion.
@@ -57,28 +99,96 @@ struct GMMetrics;
 
 class MetricsMem {
 
+  typedef MetricsArrayId MAI;
+
+  /// \brief Helper class to select array pointer and size, via overloading.
+
+  struct ArrayHelper {
+    static MAI::M_t::Data_t& data(MAI::M_t, MetricsMem* mm) {return mm->data_m_;}
+    static MAI::S_t::Data_t& data(MAI::S_t, MetricsMem* mm) {return mm->data_s_;}
+    static MAI::C_t::Data_t& data(MAI::C_t, MetricsMem* mm) {return mm->data_c_;}
+    static MAI::O_t::Data_t& data(MAI::O_t, MetricsMem* mm) {return mm->data_o_;}
+
+    static size_t& size(MAI::M_t, MetricsMem* mm) {return mm->size_m_;}
+    static size_t& size(MAI::S_t, MetricsMem* mm) {return mm->size_s_;}
+    static size_t& size(MAI::C_t, MetricsMem* mm) {return mm->size_c_;}
+    static size_t& size(MAI::O_t, MetricsMem* mm) {return mm->size_o_;}
+  };
+
 public:
-  MetricsMem(CEnv* env);
+
+  MetricsMem(CEnv& env);
   ~MetricsMem();
   void deallocate();
 
-  void* malloc_data(size_t data_size);
-  void* malloc_data_S(size_t data_size_S);
-  void* malloc_data_C(size_t data_size_C);
-  MetricItemCoords_t* malloc_coords(size_t coords_size);
+  // Helper objects to assist with array selection, via overloading.
+
+  MAI::M_t m_selector;
+  MAI::S_t s_selector;
+  MAI::C_t c_selector;
+  MAI::O_t o_selector;
+
+  /// \brief Re/allocate one of the four arrays, as needed.
+
+  template<class MAI_t>
+  typename MAI_t::Data_t
+  array_malloc(MAI_t mai_selector, size_t data_size) {
+
+    if (!env_.is_proc_active())
+      return NULL;
+
+    COMET_INSIST(is_allocated_);
+
+    typedef typename MAI_t::Data_t Data_t;
+
+    Data_t& data_ref = ArrayHelper::data(mai_selector, this);
+    size_t& data_size_ref = ArrayHelper::size(mai_selector, this);
+
+    if (!data_ref || data_size > data_size_ref) {
+      if (data_ref)
+        utils::free(data_ref, data_size_ref, env_);
+      data_ref = static_cast<Data_t>(utils::malloc(data_size, env_));
+      data_size_ref = data_size;
+    }
+
+    return data_ref;
+  }
+
+  /// \brief Deallocate one of the four arrays.
+
+  template<class MAI_t>
+  void array_free(MAI_t mai_selector) {
+
+    typedef typename MAI_t::Data_t Data_t;
+
+    Data_t& data_ref = ArrayHelper::data(mai_selector, this);
+    size_t data_size = ArrayHelper::size(mai_selector, this);
+
+    if (data_ref)
+      utils::free(data_ref, data_size, env_);
+
+    data_ref = NULL;
+  }
 
 private:
 
-  CEnv* env_;
+  CEnv& env_;
   bool is_allocated_;
-  void* __restrict__ data_;
-  void* __restrict__ data_S_;
-  void* __restrict__ data_C_;
-  MetricItemCoords_t* __restrict__ coords_;
-  size_t data_size_;
-  size_t data_S_size_;
-  size_t data_C_size_;
-  size_t coords_size_;
+
+  typename MAI::M_t::Data_t data_m_;
+  typename MAI::S_t::Data_t data_s_;
+  typename MAI::C_t::Data_t data_c_;
+  typename MAI::O_t::Data_t data_o_;
+
+  //void* __restrict__ data_m_;
+  //void* __restrict__ data_s_;
+  //void* __restrict__ data_c_;
+  //MetricItemCoords_t* __restrict__ data_o_;
+
+  size_t size_m_;
+  size_t size_s_;
+  size_t size_c_;
+  size_t size_o_;
 
   friend GMMetrics;
 
@@ -462,19 +572,6 @@ static bool metrics_is_proc_repl_active(const GMMetrics& metrics,
 
 //-----------------------------------------------------------------------------
 /*!
- * \class MetricsArray
- * \brief Helper class to designate which array (metrics proper, sums, counts.
- *
- */
-//-----------------------------------------------------------------------------
-struct MetricsArray {
-  enum {_ = 0,
-        S = 1,
-        C = 2};
-};
-
-//-----------------------------------------------------------------------------
-/*!
  * \class MetricsArrayData
  * \brief Helper class to access selected metrics array.
  *
@@ -483,7 +580,7 @@ struct MetricsArray {
 template<int MA> struct MetricsArrayData;
 
 // Metrics proper.
-template<> struct MetricsArrayData<MetricsArray::_> {
+template<> struct MetricsArrayData<MetricsArrayId::M> {
   static size_t elt_size(const GMMetrics& metrics) {
    return metrics.data_elt_size;
   }
@@ -491,7 +588,7 @@ template<> struct MetricsArrayData<MetricsArray::_> {
 };
 
 // Sums.
-template<> struct MetricsArrayData<MetricsArray::S> {
+template<> struct MetricsArrayData<MetricsArrayId::S> {
   static size_t elt_size(const GMMetrics& metrics) {
     return metrics.data_S_elt_size;
   }
@@ -499,7 +596,7 @@ template<> struct MetricsArrayData<MetricsArray::S> {
 };
 
 // Counts.
-template<> struct MetricsArrayData<MetricsArray::C> {
+template<> struct MetricsArrayData<MetricsArrayId::C> {
   static size_t elt_size(const GMMetrics& metrics) {
     return metrics.data_C_elt_size;
   }
@@ -511,7 +608,7 @@ template<> struct MetricsArrayData<MetricsArray::C> {
  * \brief Const accessor for direct access to metrics array.
  *
  */
-template<typename T, int MA = MetricsArray::_>
+template<typename T, int MA = MetricsArrayId::M>
 static T Metrics_elt_const(const GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
@@ -524,7 +621,7 @@ static T Metrics_elt_const(const GMMetrics& metrics, NML_t index, CEnv& env) {
  * \brief Accessor for direct access to metrics array.
  *
  */
-template<typename T, int MA = MetricsArray::_>
+template<typename T, int MA = MetricsArrayId::M>
 static T& Metrics_elt(GMMetrics& metrics, NML_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));

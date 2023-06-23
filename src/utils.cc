@@ -271,6 +271,20 @@ void* malloc(size_t n, CEnv& env) {
 
 //-----------------------------------------------------------------------------
 /*!
+ * \brief Memory allocation without memory usage tracking.
+ *
+ */
+void* malloc_nometer(size_t n, CEnv& env) {
+  COMET_INSIST(n+1 >= 1);
+
+  void* p = ::malloc(n);
+  COMET_INSIST(p &&
+    "Invalid pointer from malloc, possibly due to insufficient memory.");
+  return p;
+}
+
+//-----------------------------------------------------------------------------
+/*!
  * \brief Memory deallocation with memory usage tracking.
  *
  */
@@ -280,6 +294,18 @@ void free(void* p, size_t n, CEnv& env) {
 
   ::free(p);
   env.cpu_mem_local_dec(n);
+}
+
+//-----------------------------------------------------------------------------
+/*!
+ * \brief Memory deallocation without memory usage tracking.
+ *
+ */
+void free_nometer(void* p, size_t n, CEnv& env) {
+  COMET_INSIST(p);
+  COMET_INSIST(n+1 >= 1);
+
+  ::free(p);
 }
 
 //-----------------------------------------------------------------------------

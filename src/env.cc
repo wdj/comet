@@ -850,7 +850,7 @@ double CEnv::synced_time() {
 
 void CEnv::cpu_mem_local_inc(size_t n) {
  cpu_mem_local_ += n;
-//printf("CPU %zu %zu\n", n, cpu_mem_local_);
+//if (System::proc_num() == 0) printf("CPU %zu %zu\n", n, cpu_mem_local_);
  cpu_mem_max_local_ = utils::max(cpu_mem_max_local_, cpu_mem_local_);
 }
 

@@ -119,7 +119,7 @@ void Vectors::allocate_impl_(bool has_buf) {
   num_packedfield_local_size_t_ = static_cast<size_t>(num_packedfield_local_);
 
   num_packedfield_vector_local_ =
-      num_packedfield_local_ * dm_.num_vector_local;
+      num_packedfield_local_size_t_ * dm_.num_vector_local;
 
   data_size_ = num_packedfield_vector_local_ *
               (dm_.num_bit_per_packedfield / BITS_PER_BYTE);

@@ -1314,7 +1314,6 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   #module load cmake/3.20.2
   module load cmake
   module load rocm
-  export HIP_PATH=$OLCF_ROCM_ROOT/hip
   (module list) 2>&1 | grep -v '^ *$'
 
   local ROCBLAS_PATH=$ROCM_PATH
@@ -1325,12 +1324,18 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   #local COMET_C_COMPILER=$(which gcc) # presently unused
   local COMET_C_COMPILER=clang
   local COMET_CXX_COMPILER=hipcc
-  local COMET_CXX_SERIAL_COMPILER=hipcc
+  #local COMET_CXX_SERIAL_COMPILER=hipcc
+  local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER 
   local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 
-  local USE_OPENMP=OFF
+  #local USE_OPENMP=OFF
+  #local USE_OPENMP=OFF
+  local USE_OPENMP=ON
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
+  #export HIP_PATH=$OLCF_ROCM_ROOT/hip
+  export HIP_PATH=$ROCM_PATH/hip
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
@@ -1348,9 +1353,19 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   COMET_HIP_LINK_OPTS+=" --offload-arch=gfx90a"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  if [ $USE_OPENMP = ON ] ; then
+    #COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib-debug/libomp.so"
+    COMET_HIP_LINK_OPTS+=" $ROCM_PATH/llvm/lib/libomp.so"
+    COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/llvm/lib"
+  fi
+
   local COMET_HIP_CMAKE_OPTS="-DCOMET_HIP_ARCHITECTURES=gfx90a"
 
   COMET_WERROR=OFF
+
+  local COMET_USE_INT128=ON
+
+  local USE_SEMIRING=ON
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
 
@@ -1359,23 +1374,32 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   #local USE_BLIS=ON
   local USE_BLIS=OFF
 
-  #local USE_LAPACK=OFF
-  local USE_LAPACK=ON
+  local USE_LAPACK=OFF
+  #local USE_LAPACK=ON
 
   if [ "${USE_BLIS:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
   elif [ "${USE_LAPACK:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
   else
+    #local USE_CPUBLAS=ON
+    #local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
+    #local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
+    #COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
     local USE_CPUBLAS=ON
-    local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
-    local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
-    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
+    module load openblas
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_OPENBLAS_ROOT/include"
+    local COMET_CPUBLAS_LINK_OPTS="-L$OLCF_OPENBLAS_ROOT/lib"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$OLCF_OPENBLAS_ROOT/lib -lopenblas"
   fi
 
-  local USE_MAGMA=OFF
-  #local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=gfx90a
+
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
