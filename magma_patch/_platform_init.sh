@@ -18,7 +18,7 @@ fi
 local COMET_HOST
 COMET_HOST="$(echo $(hostname -f) | \
               sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' \
-                  -e 's/[.-].*//' -e 's/[0-9]*$//')"
+                  -e 's/[.-].*//' -e 's/[0-9]*$//' -e 's/login$//')"
 
 [[ "$COMET_HOST" = "node" ]] && COMET_HOST="${SLURM_SUBMIT_HOST:-}"
 [[ "$COMET_HOST" = "cori" ]] && COMET_HOST="cgpu"
@@ -26,6 +26,7 @@ COMET_HOST="$(echo $(hostname -f) | \
 # [[ $(echo "$COMET_HOST" | sed -e 's/.*\.//') = "jwlogin" ]] && COMET_HOST="jwlogin"
 [[ "${NERSC_HOST:-}" = "perlmutter" ]] && COMET_HOST="perlmutter"
 [[ "${LMOD_SYSTEM_NAME:-}" = "frontier" ]] && COMET_HOST="frontier"
+[[ "$COMET_HOST" = "jlse" ]] && COMET_HOST="iris"
 
 local COMET_PLATFORM=""
 [[ -n "${CRAYOS_VERSION:-}" ]] && COMET_PLATFORM=CRAY_XK7 # OLCF Titan, Chester
@@ -50,6 +51,7 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "bones" ]] && COMET_PLATFORM=BONES # OLCF-5 EA MI100 system.
 [[ "$COMET_HOST" = "crusher" ]] && COMET_PLATFORM=CRUSHER # OLCF-5 EA MI200 system.
 [[ "$COMET_HOST" = "frontier" ]] && COMET_PLATFORM=FRONTIER # OLCF-5
+[[ "$COMET_HOST" = "iris" ]] && COMET_PLATFORM=IRIS # ANL system
 
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform. $COMET_HOST" 1>&2
@@ -386,6 +388,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   local USE_OPENMP=OFF
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
@@ -394,7 +397,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
@@ -429,6 +432,9 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=gfx908
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -490,6 +496,7 @@ elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
   local COMET_CXX_SERIAL_COMPILER=hipcc
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
@@ -563,6 +570,7 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   local USE_OPENMP=OFF
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
@@ -570,7 +578,7 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_COMPILE_OPTS+=" --amdgpu-target=gfx906,gfx908"
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -Wl,-rpath,$ROCBLAS_PATH/lib -lrocblas"
@@ -618,6 +626,9 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=gfx908
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local MPI_HOME=$(echo $PATH | sed 's,\(^\|.*:\)\([^:]*mvapich2[^:]*\)/bin.*,\2,')
@@ -1070,6 +1081,7 @@ elif [ $COMET_PLATFORM = SPOCK ] ; then
   local USE_OPENMP=OFF
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
@@ -1079,7 +1091,7 @@ elif [ $COMET_PLATFORM = SPOCK ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
@@ -1115,6 +1127,9 @@ elif [ $COMET_PLATFORM = SPOCK ] ; then
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=gfx908
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1207,6 +1222,7 @@ elif [ $COMET_PLATFORM = BIRCH ] ; then
   local USE_OPENMP=OFF
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
@@ -1215,7 +1231,7 @@ elif [ $COMET_PLATFORM = BIRCH ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
@@ -1249,6 +1265,9 @@ elif [ $COMET_PLATFORM = BIRCH ] ; then
 
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1334,6 +1353,7 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   #export HIP_PATH=$OLCF_ROCM_ROOT/hip
   export HIP_PATH=$ROCM_PATH/hip
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
@@ -1345,7 +1365,7 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
@@ -1396,6 +1416,9 @@ elif [ $COMET_PLATFORM = BORG ] ; then
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=gfx90a
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
   if [ $USE_MAGMA = ON ] ; then
     COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"
@@ -1605,6 +1628,7 @@ elif [ $COMET_PLATFORM = BONES ] ; then
   local USE_OPENMP=OFF
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
@@ -1614,7 +1638,7 @@ elif [ $COMET_PLATFORM = BONES ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
@@ -1650,6 +1674,9 @@ elif [ $COMET_PLATFORM = BONES ] ; then
   local USE_MAGMA=OFF
   #local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=gfx908
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1715,6 +1742,7 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   export HIP_PATH="$ROCM_PATH/hip"
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
@@ -1725,7 +1753,7 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
@@ -1782,6 +1810,9 @@ elif [ $COMET_PLATFORM = CRUSHER ] ; then
   #local USE_MAGMA=OFF
   local COMET_MAGMA_GPU_ARCH=gfx90a
   #local COMET_MAGMA_MAKE_INC=make.inc.frontier
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
   if [ $USE_MAGMA = ON ] ; then
     COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"
@@ -1855,6 +1886,7 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
   local USE_HIP=ON
+  local USE_ROCPRIM=ON
   export HIP_PATH="$ROCM_PATH/hip"
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
@@ -1865,7 +1897,7 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
-  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
@@ -1926,6 +1958,9 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   if [ $USE_MAGMA = ON ] ; then
     COMET_HIP_LINK_OPTS+=" -Wl,-rpath,$ROCM_PATH/lib -lhipblas -lhipsparse -lrocsparse"
   fi
+  if [ $USE_MAGMA = ON ] ; then
+    COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  fi
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -1968,6 +2003,162 @@ elif [ $COMET_PLATFORM = FRONTIER ] ; then
   fi
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
+
+#----------------------------------------
+elif [ $COMET_PLATFORM = IRIS ] ; then
+#----------------------------------------
+
+  #---Modules etc.
+  
+  set +eu +o pipefail # FIX this later when module is fixed
+
+  module use /soft/modulefiles # put the appropriate modules in your path
+  module use /home/pvelesko/local/modulefiles
+  module purge # remove any modules from your environment
+  module load intel_compute_runtime # puts the latest Intel OpenCL and L0 runtimes in your environment
+  #module load HIP/clang15/chip-spv-0.9-release
+  module load HIP/clang15/chip-spv-latest
+  module load intel/oneapi/release/2023.0.0
+  module load mkl/2023.0.0
+  module load HIP/hipBLAS/chip-spv-latest
+  module load openmpi/4.1.1-llvm
+
+  #module use /soft/modulefiles
+  #module purge
+  #module load intel_compute_runtime
+  #module load hipcl
+  module load cmake
+  (module list) 2>&1 | grep -v '^ *$'
+
+  set -eu -o pipefail # FIX this later when module is fixed
+
+  #---Compiler.
+
+  local USE_GCC=OFF
+  #local COMET_C_COMPILER=$(which clang)
+  #local COMET_CXX_COMPILER=$(which clang++)
+  #local COMET_CXX_SERIAL_COMPILER=$(which clang++)
+  local COMET_C_COMPILER=$(which hipcc)
+  local COMET_CXX_COMPILER=$(which hipcc)
+  local COMET_CXX_SERIAL_COMPILER=$(which hipcc)
+
+  local USE_OPENMP=OFF
+
+  local USE_HIP=ON
+  local USE_ROCPRIM=OFF # ON # OFF
+  #FIXlocal USE_HIPCL=ON
+  local USE_HIPINTEL=ON
+  #local HIPBLAS_DIR="$HIP_DIR/../../../hipBLAS"
+  local COMET_HIP_COMPILE_OPTS="-I$HIPBLAS_DIR/include/hipblas"
+  local COMET_HIP_COMPILE_OPTS+=" -I$MKLROOT/../../compiler/2023.0.0/linux/include/sycl"
+  local COMET_HIP_COMPILE_OPTS+=" -I$MKLROOT/../../compiler/2023.0.0/linux/include"
+  #local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
+  #COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
+  #COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
+  #COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
+  #COMET_HIP_COMPILE_OPTS="--gcc-toolchain=$(dirname $(which gcc)) -x hip --target=x86_64-linux-gnu --hip-device-lib-path=${HIPCL_DIR}/share --hip-device-lib=kernellib.bc --hip-llvm-pass-path=${HIPCL_DIR}/lib/llvm"
+  COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
+  COMET_HIP_COMPILE_OPTS+=" -Wno-gnu-designator"
+  COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
+  #COMET_HIP_COMPILE_OPTS+=" -I$HIPCL_DIR/include"
+  COMET_HIP_COMPILE_OPTS+=" -I$HIP_DIR/include"
+  #COMET_HIP_COMPILE_OPTS+=" -U_GLIBCXX_USE_FLOAT128"
+  COMET_HIP_COMPILE_OPTS+=" -D__STRICT_ANSI__"
+  COMET_HIP_COMPILE_OPTS+=" -Wno-unused-result"
+  COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_SPIRV__"
+  #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_"
+  #COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
+  #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
+  #local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
+  #COMET_HIP_LINK_OPTS+=" -L$HIPBLAS_DIR/lib -lhipblas"
+  local COMET_HIP_LINK_OPTS="-L$HIPBLAS_DIR/lib -Wl,-rpath,$HIPBLAS_DIR/lib -lhipblas"
+  COMET_HIP_LINK_OPTS+=" -L$MKLROOT/lib/intel64 -Wl,-rpath,$MKLROOT/lib/intel64 -lmkl_sycl"
+  COMET_HIP_LINK_OPTS+=" -L$MKLROOT/../../compiler/2023.0.0/linux/lib -Wl,-rpath,$MKLROOT/../../compiler/2023.0.0/linux/lib -lsycl"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+  #COMET_HIP_LINK_OPTS=" -x none"
+  local COMET_EXTRA_COMPILE_OPTS="-std=gnu++17"
+
+  #local TOOLCHAIN_FILE_STRING='set(CMAKE_EXE_LINKER_FLAGS "-x none /soft/compilers/hipcl/20210506/lib/libhipcl.so.1.0.0-alpha")'
+
+  #local CMAKE_EXTRA_OPTIONS=-DCMAKE_TOOLCHAIN_FILE=<(echo 'set(CMAKE_EXE_LINKER_FLAGS "-x none /soft/compilers/hipcl/20210506/lib/libhipcl.so.1.0.0-alpha")')
+
+#  cat <<EOF >$BUILD_DIR/toolchain.cmake
+#SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+#SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+#set(CMAKE_EXE_LINKER_FLAGS "-x none /soft/compilers/hipcl/20210506/lib/libhipcl.so.1.0.0-alpha")
+#EOF
+
+  COMET_WERROR=OFF
+
+  #local USE_LAPACK=OFF
+  local USE_LAPACK=ON
+
+  #if [ "${USE_BLIS:-OFF}" != OFF ] ; then
+  #  local USE_CPUBLAS=ON
+  #elif [ "${USE_LAPACK:-OFF}" != OFF ] ; then
+  #  local USE_CPUBLAS=ON
+  #else
+  #  local USE_CPUBLAS=ON
+  #  local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
+  #  local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
+  #  COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
+  #fi
+
+  local USE_MAGMA=OFF
+  #local USE_MAGMA=ON
+
+#  if [ "${BLIS_PATH:-}" != "" ] ; then
+#    local USE_CPUBLAS=ON
+#    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/generic"
+#    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
+#    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/generic"
+#    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/generic -lblis"
+#    # ./configure --disable-threading --enable-cblas generic
+#  fi
+
+  local COMET_CAN_USE_MPI=OFF
+  #local COMET_CAN_USE_MPI=ON
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_MPI_COMPILE_OPTS="-I/soft/libraries/mpi/openmpi/4.1.1/include"
+    local COMET_MPI_LINK_OPTS="-L/soft/libraries/mpi/openmpi/4.1.1/lib -Wl,-rpath,/soft/libraries/mpi/openmpi/4.1.1/lib -lmpi"
+
+    #local COMET_MPI_CMAKE_OPTS="-DMPI_C_COMPILER:STRING=$COMET_C_COMPILER"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_C_INCLUDE_PATH:STRING=$CRAY_MPICH_DIR/include"
+    ##COMET_MPI_CMAKE_OPTS+=" -DMPI_C_LIBRARIES:STRING=$CRAY_MPICH_DIR/lib"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_C_LIBRARIES:STRING=$CRAY_MPICH_DIR/lib/libmpi.so"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_COMPILER:STRING=$COMET_CXX_COMPILER"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH_DIR/include"
+    ##COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH_DIR/lib"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH_DIR/lib/libmpi.so"
+
+    local COMET_CMAKE_USE_MPI=OFF
+  fi
+
+  #---Testing.
+
+  COMET_USE_GTEST=ON # OFF
+
+  # 12 compute nodes each with:
+  # 1x64 core EPYC CPU
+  # 256GB DDR4  Memory
+  # 4xAMD MI100 GPUs with 32GiB HBM2 Memory per GPU
+  # access to NCCS home and proejct areas
+  # access to Alpine 
+
+  #XXX salloc -N2 -A stf006 $SHELL
+  #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
+  #XXX salloc -N2 -A stf006 $SHELL
+  #XXX salloc -N2 -A stf006 $SHELL
+  # salloc -N1 -A stf006
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 mpirun -n 64 --oversubscribe"
+  else
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+    #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
+  fi
 
 #----------------------------------------
 else

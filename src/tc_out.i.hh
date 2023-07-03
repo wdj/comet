@@ -1277,11 +1277,11 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 /// \brief Postprocess metrics values previously computed by GEMMs.
 
 template<int TC_METHOD, typename Float_t, int METRIC_FORMAT>
-void tc_out_( int nvll, int nvl, void* vo,
+void tc_out_(int nvll, int nvl, void* vo,
   Float_t* sums_I, Float_t* sums_J, Float_t* sums_K,
   Float_t* counts_I, Float_t* counts_J, Float_t* counts_K,
   uint32_t* matX_counts, int J, int step_2way,
-  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  Histograms& histograms, GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 

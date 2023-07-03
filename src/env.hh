@@ -57,6 +57,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  include "cuda_runtime.h"
 #  include "cublas_v2.h"
 #  include "cusparse.h"
+#elif defined COMET_USE_HIPINTEL
+#  include "hip/hip_runtime.h"
+#  include "hipblas.h"
 #elif defined COMET_USE_HIP
 //#  include "hip/hip_runtime_api.h"
 #  include "hip/hip_runtime.h"
@@ -192,8 +195,10 @@ struct BuildHas {
 
 # ifdef COMET_USE_CUDA
     enum {CUDA = true};
+    enum {NVIDIA_GPU = true};
 # else
     enum {CUDA = false};
+    enum {NVIDIA_GPU = false};
 # endif
 
 # ifdef COMET_USE_CUTLASS
@@ -204,8 +209,23 @@ struct BuildHas {
 
 # ifdef COMET_USE_HIP
     enum {HIP = true};
+    #ifdef COMET_USE_HIPINTEL
+      enum {AMD_GPU = false};
+      enum {INTEL_GPU = true};
+    #else
+      enum {AMD_GPU = true};
+      enum {INTEL_GPU = false};
+    #endif
 # else
     enum {HIP = false};
+    enum {AMD_GPU = false};
+    enum {INTEL_GPU = false};
+# endif
+
+# ifdef COMET_USE_ROCPRIM
+    enum {ROCPRIM = true};
+# else
+    enum {ROCPRIM = false};
 # endif
 
 # ifdef COMET_USE_ACCEL
@@ -843,6 +863,7 @@ public:
       is_try_tc_(tc_try) &&
       can_threshold_tc_(tc_try) &&
       //num_way() == NumWay::_3 && // TODO: implement for 2-way
+      (BuildHas::CUDA || (BuildHas::HIP && BuildHas::ROCPRIM)) &&
       BuildHas::ACCEL &&
       is_compute_method_gpu() &&
       !do_reduce();

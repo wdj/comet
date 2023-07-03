@@ -665,6 +665,7 @@ __global__ static void tc_buf_write_kernel_(
 
   const int thread_dim0 = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const int thread_dim1 = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+//printf("Hey %i %i\n", thread_dim0, thread_dim1); //FIX
 
   enum {IS_THREAD_MAPPING_FIELD_MAJOR =
         TCTraits<TC_METHOD>::IS_THREAD_MAPPING_FIELD_MAJOR};
@@ -809,6 +810,7 @@ void tc_buf_write_(
         enum {IS_B_FIELD_MAJOR = false};
         COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
 
+//printf("Hey1 %i %i %i %i\n", (int)num_threadblocks_0, (int)num_threadblocks_1, (int)num_threadblocks_2, (int)threadblocksize);
         COMET_LAUNCH_KERNEL(
           (tc_buf_write_kernel_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>),
           dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
@@ -820,6 +822,7 @@ void tc_buf_write_(
           nfl, nflT, nflT_thread, flT_min, nfal);
 
         System::accel_last_call_succeeded();
+//printf("Hey2\n");
 
     }
 

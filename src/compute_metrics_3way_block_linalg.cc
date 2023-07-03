@@ -774,6 +774,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   GMDecompMgr* const dm = vdata_i.vectors->dm();
 
+//FIX
+  TCDebug tc_debug;
+//  tc_debug.I_base = I_block * nvl;
+//  tc_debug.J_base = J_block * nvl;
+//  tc_debug.K_base = K_block * nvl;
+
   //----------------------------------------
   // First get the required 2-way ij, jk, ik metrics.
   //----------------------------------------
@@ -792,7 +798,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                  vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
                  vdata_i.sums->sums(), vdata_j.sums->sums(),
                  vdata_i.sums->counts(), vdata_j.sums->counts(),
-                 *dm, magma_wrapper, gemm_shapes, env_);
+                 *dm, magma_wrapper, gemm_shapes, env_, tc_debug);
 
     matM_ij_buf_ptr->from_accel();
 
@@ -817,7 +823,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                  vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
                  vdata_j.sums->sums(), vdata_k.sums->sums(),
                  vdata_j.sums->counts(), vdata_k.sums->counts(),
-                 *dm, magma_wrapper, gemm_shapes, env_);
+                 *dm, magma_wrapper, gemm_shapes, env_, tc_debug);
 
     matM_jk_buf_ptr->from_accel();
 
@@ -845,7 +851,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                  vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
                  vdata_k.sums->sums(), vdata_i.sums->sums(),
                  vdata_k.sums->counts(), vdata_i.sums->counts(),
-                 *dm, magma_wrapper, gemm_shapes, env_);
+                 *dm, magma_wrapper, gemm_shapes, env_, tc_debug);
 
     matM_kik_buf_ptr->from_accel();
 
@@ -888,12 +894,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const int I_block = si->perm0(i_block, j_block, k_block);
   const int J_block = si->perm1(i_block, j_block, k_block);
   const int K_block = si->perm2(i_block, j_block, k_block);
-
-//FIX
-  TCDebug tc_debug;
-//  tc_debug.I_base = I_block * nvl;
-//  tc_debug.J_base = J_block * nvl;
-//  tc_debug.K_base = K_block * nvl;
 
   const int J_min = si->J_lb;
   const int J_max = si->J_ub;
@@ -1030,7 +1030,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           vars_prev.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
-          vars_prev.J, vars_prev.step_2way, *dm, vars_prev.gemm_shapes, env_);
+          vars_prev.J, vars_prev.step_2way, *dm, vars_prev.gemm_shapes, env_, tc_debug);
       matB_cbuf->attach(*vars_prev.matB_buf_ptr());
       matB_cbuf->compress();
     }

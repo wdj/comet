@@ -9,12 +9,15 @@ cmake_minimum_required(VERSION 2.8.12)
 #cmake_policy(SET CMP0074 NEW)
 string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
 
+if(USE_HIPINTEL)
+  SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+  SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+endif()
+
 project("genomics_gpu")
 
 MESSAGE("--------------------")
 MESSAGE("Compiler ID: ${CMAKE_C_COMPILER_ID}")
-
-set(HIPLOCAL_DIR "${CMAKE_SOURCE_DIR}/scripts")
 
 #--------------------
 # Dirs, Files.
@@ -98,6 +101,13 @@ SET(DRIVER_SOURCES
   driver/test_problems.cc
 )
 
+SET(DRIVER_INCLUDES
+  driver/driver.hh
+  driver/vectors_io.hh
+  driver/metrics_io.hh
+  driver/test_problems.hh
+)
+
 SET(TEST_TARGETS
   env_test
   metrics_test
@@ -128,7 +138,29 @@ if(USE_CUDA)
                                 PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
   endforeach()
   CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
+elseif(USE_HIPINTEL) #=========================================
+  set(CMAKE_MODULE_PATH "$ENV{HIPCL_DIR}/cmake" ${CMAKE_MODULE_PATH})
+  #set(CMAKE_MODULE_PATH "$ENV{HOME}/cmake" ${CMAKE_MODULE_PATH})
+  #find_package(HIP)
+  #set(HIPLOCAL_FOUND TRUE)
+  #find_package(HIPLOCAL)
+  #set(HIP_DIR "${HIPCL_DIR}/cmake")
+  #set(CMAKE_HIP_COMPILER "${HIPCL_CLANG_DIR}/bin/clang++")
+  find_package(HIP)
+  if(HIP_FOUND)
+     message(STATUS "Found HIP: " ${HIP_VERSION})
+  else()
+     message(FATAL_ERROR "Could not find HIP. Ensure that the variable HIP_DIR is set to point to the right location.")
+  endif()
+  #set(CMAKE_LINKER "clang++-link --gcc-toolchain=/usr/bin --target=x86_64-linux-gnu")
+  #set(CMAKE_LINKER /soft/modulefiles/hipcl/20210506_wrapper//clang++-link)
+  set_source_files_properties(${LIB_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+  #hip_add_library(genomics_metrics ${LIB_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
+  #hip_add_library(genomics_metrics STATIC ${LIB_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
+  set_source_files_properties(driver/genomics_metric.cc ${DRIVER_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+  #XXXset(HIP_HOST_FLAGS ${CMAKE_CXX_FLAGS})
 elseif(USE_HIP) #=========================================
+  set(HIPLOCAL_DIR "${CMAKE_SOURCE_DIR}/scripts")
   if(NOT DEFINED HIP_PATH)
     if(NOT DEFINED ENV{HIP_PATH})
       message(FATAL_ERROR "Could not find HIP..")
@@ -152,24 +184,42 @@ else()
   ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 endif()
 
-INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
-
-SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 
 #--------------------
 # Main executable, lib.
 
-if(USE_HIP)
+if(USE_HIPINTEL)
+  INCLUDE_DIRECTORIES(${INCLUDE_DIRS} ${CMAKE_EXTRA_INCLUDE_DIRS})
+  SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
+  ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES} ${LIB_SOURCES})
+  set_property(TARGET genomics_metric PROPERTY HIP_ARCHITECTURES gfx90a)
+  TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
+elseif(USE_HIP)
+  INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
+  SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
   hip_add_executable(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
-  set_property(TARGET genomics_metric PROPERTY HIP_ARCHITECTURES ${COMET_HIP_ARCHITECTURES})
+  TARGET_LINK_LIBRARIES(genomics_metric genomics_metrics)
+  TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
+#elseif(USE_HIP)
+#  hip_add_executable(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES} ${LIB_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
+#  #hip_add_executable(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
+#  #set_property(TARGET genomics_metric PROPERTY HIP_ARCHITECTURES ${COMET_HIP_ARCHITECTURES})
+#  TARGET_LINK_LIBRARIES(genomics_metric genomics_metrics)
+#  TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
 else()
+  INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
+  SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
   ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES})
+  TARGET_LINK_LIBRARIES(genomics_metric genomics_metrics)
+  TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
 endif()
-TARGET_LINK_LIBRARIES(genomics_metric genomics_metrics)
-TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
 
 install(FILES ${LIB_INCLUDES} DESTINATION include)
-install(TARGETS genomics_metrics DESTINATION lib)
+if(USE_HIPINTEL)
+  install(FILES ${DRIVER_INCLUDES} DESTINATION include)
+else()
+  install(TARGETS genomics_metrics DESTINATION lib)
+endif()
 install(TARGETS genomics_metric DESTINATION bin)
 
 #--------------------
@@ -179,8 +229,12 @@ if(TESTING)
   enable_testing()
 
   foreach(TEST_TARGET ${TEST_TARGETS})
-    ADD_EXECUTABLE(${TEST_TARGET} testing/${TEST_TARGET}.cc ${DRIVER_SOURCES})
-    TARGET_LINK_LIBRARIES(${TEST_TARGET} genomics_metrics)
+    if(USE_HIPINTEL)
+      ADD_EXECUTABLE(${TEST_TARGET} testing/${TEST_TARGET}.cc ${DRIVER_SOURCES} ${LIB_SOURCES} ${ACCEL_SOURCES})
+    else()
+      ADD_EXECUTABLE(${TEST_TARGET} testing/${TEST_TARGET}.cc ${DRIVER_SOURCES})
+      TARGET_LINK_LIBRARIES(${TEST_TARGET} genomics_metrics)
+    endif()
     TARGET_LINK_LIBRARIES(${TEST_TARGET} ${CMAKE_EXE_LINKER_FLAGS})
 
     if("${TEST_TARGET}" STREQUAL "perf_test")

@@ -144,6 +144,10 @@ int compute_capability() {
   cudaGetDeviceCount(&num_devices);
   const int compute_capability = num_devices == 0 ? 0 :
     device_prop.major * 100 + device_prop.minor;
+#elif defined COMET_USE_HIPINTEL
+  int num_devices;
+  hipGetDeviceCount(&num_devices);
+  const int compute_capability = 0 == num_devices ? 0 : 1; // FIX
 #elif defined COMET_USE_HIP
   //hipDeviceProp_t device_prop;
   //hipGetDeviceProperties(&device_prop, 0); // Assume only one GPU per rank.

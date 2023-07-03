@@ -377,9 +377,8 @@ void DriverTest_czek2_() {
         //for (int num_proc_repl=1; num_proc_repl<=1; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           //const int num_proc_field = 1;
-          if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
+          if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX)
             continue;
-          }
           const int num_way = 2;
           sprintf(options1, options_template_1,
                   num_vector_local*num_proc_vector,
@@ -401,9 +400,10 @@ void DriverTest_czek2_() {
   for (int num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
     for (int num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
       for (int num_phase=2; num_phase<=8; ++num_phase) {
-        if (!(num_phase <= 1 + num_proc_vector/2)) {
+        if (!(num_phase <= 1 + num_proc_vector/2))
           continue;
-        }
+        if (num_proc_vector *  num_proc_repl > PROCS_MAX)
+          continue;
         char options_template[] =
           "--metric_type czekanowski "
           "--num_field 7 --num_vector 12 --compute_method GPU --all2all yes "
@@ -428,6 +428,8 @@ void DriverTest_czek2_() {
       for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
 
+          if (num_proc_vector * num_proc_field > PROCS_MAX)
+            continue;
           char options1[1024];
           char options2[1024];
 
@@ -605,9 +607,8 @@ void DriverTest_czek3_() {
         for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
           for (int num_stage=1; num_stage<=6; num_stage+=4) {
           const int num_proc_field = gpu ? 2 : 1;
-            if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
+            if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX)
               continue;
-            }
             const int num_way = 3;
             sprintf(options1, options_template_1,
                     num_vector_local*num_proc_vector,
@@ -637,6 +638,8 @@ void DriverTest_czek3_() {
     for (int num_vector_local=6; num_vector_local<=6; num_vector_local+=12) {
       for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_repl=1; num_proc_repl<=4; ++num_proc_repl) {
+          if (num_proc_vector * num_proc_repl > PROCS_MAX)
+            continue;
           const int npv = num_proc_vector;
           const int num_phase_max = 1==num_proc_repl ? npv*npv - 2*npv + 2 :
                                                       (npv+1)*(npv+2);
@@ -2441,6 +2444,8 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
     for (num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (num_proc_repl=1; num_proc_repl<=5; ++num_proc_repl) {
+          if (num_proc_vector * num_proc_repl > PROCS_MAX)
+            continue;
           const int num_proc_field = gpu ? 2 : 1;
           const int num_way = 2;
           sprintf(options1, options_template_10, metric_type,
@@ -2493,14 +2498,13 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   //---num_phase, 2-way
   //----------
 
-  int num_phase = 0;
-
   for (int num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
     for (int num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
       for (int num_phase=2; num_phase<=8; ++num_phase) {
-        if (!(num_phase <= 1 + num_proc_vector/2)) {
+        if (num_proc_vector * num_proc_repl > PROCS_MAX)
           continue;
-        }
+        if (!(num_phase <= 1 + num_proc_vector/2))
+          continue;
         char options_template[] =
           "--sparse yes "
           "--metric_type %s "
@@ -2550,8 +2554,10 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
     for (int num_field = 1; num_field <= 3*300; ++num_field) {
       create_vectors_file("ccc_duo_2way_in.bin", num_field, num_vector,
                           comet::MetricType::CCC, 2, comet::ProblemType::DEFAULT, 1);
-      for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
+      for (int num_proc_vector=1; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
+          if (num_proc_vector * num_proc_field > PROCS_MAX)
+            continue;
 
           const bool test_only_critical_values = true;
 
@@ -2735,6 +2741,8 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
           for (int num_proc_repl=1; num_proc_repl<=5; ++num_proc_repl) {
             for (int num_stage=1; num_stage<=6; num_stage+=4) {
               const int num_proc_field = gpu ? 2 : 1;
+              if (num_proc_vector * num_proc_repl * num_proc_field > PROCS_MAX)
+                continue;
               const int num_way = 3;
               sprintf(options1, options_template_10, metric_type,
                       num_vector_local*num_proc_vector,
@@ -2807,6 +2815,10 @@ void DriverTest_duo3_() {
 BEGIN_TESTS
 
 #if 1
+TEST(DriverTest, tc) {
+  DriverTest_tc_();
+}
+
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
@@ -2818,19 +2830,13 @@ TEST(DriverTest, czek3) {
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
-#endif
 
-#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
 
 TEST(DriverTest, subbyte_gemm) {
   DriverTest_subbyte_gemm_();
-}
-
-TEST(DriverTest, tc) {
-  DriverTest_tc_();
 }
 
 TEST(DriverTest, ccc3_simple) {

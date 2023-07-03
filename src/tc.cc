@@ -209,7 +209,7 @@ static void tc_gemm_start_impl_(
   void* sums_I, void* sums_J, void* sums_K,
   void* counts_I, void* counts_J, void* counts_K,
   int J, int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
-  GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
 
   const int nvl = n;
   const int npfl = k;
@@ -258,7 +258,11 @@ static void tc_gemm_start_impl_(
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
-    tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
+    //enum {TC_METHOD_EFF = BuildHas::INTEL_GPU ? TC::FP32 : TC_METHOD};
+    enum {TC_METHOD_EFF = BuildHas::INTEL_GPU && TC_METHOD == TC::FP32 ? TC::FP32 :
+                          BuildHas::INTEL_GPU && TC_METHOD == TC::FP16 ? TC::FP16 :
+                          BuildHas::INTEL_GPU ? TC::FP32 : TC_METHOD}; // FIX
+    tc_solve_<TC_METHOD_EFF>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
 
   } // for
@@ -333,7 +337,7 @@ void tc_gemm_start(
   void* sums_I, void* sums_J, void* sums_K,
   void* counts_I, void* counts_J, void* counts_K,
   int J, int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
-  GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
   COMET_INSIST(ldda1 >= 0 && ldda2 >= 0 && lddb >= 0 && lddc >= 0);
@@ -508,6 +512,20 @@ void TCBufs::allocate(int num_vector_local, int num_packedfield_local) {
       COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
                    "Error in cublasSetMathMode.");
       COMET_INSIST(System::accel_last_call_succeeded());
+#   elif defined COMET_USE_HIPINTEL
+      hipblasStatus_t status = hipblasCreate(&tc_bufs->accelblas_handle);
+      COMET_INSIST(status == HIPBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+
+      status = hipblasSetStream(tc_bufs->accelblas_handle, env_.stream_compute());
+      COMET_INSIST(status == HIPBLAS_STATUS_SUCCESS &&
+                   "Error in hipblasSetStream.");
+
+      //status = hipblasSetMathMode(tc_bufs.accelblas_handle,
+      //                            HIPBLAS_TENSOR_OP_MATH);
+      //COMET_INSIST(status == HIPBLAS_STATUS_SUCCESS &&
+      //             "Error in hipblasSetMathMode.");
+      COMET_INSIST(System::accel_last_call_succeeded());
 #   elif defined COMET_USE_HIP
       int status = rocblas_create_handle(&tc_bufs->accelblas_handle);
       COMET_INSIST(status == rocblas_status_success &&
@@ -586,6 +604,10 @@ void TCBufs::deallocate() {
       cublasStatus_t status = cublasDestroy(tc_bufs->accelblas_handle);
       COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
                    "Error in cublasDestroy.");
+#   elif defined COMET_USE_HIPINTEL
+      hipblasStatus_t status = hipblasDestroy(tc_bufs->accelblas_handle);
+      COMET_INSIST(status == HIPBLAS_STATUS_SUCCESS &&
+                   "Error in hipblasDestroy.");
 #   elif defined COMET_USE_HIP
       int status = rocblas_destroy_handle(tc_bufs->accelblas_handle);
       COMET_INSIST(status == rocblas_status_success &&

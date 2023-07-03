@@ -37,9 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _COMET_TC_HH_
 
 #if defined COMET_USE_CUDA
-#include "cublas_v2.h"
+#  include "cublas_v2.h"
+#elif defined COMET_USE_HIPINTEL
+#  include "hipblas.h"
 #elif defined COMET_USE_HIP
-#include "rocblas.h"
+#  include "rocblas.h"
 #endif
 
 #include "env.hh"
@@ -53,11 +55,13 @@ namespace comet {
 /// \brief Blas handle typedefs.
 
 #if defined COMET_USE_CUDA
-typedef cublasHandle_t accelblasHandle_t;
+  typedef cublasHandle_t accelblasHandle_t;
+#elif defined COMET_USE_HIPINTEL
+  typedef hipblasHandle_t  accelblasHandle_t;
 #elif defined COMET_USE_HIP
-typedef rocblas_handle accelblasHandle_t;
+  typedef rocblas_handle accelblasHandle_t;
 #else
-typedef int accelblasHandle_t;
+  typedef int accelblasHandle_t;
 #endif
 
 //-----------------------------------------------------------------------------
@@ -243,10 +247,10 @@ private:
 //-----------------------------------------------------------------------------
 
 struct TCDebug {
-//FIX
 // size_t I_base;
 // size_t J_base;
 // size_t K_base;
+  void* dummy; // iris llvm bug workaround
 };
 
 //-----------------------------------------------------------------------------
@@ -258,7 +262,7 @@ void tc_gemm_start(
   void* sums_I, void* sums_J, void* sums_K,
   void* counts_I, void* counts_J, void* counts_K,
   int J, int nfal, int step_2way, TCBufs& tc_bufs, Histograms& histograms,
-  GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug);
+  GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug);
 
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env);
 size_t tc_gemm_faxis_divisibility_required(const CEnv& env);

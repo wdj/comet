@@ -57,7 +57,7 @@ void LinAlg::gemm_start(
   MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
   int step_2way, GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
-  GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
@@ -120,7 +120,7 @@ void LinAlg::gemm_wait(
   const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
-  int step_2way, GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  int step_2way, GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
@@ -179,7 +179,7 @@ void LinAlg::gemm_start(
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
-  GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
 
   gemm_start(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
@@ -194,7 +194,7 @@ void LinAlg::gemm_wait(
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
 
   gemm_wait(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
@@ -210,11 +210,11 @@ void LinAlg::gemm(
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
-  GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug) {
+  GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug) {
   COMET_INSIST(matA && matB && matC);
 
   gemm_start(m, n, k, matA, matB, matC,
-    sums_I, sums_J, counts_I, counts_J, dm, magma_wrapper, gemm_shapes, env);
+    sums_I, sums_J, counts_I, counts_J, dm, magma_wrapper, gemm_shapes, env, tc_debug);
   gemm_wait(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, gemm_shapes, env, tc_debug);
 }

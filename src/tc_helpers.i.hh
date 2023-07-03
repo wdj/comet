@@ -36,6 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_TC_HELPERS_I_HH_
 #define _COMET_TC_HELPERS_I_HH_
 
+#ifdef COMET_USE_HIPINTEL
+#include "oneapi/mkl.hpp"
+#endif
+
 //=============================================================================
 
 namespace comet {
@@ -63,15 +67,24 @@ struct TCTraitsBase {
 template<int TC_METHOD> struct TCTraits;
 
 //----------
+// FP32
+//----------
 
 template<> struct TCTraits<TC::FP32> : public TCTraitsBase {
   //typedef BasicTypes::FP32 GemmIn_t; // don't use, harder to access bits.
   typedef uint32_t GemmIn_t;
   typedef BasicTypes::FP32 GemmOut_t;
-  enum {NUM_BITS_PER_FIELD = 8 * sizeof(GemmIn_t)};
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
+#elif defined COMET_USE_HIPINTEL
+  typedef BasicTypes::FP32 GemmInTrue_t;
+  static hipblasDatatype_t __host__ __device__ gemm_type_in() {
+    return HIPBLAS_R_32F;
+  }
+  static hipblasDatatype_t  __host__ __device__ gemm_type_out() {
+    return HIPBLAS_R_32F;
+  }
 #elif defined COMET_USE_HIP
   static rocblas_datatype __host__ __device__ gemm_type_in() {
     return rocblas_datatype_f32_r;
@@ -80,8 +93,11 @@ template<> struct TCTraits<TC::FP32> : public TCTraitsBase {
     return rocblas_datatype_f32_r;
   }
 #endif
+  enum {NUM_BITS_PER_FIELD = 8 * sizeof(GemmIn_t)};
 };
 
+//----------
+// FP16
 //----------
 
 template<> struct TCTraits<TC::FP16> : public TCTraitsBase {
@@ -91,6 +107,14 @@ template<> struct TCTraits<TC::FP16> : public TCTraitsBase {
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
+#elif defined COMET_USE_HIPINTEL
+  typedef sycl::half GemmInTrue_t;
+  static hipblasDatatype_t __host__ __device__ gemm_type_in() {
+    return HIPBLAS_R_16F;
+  }
+  static hipblasDatatype_t  __host__ __device__ gemm_type_out() {
+    return HIPBLAS_R_32F;
+  }
 #elif defined COMET_USE_HIP
   static rocblas_datatype __host__ __device__ gemm_type_in() {
     return rocblas_datatype_f16_r;
@@ -102,6 +126,8 @@ template<> struct TCTraits<TC::FP16> : public TCTraitsBase {
 };
 
 //----------
+// INT8
+//----------
 
 template<> struct TCTraits<TC::INT8> : public TCTraitsBase {
   typedef int8_t GemmIn_t;
@@ -110,6 +136,14 @@ template<> struct TCTraits<TC::INT8> : public TCTraitsBase {
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#elif defined COMET_USE_HIPINTEL
+  typedef std::int8_t GemmInTrue_t;
+  static hipblasDatatype_t __host__ __device__ gemm_type_in() {
+    return HIPBLAS_R_8I;
+  }
+  static hipblasDatatype_t  __host__ __device__ gemm_type_out() {
+    return HIPBLAS_R_32I;
+  }
 #elif defined COMET_USE_HIP
   static rocblas_datatype __host__ __device__ gemm_type_in() {
    return rocblas_datatype_i8_r;
@@ -122,6 +156,8 @@ template<> struct TCTraits<TC::INT8> : public TCTraitsBase {
 };
 
 //----------
+// INT4
+//----------
 
 template<> struct TCTraits<TC::INT4> : public TCTraitsBase {
   enum {IS_THREAD_MAPPING_FIELD_MAJOR = true}; // tuning param
@@ -132,6 +168,14 @@ template<> struct TCTraits<TC::INT4> : public TCTraitsBase {
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#elif defined COMET_USE_HIPINTEL
+  typedef int32_t GemmInTrue_t;
+  static hipblasDatatype_t __host__ __device__ gemm_type_in() {
+    return HIPBLAS_R_8I;
+  }
+  static hipblasDatatype_t  __host__ __device__ gemm_type_out() {
+    return HIPBLAS_R_32I;
+  }
 #elif defined COMET_USE_HIP
   static rocblas_datatype __host__ __device__ gemm_type_in() {
    return rocblas_datatype_u8_r; // UNUSED
@@ -147,6 +191,8 @@ template<> struct TCTraits<TC::INT4> : public TCTraitsBase {
 };
 
 //----------
+// B1
+//----------
 
 template<> struct TCTraits<TC::B1> : public TCTraitsBase {
   enum {IS_THREAD_MAPPING_FIELD_MAJOR = true}; // tuning param
@@ -157,6 +203,14 @@ template<> struct TCTraits<TC::B1> : public TCTraitsBase {
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#elif defined COMET_USE_HIPINTEL
+  typedef int32_t GemmInTrue_t;
+  static hipblasDatatype_t __host__ __device__ gemm_type_in() {
+    return HIPBLAS_R_8I;
+  }
+  static hipblasDatatype_t  __host__ __device__ gemm_type_out() {
+    return HIPBLAS_R_32I;
+  }
 #elif defined COMET_USE_HIP
   static rocblas_datatype __host__ __device__ gemm_type_in() {
    return rocblas_datatype_u8_r; // UNUSED

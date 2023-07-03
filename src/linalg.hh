@@ -57,7 +57,7 @@ struct LinAlg {
     MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
     MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
     int step_2way, GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
-    GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug = {});
+    GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug);
 
   static void gemm_wait(
     size_t m, size_t n, size_t k,
@@ -66,7 +66,7 @@ struct LinAlg {
     MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
     MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
     int step_2way, GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env,
-    TCDebug tc_debug = {});
+    TCDebug& tc_debug);
 
   static void gemm_start(
     size_t m, size_t n, size_t k,
@@ -74,14 +74,14 @@ struct LinAlg {
     MirroredBuf* sums_I, MirroredBuf* sums_J,
     MirroredBuf* counts_I, MirroredBuf* counts_J,
     GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
-    GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug = {});
+    GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug);
 
   static void gemm_wait(
     size_t m, size_t n, size_t k,
     const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
     MirroredBuf* sums_I, MirroredBuf* sums_J,
     MirroredBuf* counts_I, MirroredBuf* counts_J,
-    GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug = {});
+    GMDecompMgr& dm, GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug);
 
   static void gemm(
     size_t m, size_t n, size_t k,
@@ -89,7 +89,7 @@ struct LinAlg {
     MirroredBuf* sums_I, MirroredBuf* sums_J,
     MirroredBuf* counts_I, MirroredBuf* counts_J,
     GMDecompMgr& dm, MagmaWrapper& magma_wrapper,
-    GemmShapes& gemm_shapes, CEnv& env, TCDebug tc_debug = {});
+    GemmShapes& gemm_shapes, CEnv& env, TCDebug& tc_debug);
 
 };
 

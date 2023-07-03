@@ -626,6 +626,88 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 }
 
 //-----------------------------------------------------------------------------
+
+#ifdef COMET_USE_HIPINTEL
+
+//-----------------------------------------------------------------------------
+/// \brief Wrapper fopr OneAPI.
+
+// TODO: replace this with hipblasgenmmex call, when supported.
+
+#include "oneapi/mkl.hpp"
+
+struct syclPlatform_st { sycl::platform val; };
+struct syclDevice_st { sycl::device val; };
+struct syclContext_st { sycl::context val; };
+struct syclQueue_st { sycl::queue val; };
+struct syclEvent_st { sycl::event val; };
+
+typedef struct syclDevice_st *syclDevice_t;
+typedef struct syclPlatform_st *syclPlatform_t;
+typedef struct syclContext_st *syclContext_t;
+typedef struct syclQueue_st *syclQueue_t;
+typedef struct syclEvent_st *syclEvent_t;
+
+struct syclblasHandle
+{
+    syclPlatform_t platform;
+    syclDevice_t   device;
+    syclContext_t  context;
+    syclQueue_t    queue;
+    hipStream_t    hip_stream;
+};
+
+template<typename GemmInTrue_t, typename GemmOut_t>
+hipblasStatus_t hipblasGemmExLocal
+                             (hipblasHandle_t    handle,
+                              hipblasOperation_t transa,
+                              hipblasOperation_t transb,
+                              int                m,
+                              int                n,
+                              int                k,
+                              const void*        alpha,
+                              const void*        A,
+                              hipblasDatatype_t  a_type,
+                              int                lda,
+                              const void*        B,
+                              hipblasDatatype_t  b_type,
+                              int                ldb,
+                              const void*        beta,
+                              void*              C,
+                              hipblasDatatype_t  c_type,
+                              int                ldc,
+                              hipblasDatatype_t  compute_type,
+                              hipblasGemmAlgo_t  algo) {
+  try {
+
+    auto status = oneapi::mkl::blas::column_major::gemm(((syclblasHandle*)handle)->queue->val,
+        HIPBLAS_OP_T == transa ? oneapi::mkl::transpose::trans :
+                                 oneapi::mkl::transpose::nontrans,
+        HIPBLAS_OP_T == transb ? oneapi::mkl::transpose::trans :
+                                 oneapi::mkl::transpose::nontrans,
+        m, n, k, *(GemmOut_t*)alpha,
+        (GemmInTrue_t*)A, lda,
+        (GemmInTrue_t*)B, ldb, *(GemmOut_t*)beta,
+        (GemmOut_t*)C, ldc);
+
+    get_native<sycl::backend::ext_oneapi_level_zero>(status);
+
+    return HIPBLAS_STATUS_SUCCESS;
+
+    //return HIPBLAS_STATUS_NOT_SUPPORTED;
+
+  } catch(...) {
+
+    return HIPBLAS_STATUS_EXECUTION_FAILED;
+
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+#endif // COMET_USE_HIPINTEL
+
+//-----------------------------------------------------------------------------
 /// \brief Perform required GEMM.
 
 template<int TC_METHOD>
@@ -678,6 +760,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     // CASE: GPU, CUBLAS/ROCBLAS.
     //---------------------------
 
+
+// see /gpfs/jlse-fs0/users/pvelesko/hipBLAS/library/src
+
+
     // Make accelerator BLAS call.
 
 #   ifdef COMET_USE_ACCEL
@@ -710,16 +796,21 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       // GPU BLAS call.
 
-#     ifdef COMET_USE_CUDA
+#     if defined(COMET_USE_CUDA)
         const cublasStatus_t status = cublasGemmEx(
+#     elif defined(COMET_USE_HIPINTEL)
+        const hipblasStatus_t status = hipblasGemmExLocal<typename TCTraits<TC_METHOD>::GemmInTrue_t, typename TCTraits<TC_METHOD>::GemmOut_t>(
 #     else
         //int status = rocblas_gemm_ex(
         const rocblas_status status = rocblas_gemm_ex(
 #     endif
         tc_bufs.accelblas_handle
-#     ifdef COMET_USE_CUDA
+#     if defined(COMET_USE_CUDA)
         , IS_B_FIELD_MAJOR ? CUBLAS_OP_T : CUBLAS_OP_N
         , IS_B_FIELD_MAJOR ? CUBLAS_OP_N : CUBLAS_OP_T
+#     elif defined(COMET_USE_HIPINTEL)
+        , IS_B_FIELD_MAJOR ? HIPBLAS_OP_T : HIPBLAS_OP_N
+        , IS_B_FIELD_MAJOR ? HIPBLAS_OP_N : HIPBLAS_OP_T
 #     else
         , IS_B_FIELD_MAJOR ? rocblas_operation_transpose : rocblas_operation_none
         , IS_B_FIELD_MAJOR ? rocblas_operation_none : rocblas_operation_transpose
@@ -730,14 +821,16 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         , tc_bufs.tc_buf_right, TCTraits<TC_METHOD>::gemm_type_in(), n
         , (void*)&beta
         , matC, TCTraits<TC_METHOD>::gemm_type_out(), m
-#     ifdef COMET_USE_HIP
+#     if defined(COMET_USE_HIP) && ! defined(COMET_USE_HIPINTEL)
         , matC, TCTraits<TC_METHOD>::gemm_type_out(), m
 #     endif
         , TCTraits<TC_METHOD>::gemm_type_out()
-#     ifdef COMET_USE_CUDA
+#     if defined(COMET_USE_CUDA)
         //, CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing for cuda 9.1.85 transpose
         //, CUBLAS_GEMM_DFALT_TENSOR_OP // good timing for cuda 9.2.88 transpose
         , CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing for cuda 9.2.88 transpose
+#     elif defined(COMET_USE_HIPINTEL)
+        , HIPBLAS_GEMM_DEFAULT
 #     else
         , rocblas_gemm_algo_standard
         , 0, rocblas_gemm_flags_pack_int8x4 // solution_index, flags, workspace_size, workspace
@@ -747,7 +840,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       env.gemmtime_end();
 
-#     ifdef COMET_USE_CUDA
+#     if defined(COMET_USE_CUDA)
         if (CUBLAS_STATUS_SUCCESS != status)
           // Decode error message.
           fprintf(stderr, "Error: %s\n",
@@ -763,6 +856,22 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
                   "CUBLAS_STATUS_EXECUTION_FAILED" : "");
         COMET_INSIST(CUBLAS_STATUS_SUCCESS == status &&
                      "Failure in call to cublasGemmEx.");
+#     elif defined(COMET_USE_HIPINTEL)
+        if (HIPBLAS_STATUS_SUCCESS != status)
+          // Decode error message.
+          fprintf(stderr, "Error: %s\n",
+                   HIPBLAS_STATUS_NOT_INITIALIZED == status ?
+                  "HIPBLAS_STATUS_NOT_INITIALIZED" :
+                   HIPBLAS_STATUS_ARCH_MISMATCH == status ?
+                  "HIPBLAS_STATUS_ARCH_MISMATCH" :
+                   HIPBLAS_STATUS_NOT_SUPPORTED == status ?
+                  "HIPBLAS_STATUS_NOT_SUPPORTED" :
+                   HIPBLAS_STATUS_INVALID_VALUE == status ?
+                  "HIPBLAS_STATUS_INVALID_VALUE" :
+                   HIPBLAS_STATUS_EXECUTION_FAILED == status ?
+                  "HIPBLAS_STATUS_EXECUTION_FAILED" : "");
+        COMET_INSIST(HIPBLAS_STATUS_SUCCESS == status &&
+                     "Failure in call to hipblasGemmEx.");
 #     else
         if (status != rocblas_status_success)
           // Decode error message.

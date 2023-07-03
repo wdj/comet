@@ -674,6 +674,8 @@ void ComputeMetrics2WayBlock::compute_nums_start(
     ////GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
     //GemmShapes gemm_shapes(&gemm_shape);
 
+    TCDebug tc_debug;
+
     LinAlg::gemm_start(
       vectors_left->num_vector_local(),
       vectors_left->num_vector_local(),
@@ -683,7 +685,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      *(vectors_left->dm()), magma_wrapper, gemm_shapes, *env);
+      *(vectors_left->dm()), magma_wrapper, gemm_shapes, *env, tc_debug);
 
   } else if(env->metric_type() == MetricType::CZEK) {
 
@@ -743,6 +745,8 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
     ////GemmShapes gemm_shapes(&gemm_shape, NULL, NULL);
     //GemmShapes gemm_shapes(&gemm_shape);
 
+    TCDebug tc_debug;
+
     LinAlg::gemm_wait(
       vectors_left->num_vector_local(),
       vectors_left->num_vector_local(),
@@ -752,7 +756,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      *(vectors_left->dm()), gemm_shapes, *env);
+      *(vectors_left->dm()), gemm_shapes, *env, tc_debug);
 
   } // if
 }

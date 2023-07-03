@@ -60,6 +60,7 @@ function main
   # make.
 
   time make -j4 VERBOSE=1
+  #time make VERBOSE=1
 
   if [ $? != 0 ] ; then
     exit $?

@@ -714,49 +714,52 @@ bool CEnv::can_run(int tc_try) const {
   // NOTE: MI60 is 906
   const int cc_mi60 = 906; // 900;
   const int cc_mi100 = 908; // 900;
-  const int cc_minone = 1000;
+  //const int cc_minone = 1000;
+  // https://www.techpowerup.com/gpu-specs/intel-ponte-vecchio.g1046
+  //const int cc_ig125 = 125;
+  const int cc_ig110 = 1;
 
   const bool is_bitwise_gpu = is_metric_type_bitwise() &&
     is_compute_method_gpu();
 
   if (TC::FP32 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust CUDA compute capability here.
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
-                     || (BuildHas::HIP && System::compute_capability() >= cc_mi60));
+    result = result && ((BuildHas::NVIDIA_GPU && System::compute_capability() >= 400)
+                     || (BuildHas::AMD_GPU && System::compute_capability() >= cc_mi60)
+                     || (BuildHas::INTEL_GPU && System::compute_capability() >= cc_ig110));
   }
 
   if (TC::FP16 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
-    result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
-                  //|| (BuildHas::HIP && System::compute_capability() >= cc_minone));
-                  || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
+    result = result && ((BuildHas::NVIDIA_GPU && System::compute_capability() >= 700)
+                     || (BuildHas::AMD_GPU && System::compute_capability() >= cc_mi100)
+                     || (BuildHas::INTEL_GPU && System::compute_capability() >= cc_ig110));
   }
 
   if (TC::INT8 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
     // NOTE: pre-Turing can support INT8 but it is not necessarily fastest.
-    result = result &&((BuildHas::CUDA && System::compute_capability() >= 750)
-                  //|| (BuildHas::HIP && System::compute_capability() >= 1000));
-                  //|| (BuildHas::HIP && System::compute_capability() >= 908));
-                    //FIX|| (BuildHas::HIP && System::compute_capability() >= cc_minone));
-                    || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
+    result = result &&((BuildHas::NVIDIA_GPU && System::compute_capability() >= 750)
+                  //|| (BuildHas::AMD_GPU && System::compute_capability() >= 1000));
+                  //|| (BuildHas::AMD_GPU && System::compute_capability() >= 908));
+                    || (BuildHas::AMD_GPU && System::compute_capability() >= cc_mi100));
   }
 
   if (TC::INT4 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
     // FIX: Temporary code below for testing mockup code on summit.
-//  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-    result = result && ((BuildHas::CUDA && (BuildHas::CUTLASS && System::compute_capability() >= 700))
-                     || (BuildHas::HIP && System::compute_capability() >= cc_minone))
+//  result = result && ((BuildHas::NVIDIA_GPU && System::compute_capability() >= 750)
+    result = result && ((BuildHas::NVIDIA_GPU && (BuildHas::CUTLASS && System::compute_capability() >= 700))
+                     || (BuildHas::AMD_GPU && false))
                     ; // && can_use_xor_(tc_try);
   }
 
   if (TC::B1 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
     // FIX: Temporary code below for testing mockup code on summit.
-//  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-    result = result && ((BuildHas::CUDA && (BuildHas::CUTLASS && System::compute_capability() >= 700))
-                     || (BuildHas::HIP && System::compute_capability() >= cc_minone))
+//  result = result && ((BuildHas::NVIDIA_GPU && System::compute_capability() >= 750)
+    result = result && ((BuildHas::NVIDIA_GPU && (BuildHas::CUTLASS && System::compute_capability() >= 700))
+                     || (BuildHas::AMD_GPU && false))
                      && (can_use_xor_(tc_try) || System::compute_capability() >= 800);
   }
 

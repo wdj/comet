@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined COMET_USE_CUDA
 #  define CUB_NS_QUALIFIER cub
 #  include "cub.cuh"
-#elif defined COMET_USE_HIP
+#elif defined COMET_USE_HIP && defined COMET_USE_ROCPRIM
 #  include "rocprim/rocprim.hpp"
 #endif
 
@@ -102,6 +102,86 @@ void CompressedBuf::attach(MirroredBuf& buf) {
 }
 
 //-----------------------------------------------------------------------------
+
+#if defined COMET_USE_HIP && ! defined COMET_USE_ROCPRIM
+
+//-----------------------------------------------------------------------------
+
+template<class MFTTypeIn>
+__global__ static void reduce_kernel_(MFTTypeIn* buf_d, size_t buf_length,
+  MFTTypeIn* num_nonzeros_buf_d) {
+
+  const int threadindex = threadIdx_x_();
+  const int blockindex = blockIdx_x_();
+  const int blocksize = blockDim_x_();
+  const int gridsize = gridDim_x_();
+
+  const size_t thread = threadindex + blocksize * static_cast<size_t>(
+                        blockindex);
+
+  typedef int Dummy_t;
+  extern __shared__ Dummy_t sdata_[];
+  auto sdata = reinterpret_cast<MFTTypeIn*>(&(sdata_[0]));
+  sdata[threadindex] = 0;
+
+  size_t index = thread;
+
+ // Serially reduce across (threadblock*grid)-sized chunks.
+
+  while (index < buf_length) {
+    sdata[threadindex] += static_cast<MFTTypeIn>(buf_d[index] != static_cast<MFTTypeIn>(0));
+    index += blocksize * static_cast<size_t>(gridsize);
+  } // while
+
+  // Reduce within threadblock.
+
+  for (unsigned int s = blocksize/2; s > 0; s >>= 1) {
+    __syncthreads();
+    if (threadindex < s) { // parallel sweep reduction
+      sdata[threadindex] += sdata[threadindex + s];
+    }
+  }
+
+  // First thread of each threadblock adds in its contribution.
+
+  if (0 == threadindex)
+    atomicAdd(&(num_nonzeros_buf_d[0]), sdata[0]);
+}
+
+//-----------------------------------------------------------------------------
+
+template<class MFTTypeIn>
+static void reduce_(MFTTypeIn* buf_d, size_t buf_length,
+  MFTTypeIn* num_nonzeros_buf_d, AccelStream_t accel_stream) {
+
+  const auto num_thread = static_cast<NML_t>(buf_length);
+
+  hipMemsetAsync(num_nonzeros_buf_d, 0, 1*sizeof(MFTTypeIn), accel_stream);
+
+  // ISSUE: this may need to be a power of 2.
+  const int threadblocksize = 256;
+  COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+               "Current HIP limitation.");
+  const int num_threadblocks_0 = utils::ceil(num_thread,
+                                   static_cast<NML_t>(threadblocksize));
+
+  COMET_LAUNCH_KERNEL((reduce_kernel_<MFTTypeIn>),
+    dim3(num_threadblocks_0, 1, 1),
+    dim3(threadblocksize, 1, 1),
+    threadblocksize * sizeof(MFTTypeIn),
+    accel_stream,
+    buf_d,
+    buf_length,
+    num_nonzeros_buf_d);
+
+  System::accel_last_call_succeeded();
+} // reduce_
+
+//-----------------------------------------------------------------------------
+
+#endif
+
+//-----------------------------------------------------------------------------
 /// \brief Compute number of nonzero MFTTypeIn values in buffer device memory.
 
 void CompressedBuf::compute_num_nonzeros_() {
@@ -126,13 +206,17 @@ void CompressedBuf::compute_num_nonzeros_() {
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
         buf_length_(), reduction_op, initial_value, env_.stream_fromgpu());
 
-#   elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP && defined COMET_USE_ROCPRIM
 
       // see https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_reduce.hpp
 
       rocprim::reduce(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
         initial_value, buf_length_(), reduction_op, env_.stream_fromgpu());
+
+#   elif defined COMET_USE_HIP // && ! defined COMET_USE_ROCPRIM
+
+      // no temp storage needed //
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 
@@ -158,11 +242,17 @@ void CompressedBuf::compute_num_nonzeros_() {
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
         buf_length_(), reduction_op, initial_value, env_.stream_fromgpu());
 
-#   elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP && defined COMET_USE_ROCPRIM
 
       rocprim::reduce((Workspace_t*)reduce_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
         initial_value, buf_length_(), reduction_op, env_.stream_fromgpu());
+
+#   elif defined COMET_USE_HIP // && ! defined COMET_USE_ROCPRIM
+
+      reduce_(reinterpret_cast<MFTTypeIn*>(buf_->d), buf_length_(),
+              reinterpret_cast<MFTTypeIn*>(num_nonzeros_buf_.d),
+              env_.stream_fromgpu());
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 
@@ -181,6 +271,18 @@ void CompressedBuf::compute_num_nonzeros_() {
 
 # endif // COMET_USE_ACCEL
 }
+
+//-----------------------------------------------------------------------------
+
+#if defined COMET_USE_HIP && ! defined COMET_USE_ROCPRIM
+
+//-----------------------------------------------------------------------------
+
+  // TODO - need prefix scan code
+
+//-----------------------------------------------------------------------------
+
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Compress the underlying buffer if needed.
@@ -222,7 +324,7 @@ void CompressedBuf::compress() {
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_fromgpu());
 
-#   elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP && defined COMET_USE_ROCPRIM
 
       // see https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_run_length_encode.hpp
 
@@ -231,6 +333,16 @@ void CompressedBuf::compress() {
         (MFTTypeIn*)keys_buf_.d, (Lengths_t*)lengths_buf_.d,
         (size_t*)num_runs_buf_.d,
         env_.stream_fromgpu());
+
+#   elif defined COMET_USE_HIP // && ! defined COMET_USE_ROCPRIM
+
+  // TODO
+
+  // https://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/samples.html
+  // https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_run_length_encode.hpp
+  // https://erkaman.github.io/posts/cuda_rle.html
+  // https://www.eecs.umich.edu/courses/eecs570/hw/parprefix.pdf
+  // https://github.com/NVIDIA/cuda-samples/tree/master/Samples/2_Concepts_and_Techniques/scan
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 
@@ -257,13 +369,17 @@ void CompressedBuf::compress() {
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_fromgpu());
 
-#   elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP && defined COMET_USE_ROCPRIM
 
       rocprim::run_length_encode((Workspace_t*)rle_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, buf_length_(),
         (MFTTypeIn*)keys_buf_.d, (Lengths_t*)lengths_buf_.d,
         (size_t*)num_runs_buf_.d,
         env_.stream_fromgpu());
+
+#   elif defined COMET_USE_HIP // && ! defined COMET_USE_ROCPRIM
+
+  // TODO
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 

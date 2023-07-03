@@ -439,7 +439,7 @@ echo \
   #----------------------------------------------------------------------------
   #---Get AMD ROCPRIM library.
 
-  if [ ${USE_HIP:-OFF} = ON ] ; then
+  if [ ${USE_HIP:-OFF} = ON -a ${USE_ROCPRIM:-OFF} = ON ] ; then
     local ROCPRIM_VERSION=3.5.1
     if [ 0 = 1 ] ; then
       echo "" >/dev/null
@@ -458,7 +458,7 @@ echo \
       pushd rocPRIM-rocm-${ROCPRIM_VERSION}
       mkdir build
       pushd build
-      cmake -DBUILD_BENCHMARK=ON -DCMAKE_CXX_COMPILER=hipcc -DBUILD_BENCHMARK=OFF -DROCM_PATH=$ROCM_PATH ../.
+      cmake -DBUILD_BENCHMARK=ON -DCMAKE_CXX_COMPILER=hipcc -DBUILD_BENCHMARK=OFF -DROCM_PATH=${ROCM_PATH:-} ../.
       make -j16
       touch build_is_complete
       # ISSUE: need to check for hipcc version consistency.
@@ -554,6 +554,10 @@ echo \
   [[ ${USE_HIP:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_HIP -DCOMET_USE_ACCEL"
   CMAKE_CXX_FLAGS+=" ${COMET_HIP_COMPILE_OPTS:-}"
 
+  [[ ${USE_HIPINTEL:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_HIPINTEL"
+
+  [[ ${USE_ROCPRIM:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_ROCPRIM"
+
   [[ ${USE_CPUBLAS:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_CPUBLAS"
   CMAKE_CXX_FLAGS+=" ${COMET_CPUBLAS_COMPILE_OPTS:-}"
 
@@ -572,7 +576,11 @@ echo \
   #---Compiler optimization flags.
 
   [[ $BUILD_TYPE != "Debug" ]] && CMAKE_CXX_FLAGS+=" -DNDEBUG"
-  CMAKE_CXX_FLAGS+=" -O3 -fomit-frame-pointer"
+  if [ $COMET_PLATFORM = IRIS ] ; then
+    CMAKE_CXX_FLAGS+=" -O1 -fomit-frame-pointer"
+  else
+    CMAKE_CXX_FLAGS+=" -O3 -fomit-frame-pointer"
+  fi
 
   #---The following change slows performance by 1% on a test case but helps
   #---make results exactly reproducible on varyng number of procs.
@@ -586,7 +594,7 @@ echo \
     CMAKE_CXX_FLAGS+=" -fcx-limited-range"
   fi
 
-  CMAKE_CXX_FLAGS+=" -finline-functions"
+    CMAKE_CXX_FLAGS+=" -finline-functions"
   if [ $USE_GCC = ON ] ; then
     CMAKE_CXX_FLAGS+=" -finline-limit=1000"
   fi
@@ -608,7 +616,8 @@ echo \
   #----------------------------------------------------------------------------
   #---Other cmake flags.
 
-  local CMAKE_EXTRA_OPTIONS=""
+  #local CMAKE_EXTRA_OPTIONS=""
+  local CMAKE_EXTRA_OPTIONS="${CMAKE_EXTRA_OPTIONS:-}"
 
   #if [ "$USE_MPI" = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" ${COMET_MPI_CMAKE_OPTS:-} "
@@ -617,6 +626,12 @@ echo \
   #if [ ${USE_CUDA:-OFF} = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" ${COMET_CUDA_CMAKE_OPTS:-} "
   #fi
+
+  if [ ${USE_HIPINTEL:-OFF} = ON ] ; then
+    local CMAKE_CXX_FLAGS_DEBUG="-g"
+  else
+    local CMAKE_CXX_FLAGS_DEBUG="-g -ftrapv"
+  fi
 
   #if [ ${USE_HIP:-OFF} = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" ${COMET_HIP_CMAKE_OPTS:-} "
@@ -643,7 +658,7 @@ echo \
     -DCMAKE_CXX_COMPILER:STRING="$CXX_COMPILER" \
    \
     -DCMAKE_CXX_FLAGS:STRING="$CMAKE_CXX_FLAGS" \
-    -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -ftrapv" \
+    -DCMAKE_CXX_FLAGS_DEBUG:STRING="$CMAKE_CXX_FLAGS_DEBUG" \
     -DCMAKE_CXX_FLAGS_RELEASE:STRING="" \
    \
     -DCMAKE_EXE_LINKER_FLAGS:STRING="$LFLAGS" \
@@ -658,6 +673,7 @@ echo \
     -DUSE_MPI:BOOL=${COMET_CMAKE_USE_MPI:-${USE_MPI:-OFF}} \
     -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
+    -DUSE_HIPINTEL:BOOL=${USE_HIPINTEL:-OFF} \
    \
     $REPO_DIR
   set +x
